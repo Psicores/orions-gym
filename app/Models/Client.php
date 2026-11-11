@@ -7,6 +7,7 @@ use Database\Factories\ClientFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[Fillable([
@@ -55,5 +56,24 @@ class Client extends Model
             // La fecha de vencimiento de la cuota se maneja como fecha (Carbon).
             'fecha_vencimiento' => 'date',
         ];
+    }
+
+    /**
+     * Membresías (contratos con un plan) que tuvo y tiene el cliente.
+     *
+     * Precondiciones:
+     * - Existe la tabla memberships con la columna client_id.
+     *
+     * Postcondiciones:
+     * - Devuelve la relación "un cliente tiene muchas membresías", sin ejecutar la consulta.
+     * - $client->memberships devuelve una colección (vacía si no tiene ninguna).
+     * - No modifica datos.
+     *
+     * @return HasMany<Membership, $this>
+     */
+    public function memberships(): HasMany
+    {
+        // Busca en memberships las filas cuyo client_id es el id de este cliente.
+        return $this->hasMany(Membership::class);
     }
 }

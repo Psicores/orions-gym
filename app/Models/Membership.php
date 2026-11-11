@@ -7,6 +7,7 @@ use Database\Factories\MembershipFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * Membresía: el contrato que une a un cliente con un plan durante un período.
@@ -88,5 +89,47 @@ class Membership extends Model
             // Créditos restantes como número entero.
             'creditos_disponibles' => 'integer',
         ];
+    }
+
+    /**
+     * Cliente dueño de la membresía.
+     *
+     * Precondiciones:
+     * - client_id apunta a un cliente existente (la clave foránea lo garantiza).
+     *
+     * Postcondiciones:
+     * - Devuelve la relación "la membresía pertenece a un cliente", sin ejecutar la consulta.
+     * - Incluye clientes dados de baja: $membership->client nunca es null por una baja lógica.
+     * - No modifica datos.
+     *
+     * @return BelongsTo<Client, $this>
+     */
+    public function client(): BelongsTo
+    {
+        // Une memberships.client_id con clients.id.
+        return $this->belongsTo(Client::class)
+            // Incluye clientes dados de baja para no perder el historial.
+            ->withTrashed();
+    }
+
+    /**
+     * Plan contratado en la membresía.
+     *
+     * Precondiciones:
+     * - plan_id apunta a un plan existente (la clave foránea lo garantiza).
+     *
+     * Postcondiciones:
+     * - Devuelve la relación "la membresía pertenece a un plan", sin ejecutar la consulta.
+     * - Incluye planes dados de baja: el historial sigue mostrando qué plan tenía.
+     * - No modifica datos.
+     *
+     * @return BelongsTo<Plan, $this>
+     */
+    public function plan(): BelongsTo
+    {
+        // Une memberships.plan_id con plans.id.
+        return $this->belongsTo(Plan::class)
+            // Incluye planes dados de baja para no perder el historial.
+            ->withTrashed();
     }
 }

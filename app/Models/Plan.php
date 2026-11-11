@@ -6,6 +6,7 @@ use Database\Factories\PlanFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
@@ -45,5 +46,24 @@ class Plan extends Model
             // Los créditos se manejan como número entero.
             'creditos_otorgados' => 'integer',
         ];
+    }
+
+    /**
+     * Membresías que se contrataron con este plan.
+     *
+     * Precondiciones:
+     * - Existe la tabla memberships con la columna plan_id.
+     *
+     * Postcondiciones:
+     * - Devuelve la relación "un plan tiene muchas membresías", sin ejecutar la consulta.
+     * - $plan->memberships devuelve una colección (vacía si nadie lo contrató).
+     * - No modifica datos.
+     *
+     * @return HasMany<Membership, $this>
+     */
+    public function memberships(): HasMany
+    {
+        // Busca en memberships las filas cuyo plan_id es el id de este plan.
+        return $this->hasMany(Membership::class);
     }
 }
