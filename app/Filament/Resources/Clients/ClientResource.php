@@ -3,10 +3,12 @@
 namespace App\Filament\Resources\Clients;
 
 use App\Enums\ClientStatusEnum;
+use App\Filament\Resources\Clients\Actions\RegisterPaymentAction;
 use App\Filament\Resources\Clients\Pages\CreateClient;
 use App\Filament\Resources\Clients\Pages\EditClient;
 use App\Filament\Resources\Clients\Pages\ListClients;
 use App\Filament\Resources\Clients\RelationManagers\MembershipsRelationManager;
+use App\Filament\Resources\Clients\RelationManagers\PaymentsRelationManager;
 use App\Models\Client;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
@@ -277,6 +279,8 @@ class ClientResource extends Resource
             ])
             // Acciones de cada fila.
             ->recordActions([
+                // Cobro rápido: abre el modal para registrar un pago del cliente.
+                RegisterPaymentAction::make(),
                 // Botón para abrir el formulario de edición del cliente.
                 EditAction::make(),
             ])
@@ -296,10 +300,10 @@ class ClientResource extends Resource
      * Tablas relacionadas que se muestran al editar un cliente.
      *
      * Precondiciones:
-     * - Client tiene la relación memberships().
+     * - Client tiene las relaciones memberships() y payments().
      *
      * Postcondiciones:
-     * - La edición del cliente muestra la pestaña "Membresías".
+     * - La edición del cliente muestra las pestañas "Membresías" y "Pagos", en ese orden.
      *
      * @return array<class-string<RelationManager>>
      */
@@ -309,6 +313,8 @@ class ClientResource extends Resource
         return [
             // Membresías del cliente (alta, edición y baja).
             MembershipsRelationManager::class,
+            // Historial de pagos del cliente (solo lectura).
+            PaymentsRelationManager::class,
         ];
     }
 

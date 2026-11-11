@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Clients\Pages;
 
+use App\Filament\Resources\Clients\Actions\RegisterPaymentAction;
 use App\Filament\Resources\Clients\ClientResource;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\RestoreAction;
@@ -14,19 +15,20 @@ class EditClient extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            RegisterPaymentAction::make(),
             DeleteAction::make(),
             RestoreAction::make(),
         ];
     }
 
     /**
-     * Indica que el formulario del cliente y sus membresías se muestren como pestañas.
+     * Indica que el formulario del cliente, sus membresías y sus pagos se muestren como pestañas.
      *
      * Precondiciones:
      * - ClientResource::getRelations() devuelve al menos un relation manager.
      *
      * Postcondiciones:
-     * - La página muestra las pestañas "Cliente" y "Membresías" en lugar de apilar la tabla
+     * - La página muestra las pestañas "Cliente", "Membresías" y "Pagos" en lugar de apilar las tablas
      *   debajo del formulario.
      *
      * @return bool Siempre true.
