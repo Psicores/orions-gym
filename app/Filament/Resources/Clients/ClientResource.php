@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Clients;
 
 use App\Enums\ClientStatusEnum;
+use App\Filament\Resources\Clients\Actions\RegisterPaymentAction;
 use App\Filament\Resources\Clients\Pages\CreateClient;
 use App\Filament\Resources\Clients\Pages\EditClient;
 use App\Filament\Resources\Clients\Pages\ListClients;
@@ -277,6 +278,8 @@ class ClientResource extends Resource
             ])
             // Acciones de cada fila.
             ->recordActions([
+                // Cobro rápido: abre el modal para registrar un pago del cliente.
+                RegisterPaymentAction::make(),
                 // Botón para abrir el formulario de edición del cliente.
                 EditAction::make(),
             ])

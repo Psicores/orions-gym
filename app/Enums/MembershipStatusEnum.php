@@ -51,6 +51,55 @@ enum MembershipStatusEnum: string implements HasColor, HasDescription, HasIcon, 
     }
 
     /**
+     * Indica si a una membresía en este estado se le pueden imputar pagos.
+     *
+     * Precondiciones:
+     * - Ninguna: se llama sobre cualquier caso del enum.
+     *
+     * Postcondiciones:
+     * - Devuelve true para Entrenando, EnPausa y ActivoFlex (activas o pausadas: pueden
+     *   tener cuotas por cobrar), false para Vencida (a un cliente que vuelve se le crea
+     *   una membresía nueva).
+     * - No modifica nada.
+     *
+     * @return bool true si el estado admite registrar pagos.
+     */
+    public function acceptsPayments(): bool
+    {
+        // Solo las membresías vencidas quedan cerradas a nuevos pagos.
+        return match ($this) {
+            // Activa, con excepción o pausada (debe plata): se le puede cobrar.
+            self::Entrenando, self::ActivoFlex, self::EnPausa => true,
+            // Terminada: no se le cobra más.
+            self::Vencida => false,
+        };
+    }
+
+    /**
+     * Lista los estados a cuyas membresías se les pueden imputar pagos.
+     *
+     * Precondiciones:
+     * - Ninguna.
+     *
+     * Postcondiciones:
+     * - Devuelve los casos para los que acceptsPayments() es true, listos para usar en
+     *   un whereIn('estado', ...).
+     * - No modifica nada.
+     *
+     * @return list<self> Casos que admiten pagos.
+     */
+    public static function payableCases(): array
+    {
+        // Recorre todos los casos y se queda con los que admiten pagos.
+        return array_values(array_filter(
+            // Todos los estados posibles.
+            self::cases(),
+            // Filtro: el estado admite pagos.
+            fn (self $status): bool => $status->acceptsPayments(),
+        ));
+    }
+
+    /**
      * Devuelve el nombre del estado para mostrar en el panel.
      *
      * Precondiciones:

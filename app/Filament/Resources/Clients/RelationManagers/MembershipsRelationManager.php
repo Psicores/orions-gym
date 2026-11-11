@@ -139,6 +139,8 @@ class MembershipsRelationManager extends RelationManager
      *   ícono y los créditos disponibles.
      * - Permite crear, editar y borrar membresías. No ofrece asociar ni desasociar
      *   membresías de otros clientes.
+     * - No ofrece borrar una membresía que ya tiene pagos (la base lo impide para no perder
+     *   el historial de caja); en el borrado masivo esas filas se informan como no borradas.
      *
      * @param  Table  $table  Tabla vacía que entrega Filament.
      * @return Table La tabla configurada con columnas y acciones.
@@ -147,6 +149,8 @@ class MembershipsRelationManager extends RelationManager
     {
         // Devuelve la tabla recibida con columnas y acciones cargadas.
         return $table
+            // Agrega a cada fila si tiene pagos (payments_exists) en la misma consulta, para decidir si se puede borrar.
+            ->modifyQueryUsing(fn (Builder $query): Builder => $query->withExists('payments'))
             // Usa el nombre del plan como título de cada fila en mensajes y confirmaciones.
             ->recordTitle(fn (Membership $record): string => $record->plan->nombre)
             // Columnas visibles, en el orden en que se muestran.
@@ -198,7 +202,9 @@ class MembershipsRelationManager extends RelationManager
                 // Botón para editar la membresía.
                 EditAction::make(),
                 // Botón para borrar la membresía (pide confirmación).
-                DeleteAction::make(),
+                DeleteAction::make()
+                    // Se oculta si la membresía ya tiene pagos registrados.
+                    ->hidden(fn (Membership $record): bool => (bool) $record->payments_exists),
             ])
             // Acciones sobre varias filas seleccionadas.
             ->toolbarActions([

@@ -5,6 +5,8 @@ namespace App\Models;
 use App\Enums\MembershipStatusEnum;
 use Database\Factories\MembershipFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -90,6 +92,26 @@ class Membership extends Model
             // Créditos restantes como número entero.
             'creditos_disponibles' => 'integer',
         ];
+    }
+
+    /**
+     * Filtra las membresías a las que se les puede imputar un pago (activas o pausadas).
+     *
+     * Precondiciones:
+     * - Se usa como Membership::query()->acceptingPayments() o $client->memberships()->acceptingPayments().
+     *
+     * Postcondiciones:
+     * - La consulta solo trae membresías cuyo estado cumple MembershipStatusEnum::acceptsPayments()
+     *   (hoy: todas menos las vencidas).
+     * - No ejecuta la consulta ni modifica datos.
+     *
+     * @param  Builder<Membership>  $query  Consulta a la que se agrega el filtro.
+     */
+    #[Scope]
+    protected function acceptingPayments(Builder $query): void
+    {
+        // Se queda con los estados que admiten pagos; la regla vive en el enum para no repetirla.
+        $query->whereIn('estado', MembershipStatusEnum::payableCases());
     }
 
     /**

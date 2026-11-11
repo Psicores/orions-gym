@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Clients\Pages;
 
+use App\Filament\Resources\Clients\Actions\RegisterPaymentAction;
 use App\Filament\Resources\Clients\ClientResource;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\RestoreAction;
@@ -14,6 +15,7 @@ class EditClient extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            RegisterPaymentAction::make(),
             DeleteAction::make(),
             RestoreAction::make(),
         ];
