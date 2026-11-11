@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Clients\RelationManagers;
 
 use App\Enums\MembershipStatusEnum;
 use App\Models\Membership;
+use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
@@ -12,8 +13,10 @@ use Filament\Actions\EditAction;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
+use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -137,6 +140,7 @@ class MembershipsRelationManager extends RelationManager
      * - Lista solo las membresías de ese cliente, de la más reciente a la más vieja.
      * - Muestra el plan (aunque esté dado de baja), las fechas, el estado con su color e
      *   ícono y los créditos disponibles.
+     * - Permite dar días de gracia (Activo flex + vencimiento extendido) a las membresías no vencidas.
      * - Permite crear, editar y borrar membresías. No ofrece asociar ni desasociar
      *   membresías de otros clientes.
      * - No ofrece borrar una membresía que ya tiene pagos (la base lo impide para no perder
@@ -199,6 +203,55 @@ class MembershipsRelationManager extends RelationManager
             ])
             // Acciones de cada fila.
             ->recordActions([
+                // Botón para dar días de gracia: pasa la membresía a Activo flex y corre el vencimiento.
+                Action::make('grantGraceDays')
+                    // Texto del botón.
+                    ->label('Dar días de gracia')
+                    // Ícono de reloj.
+                    ->icon(Heroicon::OutlinedClock)
+                    // Celeste, el mismo color que el estado Activo flex.
+                    ->color('info')
+                    // No se ofrece para membresías vencidas (a esas se les crea una nueva).
+                    ->hidden(fn (Membership $record): bool => $record->estado === MembershipStatusEnum::Vencida)
+                    // Título del modal con el plan de la membresía.
+                    ->modalHeading(fn (Membership $record): string => "Dar días de gracia ({$record->plan->nombre})")
+                    // Explica qué va a pasar al confirmar.
+                    ->modalDescription(fn (Membership $record): string => 'Pasa la membresía a Activo flex y corre el vencimiento (hoy: '.$record->fecha_vencimiento->format('d/m/Y').'). Si ya venció, los días se cuentan desde hoy.')
+                    // Texto del botón que confirma.
+                    ->modalSubmitActionLabel('Dar gracia')
+                    // Campos del modal.
+                    ->schema([
+                        // Cantidad de días a extender.
+                        TextInput::make('dias')
+                            // Texto del campo.
+                            ->label('Días de gracia')
+                            // Solo enteros.
+                            ->integer()
+                            // Una semana por defecto.
+                            ->default(7)
+                            // Al menos un día.
+                            ->minValue(1)
+                            // Como mucho dos meses.
+                            ->maxValue(60)
+                            // Obligatorio.
+                            ->required(),
+                    ])
+                    // Al confirmar, aplica la gracia desde el modelo (que valida estado y rango).
+                    ->action(function (array $data, Membership $record): void {
+                        // Cambia estado y vencimiento.
+                        $record->grantGraceDays((int) $data['dias']);
+
+                        // Confirma con la nueva fecha de vencimiento.
+                        Notification::make()
+                            // Título de la notificación.
+                            ->title('Días de gracia otorgados')
+                            // Detalle con el nuevo vencimiento.
+                            ->body('Ahora vence el '.$record->fecha_vencimiento->format('d/m/Y').'.')
+                            // Verde.
+                            ->success()
+                            // La muestra.
+                            ->send();
+                    }),
                 // Botón para editar la membresía.
                 EditAction::make(),
                 // Botón para borrar la membresía (pide confirmación).

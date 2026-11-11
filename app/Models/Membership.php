@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use InvalidArgumentException;
 
 /**
  * Membresía: el contrato que une a un cliente con un plan durante un período.
@@ -173,5 +174,50 @@ class Membership extends Model
     {
         // Busca en payments las filas cuyo membership_id es el id de esta membresía.
         return $this->hasMany(Payment::class);
+    }
+
+    /**
+     * Da días de gracia: habilita la membresía por excepción (Activo flex) y corre el vencimiento.
+     *
+     * Precondiciones:
+     * - La membresía existe en la base y no está vencida (MembershipStatusEnum::Vencida).
+     * - $dias es un entero entre 1 y 60.
+     *
+     * Postcondiciones:
+     * - estado = ActivoFlex.
+     * - fecha_vencimiento = la mayor entre la fecha de vencimiento actual y hoy, más $dias días.
+     *   Si ya estaba vencida por fecha, los días se cuentan desde hoy, para que la gracia no
+     *   termine en el pasado.
+     * - Los cambios quedan guardados en la base y en esta instancia.
+     * - Si alguna precondición no se cumple, lanza la excepción y no guarda nada.
+     *
+     * @param  int  $dias  Cantidad de días de gracia.
+     *
+     * @throws InvalidArgumentException Si la membresía está vencida o $dias está fuera de rango.
+     */
+    public function grantGraceDays(int $dias): void
+    {
+        // Una membresía cerrada no se reabre con gracia: se le crea una nueva al cliente.
+        if ($this->estado === MembershipStatusEnum::Vencida) {
+            // Corta sin guardar nada.
+            throw new InvalidArgumentException('La membresía está vencida; creale una nueva.');
+        }
+
+        // Limita la gracia a un rango razonable.
+        if ($dias < 1 || $dias > 60) {
+            // Corta sin guardar nada.
+            throw new InvalidArgumentException('Los días de gracia deben estar entre 1 y 60.');
+        }
+
+        // Toma como base el vencimiento actual, o hoy si ese vencimiento ya pasó.
+        $base = $this->fecha_vencimiento->max(today());
+
+        // Guarda el nuevo estado y el nuevo vencimiento en una sola operación.
+        $this->update([
+            // Habilitada por excepción del dueño.
+            'estado' => MembershipStatusEnum::ActivoFlex,
+            // Corre el vencimiento los días indicados.
+            'fecha_vencimiento' => $base->copy()->addDays($dias),
+        ]);
     }
 }
