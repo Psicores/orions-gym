@@ -1,0 +1,135 @@
+<?php
+
+namespace App\Models;
+
+use App\Enums\MembershipStatusEnum;
+use Database\Factories\MembershipFactory;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+/**
+ * Membresía: el contrato que une a un cliente con un plan durante un período.
+ *
+ * Controla el acceso físico al gimnasio (estado) y las clases que le quedan
+ * (creditos_disponibles), independientemente de si el cliente pagó.
+ */
+#[Fillable([
+    'client_id',
+    'plan_id',
+    'fecha_inicio',
+    'fecha_vencimiento',
+    'estado',
+    'creditos_disponibles',
+])]
+class Membership extends Model
+{
+    /** @use HasFactory<MembershipFactory> */
+    use HasFactory;
+
+    /**
+     * Registra los eventos del modelo: al crear una membresía sin créditos, copia los del plan.
+     *
+     * Precondiciones:
+     * - Al crear la membresía, plan_id apunta a un plan existente (aunque esté dado de baja).
+     * - Los eventos del modelo están activos. DatabaseSeeder usa WithoutModelEvents, así que
+     *   un seeder de membresías debe cargar creditos_disponibles a mano.
+     *
+     * Postcondiciones:
+     * - Toda membresía creada sin creditos_disponibles queda con los creditos_otorgados de su plan.
+     * - Si se indicó creditos_disponibles al crearla, se respeta ese valor.
+     * - Editar una membresía existente no vuelve a copiar los créditos.
+     * - Si plan_id no existe, la creación falla con ModelNotFoundException y no se guarda nada.
+     */
+    protected static function booted(): void
+    {
+        // Se ejecuta justo antes de insertar una membresía nueva en la base.
+        static::creating(function (Membership $membership): void {
+            // Si ya trae créditos cargados, no los pisa.
+            if ($membership->creditos_disponibles !== null) {
+                // Sale sin cambiar nada.
+                return;
+            }
+
+            // Busca el plan (incluso si fue dado de baja) y falla si no existe.
+            $plan = Plan::withTrashed()->findOrFail($membership->plan_id);
+            // Copia los créditos que otorga el plan como créditos iniciales de la membresía.
+            $membership->creditos_disponibles = $plan->creditos_otorgados;
+        });
+    }
+
+    /**
+     * Define cómo se convierten las columnas al leerlas y escribirlas desde el modelo.
+     *
+     * Precondiciones:
+     * - fecha_inicio y fecha_vencimiento guardan fechas (Y-m-d).
+     * - estado guarda uno de los valores de MembershipStatusEnum
+     *   (entrenando, en_pausa, activo_flex, vencida).
+     *
+     * Postcondiciones:
+     * - Las fechas se leen como objetos Carbon.
+     * - $membership->estado devuelve un caso de MembershipStatusEnum, y al asignarle un caso
+     *   se guarda su valor de texto.
+     * - creditos_disponibles se lee como int.
+     * - Si la base tiene un estado que no existe en el enum, leerlo lanza un ValueError.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        // Devuelve el mapa "columna => tipo" que Eloquent aplica automáticamente.
+        return [
+            // Fecha de inicio como fecha (Carbon).
+            'fecha_inicio' => 'date',
+            // Fecha de vencimiento como fecha (Carbon).
+            'fecha_vencimiento' => 'date',
+            // Estado como el enum MembershipStatusEnum en lugar de texto suelto.
+            'estado' => MembershipStatusEnum::class,
+            // Créditos restantes como número entero.
+            'creditos_disponibles' => 'integer',
+        ];
+    }
+
+    /**
+     * Cliente dueño de la membresía.
+     *
+     * Precondiciones:
+     * - client_id apunta a un cliente existente (la clave foránea lo garantiza).
+     *
+     * Postcondiciones:
+     * - Devuelve la relación "la membresía pertenece a un cliente", sin ejecutar la consulta.
+     * - Incluye clientes dados de baja: $membership->client nunca es null por una baja lógica.
+     * - No modifica datos.
+     *
+     * @return BelongsTo<Client, $this>
+     */
+    public function client(): BelongsTo
+    {
+        // Une memberships.client_id con clients.id.
+        return $this->belongsTo(Client::class)
+            // Incluye clientes dados de baja para no perder el historial.
+            ->withTrashed();
+    }
+
+    /**
+     * Plan contratado en la membresía.
+     *
+     * Precondiciones:
+     * - plan_id apunta a un plan existente (la clave foránea lo garantiza).
+     *
+     * Postcondiciones:
+     * - Devuelve la relación "la membresía pertenece a un plan", sin ejecutar la consulta.
+     * - Incluye planes dados de baja: el historial sigue mostrando qué plan tenía.
+     * - No modifica datos.
+     *
+     * @return BelongsTo<Plan, $this>
+     */
+    public function plan(): BelongsTo
+    {
+        // Une memberships.plan_id con plans.id.
+        return $this->belongsTo(Plan::class)
+            // Incluye planes dados de baja para no perder el historial.
+            ->withTrashed();
+    }
+}
