@@ -65,7 +65,8 @@ return [
     |
     */
 
-    'timezone' => 'UTC',
+    // Hora argentina: "hoy", los vencimientos, la fecha de los pagos y el scheduler usan la hora del gimnasio.
+    'timezone' => 'America/Argentina/Buenos_Aires',
 
     /*
     |--------------------------------------------------------------------------
