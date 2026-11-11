@@ -12,46 +12,90 @@ class DatabaseSeeder extends Seeder
     use WithoutModelEvents;
 
     /**
-     * Seed the application's database.
+     * Carga los usuarios base del sistema: el administrador (dueño) y la cuenta de prueba.
+     *
+     * Precondiciones:
+     * - Las migraciones están corridas (existe la tabla users).
+     * - ADMIN_NAME, ADMIN_EMAIL y ADMIN_PASSWORD están definidos en .env.
+     *
+     * Postcondiciones:
+     * - Existen exactamente un usuario con el email del administrador y uno con test@test.com,
+     *   ambos con email verificado (por lo tanto pueden entrar al panel /admin).
+     * - Correrlo varias veces no duplica usuarios: los actualiza.
+     *
+     * @throws RuntimeException Si falta alguna variable ADMIN_* en .env.
      */
     public function run(): void
     {
+        // Crea o actualiza la cuenta del administrador con los datos de .env.
         $this->seedAdministrator();
+        // Crea o actualiza la cuenta de prueba compartida.
         $this->seedTestUser();
     }
 
     /**
-     * Create or update the default administrator from the ADMIN_* values in .env.
+     * Crea o actualiza el administrador por defecto a partir de las variables ADMIN_* de .env.
+     *
+     * Precondiciones:
+     * - config('app.admin') tiene name, email y password no vacíos (vienen de ADMIN_NAME,
+     *   ADMIN_EMAIL y ADMIN_PASSWORD en .env).
+     *
+     * Postcondiciones:
+     * - Hay un único usuario con ese email, con el nombre y la contraseña de .env (guardada
+     *   hasheada por el cast del modelo) y el email marcado como verificado.
+     * - Si faltaba alguna variable, no se tocó la base y se lanzó la excepción.
+     *
+     * @throws RuntimeException Si falta alguna de las variables ADMIN_*.
      */
     private function seedAdministrator(): void
     {
         /** @var array{name: ?string, email: ?string, password: ?string} $admin */
+        // Lee las credenciales del administrador desde config/app.php (que a su vez las toma de .env).
         $admin = config('app.admin');
 
+        // Si alguna de las tres credenciales está vacía, corta antes de escribir en la base.
         if (blank($admin['name']) || blank($admin['email']) || blank($admin['password'])) {
+            // Avisa qué variables hay que completar en .env.
             throw new RuntimeException('Set ADMIN_NAME, ADMIN_EMAIL and ADMIN_PASSWORD in .env before seeding.');
         }
 
+        // Busca el usuario por email: si existe lo actualiza, si no lo crea (evita duplicados).
         User::updateOrCreate(
+            // Criterio de búsqueda: el email del administrador.
             ['email' => $admin['email']],
             [
+                // Nombre visible del administrador.
                 'name' => $admin['name'],
+                // Contraseña en texto plano; el cast 'hashed' del modelo User la guarda hasheada.
                 'password' => $admin['password'],
+                // Marca el email como verificado, requisito para entrar al panel (User::canAccessPanel).
                 'email_verified_at' => now(),
             ],
         );
     }
 
     /**
-     * Create or update the shared test account.
+     * Crea o actualiza la cuenta de prueba compartida (test@test.com).
+     *
+     * Precondiciones:
+     * - Existe la tabla users.
+     *
+     * Postcondiciones:
+     * - Hay un único usuario test@test.com, con nombre "test", su contraseña hasheada
+     *   y el email verificado.
      */
     private function seedTestUser(): void
     {
+        // Busca el usuario de prueba por email: si existe lo actualiza, si no lo crea.
         User::updateOrCreate(
+            // Criterio de búsqueda: el email de la cuenta de prueba.
             ['email' => 'test@test.com'],
             [
+                // Nombre visible de la cuenta de prueba.
                 'name' => 'test',
+                // Contraseña en texto plano; el cast 'hashed' del modelo User la guarda hasheada.
                 'password' => 'orions40pirulos',
+                // Marca el email como verificado para que pueda entrar al panel.
                 'email_verified_at' => now(),
             ],
         );
