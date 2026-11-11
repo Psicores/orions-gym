@@ -33,10 +33,28 @@ class User extends Authenticatable implements FilamentUser
     }
 
     /**
-     * Staff (owner and trainers) may enter the admin panel once their email is verified.
+     * Decide si el usuario puede entrar a un panel de Filament.
+     *
+     * Filament la llama al iniciar sesión, en cada request al panel y al pedir o resetear la
+     * contraseña. Hoy los usuarios de la tabla users son el personal del gimnasio (dueño y
+     * profes); los socios son el modelo Client y no inician sesión.
+     *
+     * Precondiciones:
+     * - $this es un usuario existente cuyas credenciales ya fueron validadas por Filament.
+     * - $panel es un panel registrado en la aplicación.
+     *
+     * Postcondiciones:
+     * - Devuelve true solo si el panel es "admin" y el usuario tiene el email verificado.
+     * - Devuelve false en cualquier otro caso: Filament rechaza el login, o responde
+     *   403 (Prohibido) si ya tenía la sesión iniciada.
+     * - No modifica nada: es una consulta pura.
+     *
+     * @param  Panel  $panel  Panel al que el usuario intenta entrar.
+     * @return bool true si tiene acceso, false si no.
      */
     public function canAccessPanel(Panel $panel): bool
     {
+        // Permite el acceso solo si es el panel "admin" Y el usuario verificó su email.
         return $panel->getId() === 'admin' && $this->hasVerifiedEmail();
     }
 }
