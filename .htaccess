@@ -1,0 +1,10 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{REQUEST_URI} !^/public/
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
+
+# Bloquea archivos ocultos (.env, .git, etc.) por si algo llega sin pasar por public/
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
