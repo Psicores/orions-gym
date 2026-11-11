@@ -6,18 +6,22 @@ use Database\Factories\PlanFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * Plan del catálogo: lo que el gimnasio vende (por ejemplo "3 veces por semana" o "Libre").
  *
  * creditos_otorgados es la cantidad de clases que habilita el plan; por convención,
  * 999 representa un plan libre (sin límite práctico).
+ *
+ * Usa baja lógica: un plan dado de baja deja de ofrecerse pero se conserva, para que las
+ * membresías que lo usaron sigan mostrando su historial.
  */
 #[Fillable(['nombre', 'precio', 'creditos_otorgados'])]
 class Plan extends Model
 {
     /** @use HasFactory<PlanFactory> */
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     /**
      * Define cómo se convierten las columnas al leerlas y escribirlas desde el modelo.

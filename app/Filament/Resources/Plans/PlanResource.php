@@ -10,12 +10,16 @@ use BackedEnum;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Actions\RestoreBulkAction;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class PlanResource extends Resource
 {
@@ -100,7 +104,9 @@ class PlanResource extends Resource
      * Postcondiciones:
      * - Lista todos los planes ordenados por nombre, con el precio en pesos argentinos
      *   (por ejemplo "$ 25.000,50") y los créditos.
-     * - Se puede buscar por nombre, editar un plan y borrar uno o varios.
+     * - Por defecto oculta los planes dados de baja; el filtro permite verlos.
+     * - Se puede buscar por nombre, editar un plan, darlo de baja (baja lógica) o restaurarlo.
+     *   No hay borrado definitivo, para no romper el historial de membresías.
      *
      * @param  Table  $table  Tabla vacía que entrega Filament.
      * @return Table La tabla configurada con columnas y acciones.
@@ -140,6 +146,11 @@ class PlanResource extends Resource
             ])
             // Al entrar, ordena por nombre de la A a la Z.
             ->defaultSort('nombre')
+            // Filtros disponibles en la tabla.
+            ->filters([
+                // Filtro para ver solo activos, solo dados de baja o todos.
+                TrashedFilter::make(),
+            ])
             // Acciones de cada fila.
             ->recordActions([
                 // Botón para abrir el formulario de edición del plan.
@@ -149,8 +160,10 @@ class PlanResource extends Resource
             ->toolbarActions([
                 // Agrupa las acciones masivas en un solo menú.
                 BulkActionGroup::make([
-                    // Borra los planes seleccionados.
+                    // Da de baja (baja lógica) a los planes seleccionados.
                     DeleteBulkAction::make(),
+                    // Restaura los planes seleccionados que estaban dados de baja.
+                    RestoreBulkAction::make(),
                 ]),
             ]);
     }
@@ -169,5 +182,29 @@ class PlanResource extends Resource
             'create' => CreatePlan::route('/create'),
             'edit' => EditPlan::route('/{record}/edit'),
         ];
+    }
+
+    /**
+     * Consulta que usa Filament para encontrar el plan de la URL (por ejemplo /admin/plans/3/edit).
+     *
+     * Precondiciones:
+     * - El modelo Plan usa SoftDeletes (columna deleted_at).
+     *
+     * Postcondiciones:
+     * - Devuelve una consulta que incluye también a los planes dados de baja, para poder
+     *   abrirlos y restaurarlos desde el panel.
+     * - No modifica datos.
+     *
+     * @return Builder<Plan> Consulta base de planes sin el filtro de baja lógica.
+     */
+    public static function getRecordRouteBindingEloquentQuery(): Builder
+    {
+        // Parte de la consulta por defecto de Filament para el modelo Plan.
+        return parent::getRecordRouteBindingEloquentQuery()
+            // Le quita el filtro global que oculta a los registros dados de baja.
+            ->withoutGlobalScopes([
+                // El filtro que agrega SoftDeletes ("deleted_at is null").
+                SoftDeletingScope::class,
+            ]);
     }
 }
