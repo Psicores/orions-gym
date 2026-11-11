@@ -21,6 +21,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
+use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
@@ -117,9 +118,29 @@ class ClientResource extends Resource
         return $table
             ->recordTitleAttribute('apellido')
             ->columns([
+                ImageColumn::make('foto_path')
+                    ->label('Foto')
+                    ->disk('public')
+                    ->circular(),
+                TextColumn::make('nombre')
+                    ->label('Nombre')
+                    ->sortable(),
                 TextColumn::make('apellido')
+                    ->label('Apellido')
+                    ->searchable()
+                    ->sortable(),
+                TextColumn::make('dni')
+                    ->label('DNI')
                     ->searchable(),
+                TextColumn::make('estado')
+                    ->label('Estado')
+                    ->badge(),
+                TextColumn::make('fecha_vencimiento')
+                    ->label('Vencimiento')
+                    ->date('d/m/Y')
+                    ->sortable(),
             ])
+            ->defaultSort('apellido')
             ->filters([
                 TrashedFilter::make(),
             ])
