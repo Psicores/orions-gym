@@ -123,4 +123,20 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Default Administrator
+    |--------------------------------------------------------------------------
+    |
+    | Credentials for the administrator account created by DatabaseSeeder.
+    | They live in .env so real passwords never reach version control.
+    |
+    */
+
+    'admin' => [
+        'name' => env('ADMIN_NAME'),
+        'email' => env('ADMIN_EMAIL'),
+        'password' => env('ADMIN_PASSWORD'),
+    ],
+
 ];
