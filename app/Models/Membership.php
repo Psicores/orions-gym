@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\ClientStatusEnum;
 use App\Enums\MembershipStatusEnum;
 use Database\Factories\MembershipFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -11,6 +12,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 /**
@@ -185,10 +187,12 @@ class Membership extends Model
      *
      * Postcondiciones:
      * - estado = ActivoFlex.
+     * - El cliente de la membresía queda en estado Activo temporal (acuerdo de pago atrasado).
      * - fecha_vencimiento = la mayor entre la fecha de vencimiento actual y hoy, más $dias días.
      *   Si ya estaba vencida por fecha, los días se cuentan desde hoy, para que la gracia no
      *   termine en el pasado.
-     * - Los cambios quedan guardados en la base y en esta instancia.
+     * - Los cambios de la membresía y del cliente se guardan juntos (si uno falla, no queda ninguno)
+     *   y quedan también en esta instancia.
      * - Si alguna precondición no se cumple, lanza la excepción y no guarda nada.
      *
      * @param  int  $dias  Cantidad de días de gracia.
@@ -212,12 +216,18 @@ class Membership extends Model
         // Toma como base el vencimiento actual, o hoy si ese vencimiento ya pasó.
         $base = $this->fecha_vencimiento->max(today());
 
-        // Guarda el nuevo estado y el nuevo vencimiento en una sola operación.
-        $this->update([
-            // Habilitada por excepción del dueño.
-            'estado' => MembershipStatusEnum::ActivoFlex,
-            // Corre el vencimiento los días indicados.
-            'fecha_vencimiento' => $base->copy()->addDays($dias),
-        ]);
+        // Guarda membresía y cliente en una transacción: o cambian los dos o ninguno.
+        DB::transaction(function () use ($base, $dias): void {
+            // Actualiza la membresía.
+            $this->update([
+                // Habilitada por excepción del dueño.
+                'estado' => MembershipStatusEnum::ActivoFlex,
+                // Corre el vencimiento los días indicados.
+                'fecha_vencimiento' => $base->copy()->addDays($dias),
+            ]);
+
+            // El cliente pasa a Activo temporal: puede entrar aunque todavía debe la cuota.
+            $this->client->update(['estado' => ClientStatusEnum::ActivoTemporal]);
+        });
     }
 }

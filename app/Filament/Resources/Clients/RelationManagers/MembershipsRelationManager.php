@@ -140,7 +140,8 @@ class MembershipsRelationManager extends RelationManager
      * - Lista solo las membresías de ese cliente, de la más reciente a la más vieja.
      * - Muestra el plan (aunque esté dado de baja), las fechas, el estado con su color e
      *   ícono y los créditos disponibles.
-     * - Permite dar días de gracia (Activo flex + vencimiento extendido) a las membresías no vencidas.
+     * - Permite dar días de gracia (Activo flex + vencimiento extendido, cliente en Activo temporal)
+     *   a las membresías no vencidas.
      * - Permite crear, editar y borrar membresías. No ofrece asociar ni desasociar
      *   membresías de otros clientes.
      * - No ofrece borrar una membresía que ya tiene pagos (la base lo impide para no perder
@@ -238,8 +239,11 @@ class MembershipsRelationManager extends RelationManager
                     ])
                     // Al confirmar, aplica la gracia desde el modelo (que valida estado y rango).
                     ->action(function (array $data, Membership $record): void {
-                        // Cambia estado y vencimiento.
+                        // Cambia estado y vencimiento de la membresía, y pasa al cliente a Activo temporal.
                         $record->grantGraceDays((int) $data['dias']);
+
+                        // Avisa a la página para que el formulario del cliente muestre su nuevo estado.
+                        $this->dispatch('estado-cliente-actualizado');
 
                         // Confirma con la nueva fecha de vencimiento.
                         Notification::make()
