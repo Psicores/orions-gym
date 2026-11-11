@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Membresía: el contrato que une a un cliente con un plan durante un período.
@@ -131,5 +132,24 @@ class Membership extends Model
         return $this->belongsTo(Plan::class)
             // Incluye planes dados de baja para no perder el historial.
             ->withTrashed();
+    }
+
+    /**
+     * Pagos imputados a esta membresía.
+     *
+     * Precondiciones:
+     * - Existe la tabla payments con la columna membership_id.
+     *
+     * Postcondiciones:
+     * - Devuelve la relación "una membresía tiene muchos pagos", sin ejecutar la consulta.
+     * - $membership->payments devuelve una colección (vacía si todavía no se pagó).
+     * - No modifica datos.
+     *
+     * @return HasMany<Payment, $this>
+     */
+    public function payments(): HasMany
+    {
+        // Busca en payments las filas cuyo membership_id es el id de esta membresía.
+        return $this->hasMany(Payment::class);
     }
 }

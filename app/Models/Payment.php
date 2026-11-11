@@ -7,6 +7,7 @@ use Database\Factories\PaymentFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * Pago: plata que entregó un cliente para una de sus membresías.
@@ -55,5 +56,63 @@ class Payment extends Model
             // Fecha y hora del cobro (Carbon).
             'fecha_pago' => 'datetime',
         ];
+    }
+
+    /**
+     * Cliente que hizo el pago.
+     *
+     * Precondiciones:
+     * - client_id apunta a un cliente existente (la clave foránea lo garantiza).
+     *
+     * Postcondiciones:
+     * - Devuelve la relación "el pago pertenece a un cliente", sin ejecutar la consulta.
+     * - Incluye clientes dados de baja: el historial de caja no pierde a quién se le cobró.
+     * - No modifica datos.
+     *
+     * @return BelongsTo<Client, $this>
+     */
+    public function client(): BelongsTo
+    {
+        // Une payments.client_id con clients.id.
+        return $this->belongsTo(Client::class)
+            // Incluye clientes dados de baja para no perder el historial.
+            ->withTrashed();
+    }
+
+    /**
+     * Membresía a la que se imputó el pago.
+     *
+     * Precondiciones:
+     * - membership_id apunta a una membresía existente (la clave foránea lo garantiza).
+     *
+     * Postcondiciones:
+     * - Devuelve la relación "el pago pertenece a una membresía", sin ejecutar la consulta.
+     * - No modifica datos.
+     *
+     * @return BelongsTo<Membership, $this>
+     */
+    public function membership(): BelongsTo
+    {
+        // Une payments.membership_id con memberships.id.
+        return $this->belongsTo(Membership::class);
+    }
+
+    /**
+     * Usuario del staff (dueño o profe) que cobró y registró el pago.
+     *
+     * Precondiciones:
+     * - registrado_por_user_id apunta a un usuario existente (la clave foránea lo garantiza).
+     *
+     * Postcondiciones:
+     * - Devuelve la relación "el pago fue registrado por un usuario", sin ejecutar la consulta.
+     * - $payment->registradoPor devuelve el User que lo cobró.
+     * - No modifica datos.
+     *
+     * @return BelongsTo<User, $this>
+     */
+    public function registradoPor(): BelongsTo
+    {
+        // Une payments.registrado_por_user_id con users.id (la columna no sigue la convención, por eso se indica).
+        return $this->belongsTo(User::class, 'registrado_por_user_id');
     }
 }

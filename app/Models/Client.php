@@ -76,4 +76,23 @@ class Client extends Model
         // Busca en memberships las filas cuyo client_id es el id de este cliente.
         return $this->hasMany(Membership::class);
     }
+
+    /**
+     * Pagos que hizo el cliente, de cualquiera de sus membresías.
+     *
+     * Precondiciones:
+     * - Existe la tabla payments con la columna client_id.
+     *
+     * Postcondiciones:
+     * - Devuelve la relación "un cliente tiene muchos pagos", sin ejecutar la consulta.
+     * - $client->payments devuelve una colección (vacía si nunca pagó).
+     * - No modifica datos.
+     *
+     * @return HasMany<Payment, $this>
+     */
+    public function payments(): HasMany
+    {
+        // Busca en payments las filas cuyo client_id es el id de este cliente.
+        return $this->hasMany(Payment::class);
+    }
 }
