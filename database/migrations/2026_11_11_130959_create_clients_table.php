@@ -25,6 +25,7 @@ return new class extends Migration
             $table->string('estado')->default('inactivo')->index();
             $table->date('fecha_vencimiento')->nullable()->index();
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 
