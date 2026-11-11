@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 #[Fillable([
@@ -115,7 +116,10 @@ class Client extends Model
      * Postcondiciones:
      * - Se creó y devolvió un Payment con este cliente, la membresía, el monto, el medio,
      *   fecha_pago = ahora y registrado_por_user_id = $registradoPor->id.
-     * - No cambia el estado ni el vencimiento del cliente ni de la membresía.
+     * - El cliente queda en estado Entrenando (cuota al día), tanto en la base como en esta
+     *   instancia del modelo.
+     * - No cambia la fecha de vencimiento del cliente ni el estado de la membresía.
+     * - El pago y el cambio de estado se guardan juntos: si uno falla, no queda ninguno.
      * - Si alguna precondición sobre la membresía o el monto no se cumple, lanza la excepción
      *   y no guarda nada.
      *
@@ -147,18 +151,27 @@ class Client extends Model
             throw new InvalidArgumentException('El monto debe ser mayor a cero.');
         }
 
-        // Crea el pago ya vinculado a este cliente (client_id lo completa la relación).
-        return $this->payments()->create([
-            // Membresía a la que se imputa.
-            'membership_id' => $membership->id,
-            // Monto cobrado; el cast decimal:2 lo guarda con 2 decimales.
-            'monto' => $monto,
-            // Medio de pago; el cast del enum guarda su valor de texto.
-            'metodo_pago' => $metodoPago,
-            // Momento del cobro: ahora.
-            'fecha_pago' => now(),
-            // Quién cobró, para la rendición de caja.
-            'registrado_por_user_id' => $registradoPor->id,
-        ]);
+        // Guarda el pago y el nuevo estado en una transacción: o se guardan los dos o ninguno.
+        return DB::transaction(function () use ($membership, $monto, $metodoPago, $registradoPor): Payment {
+            // Crea el pago ya vinculado a este cliente (client_id lo completa la relación).
+            $payment = $this->payments()->create([
+                // Membresía a la que se imputa.
+                'membership_id' => $membership->id,
+                // Monto cobrado; el cast decimal:2 lo guarda con 2 decimales.
+                'monto' => $monto,
+                // Medio de pago; el cast del enum guarda su valor de texto.
+                'metodo_pago' => $metodoPago,
+                // Momento del cobro: ahora.
+                'fecha_pago' => now(),
+                // Quién cobró, para la rendición de caja.
+                'registrado_por_user_id' => $registradoPor->id,
+            ]);
+
+            // Si pagó, la cuota queda al día: pasa el cliente a Entrenando y lo guarda.
+            $this->update(['estado' => ClientStatusEnum::Entrenando]);
+
+            // Devuelve el pago creado.
+            return $payment;
+        });
     }
 }

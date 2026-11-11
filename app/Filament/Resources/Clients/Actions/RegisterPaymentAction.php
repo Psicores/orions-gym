@@ -11,6 +11,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\ToggleButtons;
 use Filament\Notifications\Notification;
+use Filament\Resources\Pages\EditRecord;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Number;
@@ -55,6 +56,7 @@ class RegisterPaymentAction extends Action
      * Postcondiciones:
      * - El botón queda deshabilitado (con un aviso) si el cliente no tiene membresías que admitan pagos.
      * - Al confirmar el modal se crea un Payment con el usuario logueado como registrado_por_user_id,
+     *   el cliente pasa a Entrenando (en la edición, el campo estado del formulario se actualiza),
      *   se muestra una notificación y se avisa al resto de la página (evento "pago-registrado")
      *   para que el historial de pagos se actualice.
      * - Si el pago no se puede registrar, se muestra el motivo y no se guarda nada.
@@ -180,6 +182,12 @@ class RegisterPaymentAction extends Action
                     ->success()
                     // La muestra.
                     ->send();
+
+                // En la edición del cliente, muestra el nuevo estado en el formulario.
+                if ($livewire instanceof EditRecord) {
+                    // Recarga solo el campo estado; así "Guardar cambios" no lo vuelve al valor viejo.
+                    $livewire->refreshFormData(['estado']);
+                }
 
                 // Avisa a la página para que la pestaña "Pagos" vuelva a cargar la tabla.
                 $livewire->dispatch('pago-registrado');
