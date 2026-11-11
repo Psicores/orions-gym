@@ -6,6 +6,7 @@ use App\Enums\ClientStatusEnum;
 use App\Filament\Resources\Clients\Pages\CreateClient;
 use App\Filament\Resources\Clients\Pages\EditClient;
 use App\Filament\Resources\Clients\Pages\ListClients;
+use App\Filament\Resources\Clients\RelationManagers\MembershipsRelationManager;
 use App\Models\Client;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
@@ -17,6 +18,7 @@ use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
@@ -290,10 +292,23 @@ class ClientResource extends Resource
             ]);
     }
 
+    /**
+     * Tablas relacionadas que se muestran al editar un cliente.
+     *
+     * Precondiciones:
+     * - Client tiene la relación memberships().
+     *
+     * Postcondiciones:
+     * - La edición del cliente muestra la pestaña "Membresías".
+     *
+     * @return array<class-string<RelationManager>>
+     */
     public static function getRelations(): array
     {
+        // Lista de relation managers del recurso.
         return [
-            //
+            // Membresías del cliente (alta, edición y baja).
+            MembershipsRelationManager::class,
         ];
     }
 
