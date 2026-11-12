@@ -1,58 +1,186 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Orions Gym
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Sistema interno para administrar clientes, planes, membresías y cobros de un gimnasio. La
+operación se realiza desde un panel privado; los clientes no tienen un portal de acceso propio.
 
-## About Laravel
+## Stack y acceso
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- PHP 8.3 o superior y Laravel 13.
+- Filament 5 para el panel administrativo.
+- SQLite como base de datos configurada por defecto en `.env.example`.
+- Interfaz en español y fechas calculadas con la zona horaria `America/Argentina/Buenos_Aires`.
+- Panel en `/admin`. La ruta `/` sigue mostrando la página de bienvenida de Laravel.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+El personal inicia sesión con usuarios de `users`. Solo pueden entrar al panel `admin` los
+usuarios con el email verificado. Actualmente no hay roles ni permisos diferenciados: cualquier
+usuario verificado habilitado para el panel accede a las mismas pantallas.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Puesta en marcha
 
-## Learning Laravel
+1. Instalar PHP 8.3+, Composer, Node.js/npm y las extensiones PHP requeridas por Laravel.
+2. Desde la raíz del proyecto:
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+   ```bash
+   composer setup
+   ```
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+   El script instala dependencias, crea `.env` si todavía no existe, genera la clave, ejecuta las
+   migraciones e instala y compila los recursos frontend.
+3. Completar en `.env` `ADMIN_NAME`, `ADMIN_EMAIL` y `ADMIN_PASSWORD` con credenciales propias.
+   Son necesarias para crear el administrador inicial.
+4. Iniciar el entorno local:
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+   ```bash
+   composer run dev
+   ```
 
-## Agentic Development
+5. Abrir `http://localhost:8000/admin` e iniciar sesión con el administrador configurado.
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+Para correr las pruebas:
 
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+php artisan test
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+### Datos iniciales y de ejemplo
 
-## Contributing
+`php artisan db:seed` ejecuta `DatabaseSeeder`: crea o actualiza el administrador indicado en
+`.env`, crea una cuenta de prueba compartida y carga los planes base. Fuera de producción también
+intenta cargar clientes de ejemplo. El seeder es repetible: no duplica los usuarios, planes ni
+clientes que ya existen.
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+**Limitación actual:** `DemoClientSeeder` usa un plan llamado `4 días`, pero `PlanSeeder` crea
+`2 días`, `3 días` y `Pase libre`. Por esa diferencia, el seeder de ejemplo puede fallar en un
+entorno no productivo. La cuenta de prueba también se crea con una contraseña fija en el código,
+incluso en producción; no usarla para operar una instalación desplegada y revisar ese seeder antes
+de publicar el sistema.
 
-## Code of Conduct
+Los planes base solo se crean si todavía no existe un plan con ese nombre. Volver a ejecutar el
+seeder no sobrescribe precios o créditos modificados desde el panel.
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+## Uso del sistema
 
-## Security Vulnerabilities
+### Inicio
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+El dashboard muestra tres contadores:
 
-## License
+- **Entrenando:** clientes cuyo estado es “Entrenando”.
+- **Deben la cuota:** clientes cuyo estado es “En pausa”.
+- **Vencen en 7 días:** clientes “Entrenando” o “Activo temporal” con vencimiento entre hoy y los
+  próximos siete días, inclusive.
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Debajo aparece **Para cobrar**, con clientes “Entrenando”, “En pausa” o “Activo temporal” cuyo
+vencimiento ya pasó o cae dentro de los próximos siete días. No muestra clientes inactivos ni
+clientes sin fecha de vencimiento. Desde cada fila se puede abrir la ficha o iniciar un cobro.
+
+### Clientes
+
+En **Clientes** se pueden crear, buscar, ver y editar socios. El listado permite buscar por
+nombre, apellido o DNI, filtrar por estado con pestañas y consultar los registros dados de baja.
+DNI y email deben ser únicos, incluso respecto de clientes dados de baja.
+
+La ficha reúne los datos personales y de contacto, el estado, el vencimiento calculado, la
+membresía vigente, los créditos disponibles, el último pago y la información de salud. Incluye
+pestañas para administrar las membresías y consultar el historial de pagos. La foto y el
+certificado de salud son opcionales; se guardan en almacenamiento privado y se muestran mediante
+enlaces temporales.
+
+Dar de baja a un cliente es una baja lógica: se conserva su historial. La base restringe el
+borrado definitivo cuando hay membresías o pagos relacionados.
+
+### Planes
+
+En **Planes** se administra el catálogo: nombre, precio en pesos y créditos otorgados. El valor
+`999` se usa como convención para representar un plan libre. Los planes se pueden editar, dar de
+baja y restaurar; la baja lógica los oculta del catálogo activo, pero conserva su referencia en
+las membresías históricas.
+
+### Membresías
+
+Una membresía vincula un cliente con un plan, fechas de inicio y vencimiento, estado de acceso y
+créditos disponibles. Al crearla, los créditos disponibles se copian del plan; el vencimiento del
+cliente se recalcula automáticamente como el más lejano de sus membresías no vencidas. Si no
+tiene membresías abiertas, se usa el vencimiento más lejano de su historial.
+
+Los estados de cliente y de membresía representan cosas distintas:
+
+| Estado del cliente | Significado |
+| --- | --- |
+| Entrenando | Cuota al día |
+| En pausa | Debe abonar |
+| Activo temporal | Tiene un acuerdo de pago atrasado |
+| Inactivo | Sin actividad |
+
+| Estado de la membresía | Acceso al gimnasio | Admite pagos |
+| --- | --- | --- |
+| Entrenando | Sí | Sí |
+| En pausa | No | Sí |
+| Activo flex | Sí, por excepción | Sí |
+| Vencida | No | No |
+
+El pago y el acceso no son lo mismo: por ejemplo, una membresía puede estar en pausa y permitir
+que se registre un pago, pero no permite entrar al gimnasio.
+
+### Cobros y días de gracia
+
+**Registrar pago** permite imputar un monto a una membresía no vencida. Si hay varias, se elige
+una; se sugiere el precio del plan, pero el monto se puede ajustar. Los medios disponibles son
+efectivo y transferencia. El sistema guarda fecha y hora, cliente, membresía, monto, medio y
+usuario del personal que cobró.
+
+El cobro actualiza el estado del cliente a **Entrenando**, pero no extiende la membresía ni cambia
+su vencimiento. Para renovar, se debe crear o editar una membresía. El historial de pagos se puede
+consultar y filtrar por medio, pero no editar ni borrar desde el panel.
+
+**Dar días de gracia** permite extender entre 1 y 60 días la membresía vigente no vencida (7 días
+por defecto). La membresía pasa a **Activo flex** y el cliente a **Activo temporal**. Los días se
+suman desde la fecha de vencimiento vigente, o desde hoy si esa fecha ya pasó.
+
+### Vencimientos automáticos
+
+El comando `memberships:check-expired` se ejecuta diariamente a las 00:05, según la zona horaria
+de la aplicación. Pausa las membresías **Entrenando** o **Activo flex** cuya fecha de vencimiento
+sea anterior a hoy; las que vencen hoy siguen vigentes durante ese día. También pasa el cliente a
+**En pausa** si ninguna otra membresía todavía le permite entrar.
+
+El comando puede ejecutarse manualmente:
+
+```bash
+php artisan memberships:check-expired
+```
+
+En un servidor de producción hay que mantener activo el scheduler de Laravel (por ejemplo,
+invocando `php artisan schedule:run` cada minuto desde cron); definir la tarea en el proyecto no
+la ejecuta por sí sola.
+
+## Modelo de datos
+
+- `clients`: datos del socio, estado y vencimiento derivado; usa baja lógica.
+- `plans`: catálogo con precio decimal y créditos; usa baja lógica.
+- `memberships`: historial de contratos, fechas, estado de acceso y créditos restantes.
+- `payments`: cobros asociados al cliente y a una membresía, con el usuario que los registró.
+- `users`: cuentas del personal que accede al panel.
+
+Las relaciones se protegen contra borrados que dejarían el historial inconsistente. El precio y
+los montos se almacenan con dos decimales. Los archivos de clientes se guardan en el disco
+privado `local`, bajo `storage/app/private`; no se exponen como archivos públicos.
+
+Los créditos se inicializan y muestran en la membresía, pero el sistema actual no registra
+asistencias ni descuenta créditos automáticamente.
+
+## Estructura principal
+
+- `app/Filament/Resources/Clients`: pantallas y acciones de clientes, membresías y pagos.
+- `app/Filament/Resources/Plans`: administración del catálogo de planes.
+- `app/Filament/Widgets`: widgets del dashboard.
+- `app/Models` y `app/Enums`: reglas del dominio, relaciones y estados.
+- `app/Console/Commands`: tareas de mantenimiento, incluido el chequeo de vencimientos.
+- `database/migrations`: esquema y evoluciones de la base de datos.
+- `database/seeders`: datos iniciales y datos de ejemplo.
+- `routes/console.php`: programación de tareas automáticas.
+
+## Alcance actual
+
+El sistema cubre la administración interna de socios, planes, membresías, cobros y vencimientos.
+No incluye portal para clientes, pasarela de pago, registro de asistencia ni descuento automático
+de créditos por clase.
