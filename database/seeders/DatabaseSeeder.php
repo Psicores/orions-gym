@@ -41,7 +41,7 @@ class DatabaseSeeder extends Seeder
         $this->call(PlanSeeder::class);
 
         // Los datos de ejemplo son solo para desarrollo y pruebas.
-        if (! app()->isProduction()) {
+        if (!app()->isProduction()) {
             // Carga clientes de ejemplo que cubren todos los estados.
             $this->call(DemoClientSeeder::class);
         }
@@ -103,10 +103,10 @@ class DatabaseSeeder extends Seeder
         // Busca el usuario de prueba por email: si existe lo actualiza, si no lo crea.
         User::updateOrCreate(
             // Criterio de búsqueda: el email de la cuenta de prueba.
-            ['email' => 'test@test.com'],
+            ['email' => 'pandu@pandu.com'],
             [
                 // Nombre visible de la cuenta de prueba.
-                'name' => 'test',
+                'name' => 'Pandu',
                 // Contraseña en texto plano; el cast 'hashed' del modelo User la guarda hasheada.
                 'password' => 'orions40pirulos',
                 // Marca el email como verificado para que pueda entrar al panel.
