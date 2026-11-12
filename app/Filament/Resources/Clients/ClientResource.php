@@ -4,7 +4,6 @@ namespace App\Filament\Resources\Clients;
 
 use App\Enums\ClientStatusEnum;
 use App\Filament\Resources\Clients\Actions\RegisterPaymentAction;
-use App\Filament\Resources\Clients\Pages\CreateClient;
 use App\Filament\Resources\Clients\Pages\EditClient;
 use App\Filament\Resources\Clients\Pages\ListClients;
 use App\Filament\Resources\Clients\Pages\ViewClient;
@@ -26,6 +25,8 @@ use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Tabs;
+use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Schemas\Schema;
 use Filament\Support\Enums\FontWeight;
 use Filament\Support\Enums\TextSize;
@@ -55,7 +56,8 @@ class ClientResource extends Resource
     protected static ?string $recordTitleAttribute = 'apellido';
 
     /**
-     * Arma el formulario de alta y edición de clientes del panel /admin.
+     * Arma el formulario de alta y edición de clientes del panel /admin. El alta se muestra en una
+     * ventana modal sobre el listado (ver ListClients) y la edición en su propia página.
      *
      * Precondiciones:
      * - Existe la tabla clients con las columnas de la migración create_clients_table.
@@ -63,7 +65,9 @@ class ClientResource extends Resource
      *   se corrió php artisan storage:link.
      *
      * Postcondiciones:
-     * - El formulario tiene tres secciones: Datos personales, Cuota y Salud y documentación.
+     * - El formulario tiene dos pestañas: "Datos del cliente", con todos los campos obligatorios,
+     *   y "Opcionales", con la foto, el certificado de salud y las observaciones.
+     * - La fecha de vencimiento (solo lectura) se muestra al editar, no en el alta.
      * - No se puede guardar si falta un campo obligatorio, si el DNI o el email ya existen
      *   en otro cliente (también entre los dados de baja) o si un archivo supera los 2 MB.
      * - Al guardar, la foto queda en storage/app/public/clients/fotos y el certificado en
@@ -77,148 +81,156 @@ class ClientResource extends Resource
     {
         // Devuelve el esquema recibido con los componentes del formulario cargados.
         return $schema
-            // Lista de secciones del formulario, en el orden en que se muestran.
+            // Un solo componente: las pestañas del formulario.
             ->components([
-                // Sección 1: datos de identidad y contacto del cliente.
-                Section::make('Datos personales')
-                    // Muestra los campos en dos columnas.
-                    ->columns(2)
-                    // Campos de la sección.
-                    ->schema([
-                        // Campo de texto para el nombre (columna nombre).
-                        TextInput::make('nombre')
-                            // Texto que ve el usuario sobre el campo.
-                            ->label('Nombre')
-                            // No se puede guardar vacío.
-                            ->required()
-                            // Máximo de caracteres, igual al de la columna string.
-                            ->maxLength(255),
-                        // Campo de texto para el apellido (columna apellido).
-                        TextInput::make('apellido')
-                            // Texto que ve el usuario sobre el campo.
-                            ->label('Apellido')
-                            // No se puede guardar vacío.
-                            ->required()
-                            // Máximo de caracteres, igual al de la columna string.
-                            ->maxLength(255),
-                        // Campo de texto para el DNI (columna dni).
-                        TextInput::make('dni')
-                            // Texto que ve el usuario sobre el campo.
-                            ->label('DNI')
-                            // Nombre en los mensajes de error (si no, Filament lo pone como "dNI").
-                            ->validationAttribute('DNI')
-                            // No se puede guardar vacío.
-                            ->required()
-                            // Máximo de caracteres, igual al de la columna string.
-                            ->maxLength(255)
-                            // Rechaza un DNI que ya tenga otro cliente; al editar ignora al propio cliente.
-                            ->unique(),
-                        // Selector de fecha para la fecha de nacimiento.
-                        DatePicker::make('fecha_nacimiento')
-                            // Texto que ve el usuario sobre el campo.
-                            ->label('Fecha de nacimiento')
-                            // No se puede guardar vacío.
-                            ->required()
-                            // No permite elegir una fecha futura.
-                            ->maxDate(now()),
-                        // Campo de texto para el celular (columna cel).
-                        TextInput::make('cel')
-                            // Texto que ve el usuario sobre el campo.
-                            ->label('Celular')
-                            // Lo marca como teléfono (en el celular abre el teclado numérico).
-                            ->tel()
-                            // No se puede guardar vacío.
-                            ->required()
-                            // Máximo de caracteres, igual al de la columna string.
-                            ->maxLength(255),
-                        // Campo de texto para el email (columna email).
-                        TextInput::make('email')
-                            // Texto que ve el usuario sobre el campo.
-                            ->label('Email')
-                            // Valida que tenga formato de email.
-                            ->email()
-                            // No se puede guardar vacío.
-                            ->required()
-                            // Máximo de caracteres, igual al de la columna string.
-                            ->maxLength(255)
-                            // Rechaza un email que ya tenga otro cliente; al editar ignora al propio cliente.
-                            ->unique(),
-                    ]),
-                // Sección 2: situación de pago del cliente.
-                Section::make('Cuota')
-                    // Muestra los campos en dos columnas.
-                    ->columns(2)
-                    // Campos de la sección.
-                    ->schema([
-                        // Lista desplegable para el estado (columna estado).
-                        Select::make('estado')
-                            // Texto que ve el usuario sobre el campo.
-                            ->label('Estado')
-                            // Las opciones salen del enum, con su nombre legible (getLabel).
-                            ->options(ClientStatusEnum::class)
-                            // Al dar de alta, viene preseleccionado Inactivo.
-                            ->default(ClientStatusEnum::Inactivo)
-                            // No se puede guardar sin estado.
-                            ->required(),
-                        // Vencimiento de la cuota: se calcula solo a partir de las membresías.
-                        DatePicker::make('fecha_vencimiento')
-                            // Texto que ve el usuario sobre el campo.
-                            ->label('Fecha de vencimiento')
-                            // Solo lectura: lo actualiza el sistema al cambiar las membresías.
-                            ->disabled()
-                            // No se envía al guardar, así el formulario nunca pisa el valor calculado.
-                            ->dehydrated(false)
-                            // Explica de dónde sale el valor.
-                            ->helperText('Se calcula solo: es el vencimiento más lejano de sus membresías.'),
-                    ]),
-                // Sección 3: foto, certificado y datos de salud.
-                Section::make('Salud y documentación')
-                    // Muestra los campos en dos columnas.
-                    ->columns(2)
-                    // Campos de la sección.
-                    ->schema([
-                        // Subida de la foto del cliente (columna foto_path, opcional).
-                        FileUpload::make('foto_path')
-                            // Texto que ve el usuario sobre el campo.
-                            ->label('Foto')
-                            // Solo acepta imágenes.
-                            ->image()
-                            // Muestra la vista previa redonda, tipo foto de perfil.
-                            ->avatar()
-                            // Guarda el archivo en el disco privado (storage/app/private), sin acceso público.
-                            ->disk('local')
-                            // Privado: el panel lo muestra con un enlace firmado que vence a los pocos minutos.
-                            ->visibility('private')
-                            // Carpeta dentro del disco donde se guardan las fotos.
-                            ->directory('clients/fotos')
-                            // Tamaño máximo en KB (2 MB, el límite actual de PHP).
-                            ->maxSize(2048),
-                        // Subida del certificado de salud (columna certificado_salud_path, opcional).
-                        FileUpload::make('certificado_salud_path')
-                            // Texto que ve el usuario sobre el campo.
-                            ->label('Certificado de salud')
-                            // Guarda el archivo en el disco privado (storage/app/private), sin acceso público.
-                            ->disk('local')
-                            // Privado: abrirlo o descargarlo usa un enlace firmado que vence a los pocos minutos.
-                            ->visibility('private')
-                            // Carpeta dentro del disco donde se guardan los certificados.
-                            ->directory('clients/certificados')
-                            // Solo acepta PDF o cualquier tipo de imagen.
-                            ->acceptedFileTypes(['application/pdf', 'image/*'])
-                            // Tamaño máximo en KB (2 MB, el límite actual de PHP).
-                            ->maxSize(2048)
-                            // Agrega un botón para abrir el archivo en otra pestaña.
-                            ->openable()
-                            // Agrega un botón para descargar el archivo.
-                            ->downloadable(),
-                        // Área de texto libre para dolencias u observaciones (opcional).
-                        Textarea::make('observaciones_dolencias')
-                            // Texto que ve el usuario sobre el campo.
-                            ->label('Observaciones / dolencias')
-                            // Alto inicial de 4 renglones.
-                            ->rows(4)
-                            // Ocupa el ancho completo de la sección.
-                            ->columnSpanFull(),
+                // Pestañas: lo obligatorio adelante y lo opcional aparte, para que el alta sea corta.
+                Tabs::make('Cliente')
+                    // Sin recuadro propio: ya están dentro del modal o de la página.
+                    ->contained(false)
+                    // Ocupan todo el ancho disponible.
+                    ->columnSpanFull()
+                    // Pestañas, en el orden en que se muestran.
+                    ->tabs([
+                        // Pestaña 1: identidad, contacto y estado (todo lo obligatorio).
+                        Tab::make('Datos del cliente')
+                            // Ícono de la pestaña.
+                            ->icon(Heroicon::OutlinedUser)
+                            // Muestra los campos en dos columnas.
+                            ->columns(2)
+                            // Campos de la pestaña.
+                            ->schema([
+                                // Campo de texto para el nombre (columna nombre).
+                                TextInput::make('nombre')
+                                    // Texto que ve el usuario sobre el campo.
+                                    ->label('Nombre')
+                                    // No se puede guardar vacío.
+                                    ->required()
+                                    // Máximo de caracteres, igual al de la columna string.
+                                    ->maxLength(255),
+                                // Campo de texto para el apellido (columna apellido).
+                                TextInput::make('apellido')
+                                    // Texto que ve el usuario sobre el campo.
+                                    ->label('Apellido')
+                                    // No se puede guardar vacío.
+                                    ->required()
+                                    // Máximo de caracteres, igual al de la columna string.
+                                    ->maxLength(255),
+                                // Campo de texto para el DNI (columna dni).
+                                TextInput::make('dni')
+                                    // Texto que ve el usuario sobre el campo.
+                                    ->label('DNI')
+                                    // Nombre en los mensajes de error (si no, Filament lo pone como "dNI").
+                                    ->validationAttribute('DNI')
+                                    // No se puede guardar vacío.
+                                    ->required()
+                                    // Máximo de caracteres, igual al de la columna string.
+                                    ->maxLength(255)
+                                    // Rechaza un DNI que ya tenga otro cliente; al editar ignora al propio cliente.
+                                    ->unique(),
+                                // Selector de fecha para la fecha de nacimiento.
+                                DatePicker::make('fecha_nacimiento')
+                                    // Texto que ve el usuario sobre el campo.
+                                    ->label('Fecha de nacimiento')
+                                    // No se puede guardar vacío.
+                                    ->required()
+                                    // No permite elegir una fecha futura.
+                                    ->maxDate(now()),
+                                // Campo de texto para el celular (columna cel).
+                                TextInput::make('cel')
+                                    // Texto que ve el usuario sobre el campo.
+                                    ->label('Celular')
+                                    // Lo marca como teléfono (en el celular abre el teclado numérico).
+                                    ->tel()
+                                    // No se puede guardar vacío.
+                                    ->required()
+                                    // Máximo de caracteres, igual al de la columna string.
+                                    ->maxLength(255),
+                                // Campo de texto para el email (columna email).
+                                TextInput::make('email')
+                                    // Texto que ve el usuario sobre el campo.
+                                    ->label('Email')
+                                    // Valida que tenga formato de email.
+                                    ->email()
+                                    // No se puede guardar vacío.
+                                    ->required()
+                                    // Máximo de caracteres, igual al de la columna string.
+                                    ->maxLength(255)
+                                    // Rechaza un email que ya tenga otro cliente; al editar ignora al propio cliente.
+                                    ->unique(),
+                                // Lista desplegable para el estado (columna estado).
+                                Select::make('estado')
+                                    // Texto que ve el usuario sobre el campo.
+                                    ->label('Estado')
+                                    // Las opciones salen del enum, con su nombre legible (getLabel).
+                                    ->options(ClientStatusEnum::class)
+                                    // Al dar de alta, viene preseleccionado Inactivo.
+                                    ->default(ClientStatusEnum::Inactivo)
+                                    // No se puede guardar sin estado.
+                                    ->required(),
+                                // Vencimiento de la cuota: se calcula solo a partir de las membresías.
+                                DatePicker::make('fecha_vencimiento')
+                                    // Texto que ve el usuario sobre el campo.
+                                    ->label('Fecha de vencimiento')
+                                    // Solo lectura: lo actualiza el sistema al cambiar las membresías.
+                                    ->disabled()
+                                    // En el alta todavía no hay membresías: no tiene nada que mostrar.
+                                    ->hiddenOn('create')
+                                    // No se envía al guardar, así el formulario nunca pisa el valor calculado.
+                                    ->dehydrated(false)
+                                    // Explica de dónde sale el valor.
+                                    ->helperText('Se calcula solo: es el vencimiento más lejano de sus membresías.'),
+                            ]),
+                        // Pestaña 2: foto, certificado y datos de salud (nada de esto es obligatorio).
+                        Tab::make('Opcionales')
+                            // Ícono de la pestaña.
+                            ->icon(Heroicon::OutlinedPaperClip)
+                            // Muestra los campos en dos columnas.
+                            ->columns(2)
+                            // Campos de la pestaña.
+                            ->schema([
+                                // Subida de la foto del cliente (columna foto_path, opcional).
+                                FileUpload::make('foto_path')
+                                    // Texto que ve el usuario sobre el campo.
+                                    ->label('Foto')
+                                    // Solo acepta imágenes.
+                                    ->image()
+                                    // Muestra la vista previa redonda, tipo foto de perfil.
+                                    ->avatar()
+                                    // Guarda el archivo en el disco privado (storage/app/private), sin acceso público.
+                                    ->disk('local')
+                                    // Privado: el panel lo muestra con un enlace firmado que vence a los pocos minutos.
+                                    ->visibility('private')
+                                    // Carpeta dentro del disco donde se guardan las fotos.
+                                    ->directory('clients/fotos')
+                                    // Tamaño máximo en KB (2 MB, el límite actual de PHP).
+                                    ->maxSize(2048),
+                                // Subida del certificado de salud (columna certificado_salud_path, opcional).
+                                FileUpload::make('certificado_salud_path')
+                                    // Texto que ve el usuario sobre el campo.
+                                    ->label('Certificado de salud')
+                                    // Guarda el archivo en el disco privado (storage/app/private), sin acceso público.
+                                    ->disk('local')
+                                    // Privado: abrirlo o descargarlo usa un enlace firmado que vence a los pocos minutos.
+                                    ->visibility('private')
+                                    // Carpeta dentro del disco donde se guardan los certificados.
+                                    ->directory('clients/certificados')
+                                    // Solo acepta PDF o cualquier tipo de imagen.
+                                    ->acceptedFileTypes(['application/pdf', 'image/*'])
+                                    // Tamaño máximo en KB (2 MB, el límite actual de PHP).
+                                    ->maxSize(2048)
+                                    // Agrega un botón para abrir el archivo en otra pestaña.
+                                    ->openable()
+                                    // Agrega un botón para descargar el archivo.
+                                    ->downloadable(),
+                                // Área de texto libre para dolencias u observaciones (opcional).
+                                Textarea::make('observaciones_dolencias')
+                                    // Texto que ve el usuario sobre el campo.
+                                    ->label('Observaciones / dolencias')
+                                    // Alto inicial de 4 renglones.
+                                    ->rows(4)
+                                    // Ocupa el ancho completo de la pestaña.
+                                    ->columnSpanFull(),
+                            ]),
                     ]),
             ]);
     }
@@ -716,7 +728,6 @@ class ClientResource extends Resource
     {
         return [
             'index' => ListClients::route('/'),
-            'create' => CreateClient::route('/crear'),
             'view' => ViewClient::route('/{record}'),
             'edit' => EditClient::route('/{record}/editar'),
         ];

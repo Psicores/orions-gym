@@ -11,6 +11,8 @@ use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use Filament\View\PanelsRenderHook;
+use Illuminate\Contracts\View\View;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
@@ -76,8 +78,13 @@ class AdminPanelProvider extends PanelProvider
                     950 => '#161817',
                 ],
             ])
-            // Arranca en modo oscuro (la paleta está pensada sobre fondo carbón); cada usuario puede cambiarlo.
-            ->defaultThemeMode(ThemeMode::Dark)
+            // Arranca en modo claro; cada usuario puede cambiarlo desde su menú.
+            ->defaultThemeMode(ThemeMode::Light)
+            // Estilos propios del panel (por ejemplo la cabecera de color de los modales), después de los de Filament.
+            ->renderHook(
+                PanelsRenderHook::STYLES_AFTER,
+                fn (): View => view('filament.admin.styles'),
+            )
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
             ->pages([
