@@ -119,7 +119,7 @@
                     </div>
                     <p class="max-w-lg text-pretty text-ceniza lg:justify-self-end">
                         Orions es un lugar para venir a trabajar: barras, discos, kettlebells y profes que corrigen.
-                        Sin espejos de más ni promesas mágicas. Lo que se construye acá, se construye entre todos.
+                        Cada uno a su ritmo y con su objetivo, pero nunca solo. Lo que se construye acá, se construye entre todos.
                     </p>
                 </div>
 
