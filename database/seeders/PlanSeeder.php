@@ -14,9 +14,9 @@ class PlanSeeder extends Seeder
      * @var list<array{nombre: string, precio: string, creditos_otorgados: int}>
      */
     private const PLANES = [
-        ['nombre' => '3 días', 'precio' => '30000.00', 'creditos_otorgados' => 12],
-        ['nombre' => '4 días', 'precio' => '36000.00', 'creditos_otorgados' => 16],
-        ['nombre' => 'Pase libre', 'precio' => '45000.00', 'creditos_otorgados' => 999],
+        ['nombre' => '2 días', 'precio' => '45000.00', 'creditos_otorgados' => 8],
+        ['nombre' => '3 días', 'precio' => '50000.00', 'creditos_otorgados' => 12],
+        ['nombre' => 'Pase libre', 'precio' => '55000.00', 'creditos_otorgados' => 999],
     ];
 
     /**
