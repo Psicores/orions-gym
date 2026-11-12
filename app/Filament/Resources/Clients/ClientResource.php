@@ -587,7 +587,7 @@ class ClientResource extends Resource
     }
 
     /**
-     * Arma el texto que acompaña al vencimiento del cliente en la tabla.
+     * Arma el texto que acompaña al vencimiento del cliente (tabla de clientes, ficha e inicio).
      *
      * Precondiciones:
      * - $client viene de la base; fecha_vencimiento puede estar vacía.
@@ -600,7 +600,7 @@ class ClientResource extends Resource
      *
      * @return string|null Texto de ayuda, o null si no hace falta.
      */
-    private static function getExpirationHint(Client $client): ?string
+    public static function getExpirationHint(Client $client): ?string
     {
         // Sin fecha de vencimiento no hay nada que aclarar.
         if ($client->fecha_vencimiento === null) {
