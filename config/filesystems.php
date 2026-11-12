@@ -33,7 +33,10 @@ return [
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),
+            // Fotos y certificados de clientes: solo se sirven con enlaces firmados temporales.
             'serve' => true,
+            // Ruta propia para esos enlaces, separada de /storage (que es el disco public).
+            'url' => rtrim(env('APP_URL', 'http://localhost'), '/').'/archivos-privados',
             'throw' => false,
             'report' => false,
         ],

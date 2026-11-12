@@ -172,8 +172,10 @@ class ClientResource extends Resource
                             ->image()
                             // Muestra la vista previa redonda, tipo foto de perfil.
                             ->avatar()
-                            // Guarda el archivo en el disco public (storage/app/public).
-                            ->disk('public')
+                            // Guarda el archivo en el disco privado (storage/app/private), sin acceso público.
+                            ->disk('local')
+                            // Privado: el panel lo muestra con un enlace firmado que vence a los pocos minutos.
+                            ->visibility('private')
                             // Carpeta dentro del disco donde se guardan las fotos.
                             ->directory('clients/fotos')
                             // Tamaño máximo en KB (2 MB, el límite actual de PHP).
@@ -182,8 +184,10 @@ class ClientResource extends Resource
                         FileUpload::make('certificado_salud_path')
                             // Texto que ve el usuario sobre el campo.
                             ->label('Certificado de salud')
-                            // Guarda el archivo en el disco public (storage/app/public).
-                            ->disk('public')
+                            // Guarda el archivo en el disco privado (storage/app/private), sin acceso público.
+                            ->disk('local')
+                            // Privado: abrirlo o descargarlo usa un enlace firmado que vence a los pocos minutos.
+                            ->visibility('private')
                             // Carpeta dentro del disco donde se guardan los certificados.
                             ->directory('clients/certificados')
                             // Solo acepta PDF o cualquier tipo de imagen.
@@ -236,8 +240,10 @@ class ClientResource extends Resource
                 ImageColumn::make('foto_path')
                     // Encabezado de la columna.
                     ->label('Foto')
-                    // Busca el archivo en el disco public para armar la URL.
-                    ->disk('public')
+                    // Busca la foto en el disco privado.
+                    ->disk('local')
+                    // Arma un enlace firmado temporal en lugar de una URL pública.
+                    ->visibility('private')
                     // Muestra la imagen recortada en círculo.
                     ->circular(),
                 // Nombre del cliente.
