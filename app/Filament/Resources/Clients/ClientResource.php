@@ -153,10 +153,16 @@ class ClientResource extends Resource
                             ->default(ClientStatusEnum::Inactivo)
                             // No se puede guardar sin estado.
                             ->required(),
-                        // Selector de fecha para el vencimiento de la cuota (opcional).
+                        // Vencimiento de la cuota: se calcula solo a partir de las membresías.
                         DatePicker::make('fecha_vencimiento')
                             // Texto que ve el usuario sobre el campo.
-                            ->label('Fecha de vencimiento'),
+                            ->label('Fecha de vencimiento')
+                            // Solo lectura: lo actualiza el sistema al cambiar las membresías.
+                            ->disabled()
+                            // No se envía al guardar, así el formulario nunca pisa el valor calculado.
+                            ->dehydrated(false)
+                            // Explica de dónde sale el valor.
+                            ->helperText('Se calcula solo: es el vencimiento más lejano de sus membresías.'),
                     ]),
                 // Sección 3: foto, certificado y datos de salud.
                 Section::make('Salud y documentación')
