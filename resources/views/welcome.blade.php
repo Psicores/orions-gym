@@ -89,7 +89,7 @@
                 <div class="relative mx-auto max-w-5xl px-5 text-center">
                     <p class="mb-5 text-xs font-semibold tracking-[0.5em] text-oxido uppercase sm:text-sm">Gimnasio · Fuerza · Comunidad</p>
                     <h1 class="font-display text-6xl leading-[0.9] text-balance uppercase sm:text-8xl lg:text-9xl">
-                        Hierro, polvo <span class="text-salvia-light">y constancia</span>
+                        Fierros <span class="text-salvia-light">y constancia</span>
                     </h1>
                     <p class="mx-auto mt-6 max-w-xl text-base text-pretty text-niebla/80 sm:text-lg">
                         Entrenamiento serio, sin vueltas. Vení a levantar pesado con gente que empuja para el mismo lado.
