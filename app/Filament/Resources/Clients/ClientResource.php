@@ -7,6 +7,7 @@ use App\Filament\Resources\Clients\Actions\RegisterPaymentAction;
 use App\Filament\Resources\Clients\Pages\CreateClient;
 use App\Filament\Resources\Clients\Pages\EditClient;
 use App\Filament\Resources\Clients\Pages\ListClients;
+use App\Filament\Resources\Clients\Pages\ViewClient;
 use App\Filament\Resources\Clients\RelationManagers\MembershipsRelationManager;
 use App\Filament\Resources\Clients\RelationManagers\PaymentsRelationManager;
 use App\Models\Client;
@@ -20,17 +21,23 @@ use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Infolists\Components\ImageEntry;
+use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Filament\Support\Enums\FontWeight;
+use Filament\Support\Enums\TextSize;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Facades\Storage;
 
 class ClientResource extends Resource
 {
@@ -217,16 +224,272 @@ class ClientResource extends Resource
     }
 
     /**
+     * Arma la ficha del cliente: un resumen de solo lectura pensado para recepción.
+     *
+     * Precondiciones:
+     * - Se muestra en la página de vista de un cliente existente (ViewClient).
+     * - Client tiene las relaciones currentMembership y latestPayment.
+     *
+     * Postcondiciones:
+     * - Muestra, sin entrar a editar: quién es (foto, nombre, DNI), su estado y vencimiento,
+     *   la membresía vigente con sus créditos, el último pago, y los datos de contacto y salud.
+     * - Los datos que faltan se muestran con un texto aclaratorio ("Sin membresía vigente",
+     *   "Todavía no registró pagos", etc.) en lugar de quedar en blanco.
+     * - El vencimiento pasado se pinta en amarillo, nunca en rojo.
+     * - El certificado de salud se abre con un enlace firmado que vence a los 30 minutos.
+     * - No modifica datos.
+     *
+     * @param  Schema  $schema  Esquema vacío que entrega Filament.
+     * @return Schema La ficha configurada.
+     */
+    public static function infolist(Schema $schema): Schema
+    {
+        // Devuelve el esquema con las secciones de la ficha.
+        return $schema
+            // Tres columnas en pantallas grandes; una sola en el celular.
+            ->columns(['default' => 1, 'lg' => 3])
+            // Secciones de la ficha.
+            ->components([
+                // Sección 1: quién es y cómo está su cuota, a todo el ancho.
+                Section::make()
+                    // Ocupa las tres columnas.
+                    ->columnSpanFull()
+                    // Cinco datos en fila en pantallas grandes; de a dos en el celular.
+                    ->columns(['default' => 2, 'lg' => 5])
+                    // Datos de la sección.
+                    ->schema([
+                        // Foto del cliente (solo si tiene).
+                        ImageEntry::make('foto_path')
+                            // Sin etiqueta: la foto se explica sola.
+                            ->hiddenLabel()
+                            // La busca en el disco privado.
+                            ->disk('local')
+                            // Usa un enlace firmado temporal.
+                            ->visibility('private')
+                            // Recortada en círculo.
+                            ->circular()
+                            // Tamaño en píxeles.
+                            ->imageSize(72)
+                            // Si no tiene foto, no ocupa lugar.
+                            ->visible(fn (Client $record): bool => filled($record->foto_path)),
+                        // Nombre completo, destacado.
+                        TextEntry::make('nombre_completo')
+                            // Etiqueta del dato.
+                            ->label('Cliente')
+                            // Nombre y apellido juntos.
+                            ->state(fn (Client $record): string => "{$record->nombre} {$record->apellido}")
+                            // Letra grande.
+                            ->size(TextSize::Large)
+                            // En negrita.
+                            ->weight(FontWeight::Bold),
+                        // Documento.
+                        TextEntry::make('dni')
+                            // Etiqueta del dato.
+                            ->label('DNI'),
+                        // Estado del cliente, con el color definido en el enum.
+                        TextEntry::make('estado')
+                            // Etiqueta del dato.
+                            ->label('Estado')
+                            // Como etiqueta de color.
+                            ->badge()
+                            // Debajo, qué significa el estado (por ejemplo "Debe abonar").
+                            ->belowContent(fn (Client $record): string => $record->estado->getDescription()),
+                        // Vencimiento de la cuota.
+                        TextEntry::make('fecha_vencimiento')
+                            // Etiqueta del dato.
+                            ->label('Vencimiento')
+                            // Formato día/mes/año.
+                            ->date('d/m/Y')
+                            // Texto cuando no tiene vencimiento.
+                            ->placeholder('Sin vencimiento')
+                            // Amarillo suave si ya venció.
+                            ->color(fn (Client $record): ?string => $record->fecha_vencimiento?->isBefore(today()) ? 'warning' : null)
+                            // Debajo, cuánto falta o hace cuánto venció (solo si está cerca o ya pasó).
+                            ->belowContent(fn (Client $record): ?string => self::getExpirationHint($record)),
+                    ]),
+                // Sección 2: la membresía vigente.
+                Section::make('Membresía vigente')
+                    // Ícono de la sección.
+                    ->icon(Heroicon::OutlinedIdentification)
+                    // Dos datos por fila.
+                    ->columns(2)
+                    // Datos de la sección.
+                    ->schema([
+                        // Plan contratado.
+                        TextEntry::make('currentMembership.plan.nombre')
+                            // Etiqueta del dato.
+                            ->label('Plan')
+                            // Texto cuando no tiene ninguna membresía abierta.
+                            ->placeholder('Sin membresía vigente'),
+                        // Estado de acceso de la membresía.
+                        TextEntry::make('currentMembership.estado')
+                            // Etiqueta del dato.
+                            ->label('Acceso')
+                            // Como etiqueta de color.
+                            ->badge()
+                            // Texto cuando no hay membresía.
+                            ->placeholder('—'),
+                        // Vencimiento de la membresía.
+                        TextEntry::make('currentMembership.fecha_vencimiento')
+                            // Etiqueta del dato.
+                            ->label('Vence')
+                            // Formato día/mes/año.
+                            ->date('d/m/Y')
+                            // Texto cuando no hay membresía.
+                            ->placeholder('—'),
+                        // Créditos que le quedan.
+                        TextEntry::make('creditos')
+                            // Etiqueta del dato.
+                            ->label('Créditos')
+                            // "8 de 12", o "Libre" si el plan es libre.
+                            ->state(fn (Client $record): ?string => self::getCreditsSummary($record))
+                            // Texto cuando no hay membresía.
+                            ->placeholder('—'),
+                    ]),
+                // Sección 3: el último pago.
+                Section::make('Último pago')
+                    // Ícono de la sección.
+                    ->icon(Heroicon::OutlinedBanknotes)
+                    // Dos datos por fila.
+                    ->columns(2)
+                    // Datos de la sección.
+                    ->schema([
+                        // Cuándo pagó.
+                        TextEntry::make('latestPayment.fecha_pago')
+                            // Etiqueta del dato.
+                            ->label('Fecha')
+                            // Formato día/mes/año con hora.
+                            ->dateTime('d/m/Y H:i')
+                            // Texto cuando nunca pagó.
+                            ->placeholder('Todavía no registró pagos'),
+                        // Cuánto pagó.
+                        TextEntry::make('latestPayment.monto')
+                            // Etiqueta del dato.
+                            ->label('Monto')
+                            // En pesos argentinos.
+                            ->money('ARS', locale: 'es_AR')
+                            // Texto cuando nunca pagó.
+                            ->placeholder('—'),
+                        // Cómo pagó.
+                        TextEntry::make('latestPayment.metodo_pago')
+                            // Etiqueta del dato.
+                            ->label('Medio')
+                            // Como etiqueta de color.
+                            ->badge()
+                            // Texto cuando nunca pagó.
+                            ->placeholder('—'),
+                        // Quién lo cobró.
+                        TextEntry::make('latestPayment.registradoPor.name')
+                            // Etiqueta del dato.
+                            ->label('Cobró')
+                            // Texto cuando nunca pagó.
+                            ->placeholder('—'),
+                    ]),
+                // Sección 4: contacto y salud.
+                Section::make('Contacto y salud')
+                    // Ícono de la sección.
+                    ->icon(Heroicon::OutlinedHeart)
+                    // Dos datos por fila.
+                    ->columns(2)
+                    // Datos de la sección.
+                    ->schema([
+                        // Celular, con enlace para llamar desde el teléfono.
+                        TextEntry::make('cel')
+                            // Etiqueta del dato.
+                            ->label('Celular')
+                            // Ícono de teléfono.
+                            ->icon(Heroicon::OutlinedPhone)
+                            // Al tocarlo, abre la app de llamadas.
+                            ->url(fn (Client $record): string => "tel:{$record->cel}"),
+                        // Email, con enlace para escribirle.
+                        TextEntry::make('email')
+                            // Etiqueta del dato.
+                            ->label('Email')
+                            // Ícono de sobre.
+                            ->icon(Heroicon::OutlinedEnvelope)
+                            // Al tocarlo, abre el programa de correo.
+                            ->url(fn (Client $record): string => "mailto:{$record->email}"),
+                        // Fecha de nacimiento con la edad.
+                        TextEntry::make('fecha_nacimiento')
+                            // Etiqueta del dato.
+                            ->label('Nacimiento')
+                            // "14/03/1995 (31 años)".
+                            ->formatStateUsing(fn (Client $record): string => $record->fecha_nacimiento->format('d/m/Y').' ('.$record->fecha_nacimiento->age.' años)'),
+                        // Certificado de salud: enlace para abrirlo, si está cargado.
+                        TextEntry::make('certificado_salud_path')
+                            // Etiqueta del dato.
+                            ->label('Certificado de salud')
+                            // En vez de la ruta del archivo, muestra un texto para abrirlo.
+                            ->formatStateUsing(fn (): string => 'Ver certificado')
+                            // Ícono de documento.
+                            ->icon(Heroicon::OutlinedDocumentText)
+                            // Enlace firmado al archivo privado, válido por 30 minutos.
+                            ->url(fn (Client $record): ?string => filled($record->certificado_salud_path)
+                                // Solo si hay archivo.
+                                ? Storage::disk('local')->temporaryUrl($record->certificado_salud_path, now()->addMinutes(30))
+                                // Sin archivo, sin enlace.
+                                : null)
+                            // Lo abre en otra pestaña.
+                            ->openUrlInNewTab()
+                            // Texto cuando no está cargado.
+                            ->placeholder('No cargado'),
+                        // Dolencias u observaciones, a todo el ancho.
+                        TextEntry::make('observaciones_dolencias')
+                            // Etiqueta del dato.
+                            ->label('Observaciones / dolencias')
+                            // Ocupa las dos columnas.
+                            ->columnSpanFull()
+                            // Texto cuando no hay observaciones.
+                            ->placeholder('Sin observaciones'),
+                    ]),
+            ]);
+    }
+
+    /**
+     * Arma el texto de créditos de la membresía vigente del cliente.
+     *
+     * Precondiciones:
+     * - $client viene de la base; puede no tener membresía vigente.
+     *
+     * Postcondiciones:
+     * - Sin membresía vigente: devuelve null.
+     * - Si el plan es libre (otorga 999 créditos o más): devuelve "Libre".
+     * - En otro caso: "disponibles de otorgados", por ejemplo "8 de 12".
+     * - No modifica datos.
+     *
+     * @return string|null Texto de créditos, o null si no aplica.
+     */
+    private static function getCreditsSummary(Client $client): ?string
+    {
+        // Membresía vigente del cliente (null si no tiene).
+        $membership = $client->currentMembership;
+
+        // Sin membresía no hay créditos que mostrar.
+        if ($membership === null) {
+            // No muestra texto.
+            return null;
+        }
+
+        // Créditos que otorga el plan (999 es la convención para "libre").
+        $granted = $membership->plan->creditos_otorgados;
+
+        // Plan libre: no tiene sentido contar; si no, "disponibles de otorgados".
+        return $granted >= 999 ? 'Libre' : "{$membership->creditos_disponibles} de {$granted}";
+    }
+
+    /**
      * Arma la tabla del listado de clientes del panel /admin.
      *
      * Precondiciones:
      * - Existe la tabla clients con las columnas de la migración create_clients_table.
-     * - Para ver las fotos, el archivo debe existir en el disco "public" y estar hecho
-     *   el php artisan storage:link.
+     * - Para ver las fotos, el archivo debe existir en el disco privado "local".
      *
      * Postcondiciones:
      * - Lista los clientes activos (no dados de baja), ordenados por apellido.
-     * - La búsqueda encuentra por DNI o apellido (no por nombre).
+     * - La búsqueda encuentra por nombre, apellido o DNI (por ejemplo "juan perez").
+     * - El vencimiento muestra debajo cuánto falta o hace cuánto venció cuando está cerca
+     *   (7 días o menos) o ya pasó; si ya pasó, se pinta en amarillo (nunca en rojo).
+     * - Hacer clic en una fila abre la ficha del cliente; "Editar" lleva al formulario.
      * - Se puede editar un cliente, darlo de baja (baja lógica) o restaurarlo. No hay
      *   borrado definitivo, para conservar el historial.
      * - Si un cliente no tiene foto o el archivo no existe, la celda Foto queda vacía.
@@ -240,6 +503,8 @@ class ClientResource extends Resource
         return $table
             // Usa el apellido como nombre de cada fila en mensajes y confirmaciones.
             ->recordTitleAttribute('apellido')
+            // Al hacer clic en una fila se abre la ficha del cliente (no el formulario de edición).
+            ->recordUrl(fn (Client $record): string => self::getUrl('view', ['record' => $record]))
             // Columnas visibles, en el orden en que se muestran.
             ->columns([
                 // Foto del cliente leída de la columna foto_path.
@@ -256,6 +521,8 @@ class ClientResource extends Resource
                 TextColumn::make('nombre')
                     // Encabezado de la columna.
                     ->label('Nombre')
+                    // Incluye esta columna en el buscador de la tabla.
+                    ->searchable()
                     // Permite ordenar haciendo clic en el encabezado.
                     ->sortable(),
                 // Apellido del cliente.
@@ -284,6 +551,10 @@ class ClientResource extends Resource
                     ->label('Vencimiento')
                     // Formato día/mes/año.
                     ->date('d/m/Y')
+                    // Debajo de la fecha, aclara cuánto falta o hace cuánto venció (solo si está cerca o ya pasó).
+                    ->description(fn (Client $record): ?string => self::getExpirationHint($record))
+                    // Si ya venció, la pinta en amarillo suave; si no, queda con el color normal.
+                    ->color(fn (Client $record): ?string => $record->fecha_vencimiento?->isBefore(today()) ? 'warning' : null)
                     // Permite ordenar haciendo clic en el encabezado.
                     ->sortable(),
             ])
@@ -297,7 +568,9 @@ class ClientResource extends Resource
             // Acciones de cada fila.
             ->recordActions([
                 // Cobro rápido: abre el modal para registrar un pago del cliente.
-                RegisterPaymentAction::make(),
+                RegisterPaymentAction::make()
+                    // Texto corto para la fila.
+                    ->label('Cobrar'),
                 // Botón para abrir el formulario de edición del cliente.
                 EditAction::make(),
             ])
@@ -314,13 +587,117 @@ class ClientResource extends Resource
     }
 
     /**
-     * Tablas relacionadas que se muestran al editar un cliente.
+     * Arma el texto que acompaña al vencimiento del cliente (tabla de clientes, ficha e inicio).
+     *
+     * Precondiciones:
+     * - $client viene de la base; fecha_vencimiento puede estar vacía.
+     *
+     * Postcondiciones:
+     * - Sin fecha, o si faltan más de 7 días: devuelve null (no se muestra nada).
+     * - Si vence dentro de los próximos 7 días: "Vence hoy", "Vence mañana" o "Vence en N días".
+     * - Si ya venció: "Venció ayer" o "Venció hace N días".
+     * - No modifica datos.
+     *
+     * @return string|null Texto de ayuda, o null si no hace falta.
+     */
+    public static function getExpirationHint(Client $client): ?string
+    {
+        // Sin fecha de vencimiento no hay nada que aclarar.
+        if ($client->fecha_vencimiento === null) {
+            // No muestra texto.
+            return null;
+        }
+
+        // Días desde hoy hasta el vencimiento: negativo si ya pasó, 0 si es hoy.
+        $days = (int) today()->diffInDays($client->fecha_vencimiento->copy()->startOfDay(), absolute: false);
+
+        // Elige el texto según la distancia.
+        return match (true) {
+            // Falta más de una semana: no hace falta avisar.
+            $days > 7 => null,
+            // Faltan entre 2 y 7 días.
+            $days > 1 => "Vence en {$days} días",
+            // Falta un día.
+            $days === 1 => 'Vence mañana',
+            // Es hoy.
+            $days === 0 => 'Vence hoy',
+            // Pasó ayer.
+            $days === -1 => 'Venció ayer',
+            // Pasó hace más de un día.
+            default => 'Venció hace '.abs($days).' días',
+        };
+    }
+
+    /**
+     * Columnas por las que el buscador general (barra superior del panel) encuentra clientes.
+     *
+     * Precondiciones:
+     * - Ninguna.
+     *
+     * Postcondiciones:
+     * - Desde cualquier pantalla se puede buscar un cliente por nombre, apellido o DNI.
+     *
+     * @return array<string> Nombres de columnas de la tabla clients.
+     */
+    public static function getGloballySearchableAttributes(): array
+    {
+        // Mismas columnas que el buscador de la tabla.
+        return ['nombre', 'apellido', 'dni'];
+    }
+
+    /**
+     * Título de cada resultado del buscador general.
+     *
+     * Precondiciones:
+     * - $record es un Client.
+     *
+     * Postcondiciones:
+     * - Devuelve "Apellido, Nombre" (por ejemplo "Pérez, Juan").
+     *
+     * @param  Model  $record  Cliente encontrado.
+     * @return string Texto principal del resultado.
+     */
+    public static function getGlobalSearchResultTitle(Model $record): string
+    {
+        // Apellido primero, como se ordena la tabla.
+        return "{$record->apellido}, {$record->nombre}";
+    }
+
+    /**
+     * Datos que acompañan a cada resultado del buscador general.
+     *
+     * Precondiciones:
+     * - $record es un Client.
+     *
+     * Postcondiciones:
+     * - Devuelve el DNI y el estado, y el vencimiento si tiene, para reconocer al cliente y su
+     *   situación sin abrirlo.
+     *
+     * @param  Model  $record  Cliente encontrado.
+     * @return array<string, string> Pares "etiqueta => valor".
+     */
+    public static function getGlobalSearchResultDetails(Model $record): array
+    {
+        // Devuelve solo los datos que tienen valor (array_filter saca el vencimiento vacío).
+        return array_filter([
+            // Documento, para distinguir homónimos.
+            'DNI' => $record->dni,
+            // Estado actual (Entrenando, En pausa, etc.).
+            'Estado' => $record->estado->getLabel(),
+            // Vencimiento de la cuota, si tiene.
+            'Vence' => $record->fecha_vencimiento?->format('d/m/Y'),
+        ]);
+    }
+
+    /**
+     * Tablas relacionadas que se muestran en la ficha de un cliente.
      *
      * Precondiciones:
      * - Client tiene las relaciones memberships() y payments().
      *
      * Postcondiciones:
-     * - La edición del cliente muestra las pestañas "Membresías" y "Pagos", en ese orden.
+     * - La ficha del cliente muestra las pestañas "Membresías" y "Pagos", en ese orden.
+     *   (La página de edición no las muestra: ver EditClient::getRelationManagers().)
      *
      * @return array<class-string<RelationManager>>
      */
@@ -340,6 +717,7 @@ class ClientResource extends Resource
         return [
             'index' => ListClients::route('/'),
             'create' => CreateClient::route('/crear'),
+            'view' => ViewClient::route('/{record}'),
             'edit' => EditClient::route('/{record}/editar'),
         ];
     }

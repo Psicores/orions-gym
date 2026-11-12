@@ -12,16 +12,22 @@ class DatabaseSeeder extends Seeder
     use WithoutModelEvents;
 
     /**
-     * Carga los usuarios base del sistema: el administrador (dueño) y la cuenta de prueba.
+     * Carga los datos iniciales: usuarios base, planes del catálogo y, fuera de producción,
+     * clientes de ejemplo.
      *
      * Precondiciones:
-     * - Las migraciones están corridas (existe la tabla users).
+     * - Las migraciones están corridas.
      * - ADMIN_NAME, ADMIN_EMAIL y ADMIN_PASSWORD están definidos en .env.
      *
      * Postcondiciones:
      * - Existen exactamente un usuario con el email del administrador y uno con test@test.com,
      *   ambos con email verificado (por lo tanto pueden entrar al panel /admin).
-     * - Correrlo varias veces no duplica usuarios: los actualiza.
+     * - Existen los tres planes base (ver PlanSeeder).
+     * - Si la app no está en producción (APP_ENV distinto de production), existen además los
+     *   clientes de ejemplo con sus membresías y pagos (ver DemoClientSeeder). En producción
+     *   no se carga ningún cliente.
+     * - Correrlo varias veces no duplica nada: los usuarios se actualizan, y los planes y
+     *   clientes que ya existen no se tocan.
      *
      * @throws RuntimeException Si falta alguna variable ADMIN_* en .env.
      */
@@ -31,6 +37,14 @@ class DatabaseSeeder extends Seeder
         $this->seedAdministrator();
         // Crea o actualiza la cuenta de prueba compartida.
         $this->seedTestUser();
+        // Carga los planes base del catálogo.
+        $this->call(PlanSeeder::class);
+
+        // Los datos de ejemplo son solo para desarrollo y pruebas.
+        if (! app()->isProduction()) {
+            // Carga clientes de ejemplo que cubren todos los estados.
+            $this->call(DemoClientSeeder::class);
+        }
     }
 
     /**
