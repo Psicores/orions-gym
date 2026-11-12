@@ -7,9 +7,11 @@ use App\Enums\MembershipStatusEnum;
 use App\Enums\PaymentMethodEnum;
 use Database\Factories\ClientFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
@@ -98,6 +100,53 @@ class Client extends Model
     {
         // Busca en payments las filas cuyo client_id es el id de este cliente.
         return $this->hasMany(Payment::class);
+    }
+
+    /**
+     * Membresía vigente del cliente: la abierta (no vencida) que empezó más recientemente.
+     *
+     * Solo sirve para mostrar (ficha del cliente, acciones rápidas); no cambia cómo se cobra
+     * ni cómo se calculan los estados.
+     *
+     * Precondiciones:
+     * - Existe la tabla memberships con la columna client_id.
+     *
+     * Postcondiciones:
+     * - Devuelve la relación "un cliente tiene una membresía vigente", sin ejecutar la consulta.
+     * - $client->currentMembership es la membresía no vencida con fecha_inicio más reciente
+     *   (si empatan, la creada último), o null si no tiene ninguna abierta.
+     * - No modifica datos.
+     *
+     * @return HasOne<Membership, $this>
+     */
+    public function currentMembership(): HasOne
+    {
+        // Entre las membresías del cliente, se queda con una sola.
+        return $this->hasOne(Membership::class)->ofMany(
+            // Criterio: la fecha de inicio más alta y, si empatan, el id más alto.
+            ['fecha_inicio' => 'max', 'id' => 'max'],
+            // Solo compiten las abiertas (todas menos las vencidas).
+            fn (Builder $query) => $query->where('estado', '!=', MembershipStatusEnum::Vencida),
+        );
+    }
+
+    /**
+     * Último pago que hizo el cliente.
+     *
+     * Precondiciones:
+     * - Existe la tabla payments con la columna client_id.
+     *
+     * Postcondiciones:
+     * - Devuelve la relación "un cliente tiene un último pago", sin ejecutar la consulta.
+     * - $client->latestPayment es el pago con fecha_pago más reciente, o null si nunca pagó.
+     * - No modifica datos.
+     *
+     * @return HasOne<Payment, $this>
+     */
+    public function latestPayment(): HasOne
+    {
+        // Entre los pagos del cliente, se queda con el de fecha de pago más reciente.
+        return $this->hasOne(Payment::class)->latestOfMany('fecha_pago');
     }
 
     /**

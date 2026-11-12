@@ -12,7 +12,7 @@ use Filament\Tables\Table;
 use Livewire\Attributes\On;
 
 /**
- * Pestaña "Pagos" dentro de la edición de un cliente: historial de toda la plata que entregó,
+ * Pestaña "Pagos" dentro de la ficha de un cliente: historial de toda la plata que entregó,
  * con fecha, monto, medio, membresía y quién se la cobró.
  *
  * Es de solo lectura a propósito: los pagos se cargan con la acción "Registrar pago" y no se
@@ -32,7 +32,7 @@ class PaymentsRelationManager extends RelationManager
      * Arma la tabla con el historial de pagos del cliente.
      *
      * Precondiciones:
-     * - Se muestra dentro de la edición de un cliente existente.
+     * - Se muestra dentro de la ficha de un cliente existente.
      *
      * Postcondiciones:
      * - Lista solo los pagos de ese cliente, del más nuevo al más viejo.

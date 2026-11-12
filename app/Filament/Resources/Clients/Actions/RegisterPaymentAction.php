@@ -12,7 +12,6 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\ToggleButtons;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Notifications\Notification;
-use Filament\Resources\Pages\EditRecord;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Database\Eloquent\Model;
@@ -28,7 +27,7 @@ use Livewire\Component;
  * Client::registerPayment().
  *
  * Se puede montar sobre dos tipos de registro:
- * - Un Client (tabla de clientes y encabezado de la edición): si el cliente tiene una sola
+ * - Un Client (tabla de clientes y encabezado de la ficha): si el cliente tiene una sola
  *   membresía cobrable se muestra como resumen; si tiene varias, se elige en un selector.
  * - Una Membership (fila de la pestaña Membresías): el pago va directo a esa membresía.
  */
@@ -63,8 +62,8 @@ class RegisterPaymentAction extends Action
      * - El modal pide la membresía solo cuando hay más de una opción; si no, la muestra como resumen.
      * - Al confirmar el modal se crea un Payment con el usuario logueado como registrado_por_user_id,
      *   el cliente pasa a Entrenando, se muestra una notificación y se avisa al resto de la página
-     *   (eventos "pago-registrado" y "cliente-actualizado") para que el historial de pagos y el
-     *   formulario del cliente se actualicen.
+     *   (eventos "pago-registrado" y "cliente-actualizado") para que el historial de pagos y la
+     *   ficha del cliente se actualicen.
      * - Si el pago no se puede registrar, se muestra el motivo y no se guarda nada.
      */
     protected function setUp(): void
@@ -216,15 +215,8 @@ class RegisterPaymentAction extends Action
                     // La muestra.
                     ->send();
 
-                // Refresca el estado del cliente en el formulario de edición, si está abierto.
-                if ($livewire instanceof EditRecord) {
-                    // La acción corre en la propia página: recarga solo el campo estado.
-                    $livewire->refreshFormData(['estado']);
-                } else {
-                    // La acción corre en una tabla (clientes o membresías): avisa a la página que el cliente cambió.
-                    $livewire->dispatch('cliente-actualizado');
-                }
-
+                // Avisa a la página que el cliente cambió (la ficha relee su estado y su último pago).
+                $livewire->dispatch('cliente-actualizado');
                 // Avisa a la página para que la pestaña "Pagos" vuelva a cargar la tabla.
                 $livewire->dispatch('pago-registrado');
             });
