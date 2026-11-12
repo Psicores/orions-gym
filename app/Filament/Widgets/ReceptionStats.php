@@ -5,17 +5,15 @@ namespace App\Filament\Widgets;
 use App\Enums\ClientStatusEnum;
 use App\Filament\Resources\Clients\ClientResource;
 use App\Models\Client;
-use App\Models\Payment;
 use Filament\Support\Icons\Heroicon;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
-use Illuminate\Support\Number;
 use Livewire\Attributes\On;
 
 /**
  * Contadores del inicio del panel: cómo está el gimnasio hoy, de un vistazo.
  *
- * Solo lee datos que ya existen (clientes y pagos); no guarda ni calcula nada nuevo.
+ * Solo lee datos que ya existen (clientes); no guarda ni calcula nada nuevo.
  */
 class ReceptionStats extends StatsOverviewWidget
 {
@@ -26,11 +24,11 @@ class ReceptionStats extends StatsOverviewWidget
     protected ?string $pollingInterval = '60s';
 
     /**
-     * Arma los cuatro contadores del inicio.
+     * Arma los tres contadores del inicio.
      *
      * Precondiciones:
-     * - Existen las tablas clients y payments.
-     * - La app está en hora argentina, así "hoy" y "este mes" son los del gimnasio.
+     * - Existe la tabla clients.
+     * - La app está en hora argentina, así "hoy" es el del gimnasio.
      *
      * Postcondiciones:
      * - "Entrenando": clientes activos (no dados de baja) con la cuota al día. Lleva a la tabla
@@ -38,8 +36,6 @@ class ReceptionStats extends StatsOverviewWidget
      * - "Deben la cuota": clientes En pausa. Lleva a la tabla filtrada. En amarillo, nunca rojo.
      * - "Vencen en 7 días": clientes Entrenando o Activo temporal cuyo vencimiento cae entre hoy
      *   y dentro de 7 días.
-     * - "Cobrado hoy": suma de los pagos con fecha de hoy, con la cantidad de pagos y el total
-     *   del mes debajo.
      * - No modifica datos.
      *
      * @return array<Stat>
@@ -67,15 +63,6 @@ class ReceptionStats extends StatsOverviewWidget
             ->whereDate('fecha_vencimiento', '<=', today()->addDays(7))
             // Solo la cantidad.
             ->count();
-
-        // Pagos de hoy.
-        $paymentsToday = Payment::query()->whereDate('fecha_pago', today());
-        // Total cobrado hoy.
-        $collectedToday = (float) (clone $paymentsToday)->sum('monto');
-        // Cantidad de pagos de hoy.
-        $paymentsTodayCount = $paymentsToday->count();
-        // Total cobrado desde el primer día del mes.
-        $collectedThisMonth = (float) Payment::query()->where('fecha_pago', '>=', today()->startOfMonth())->sum('monto');
 
         // Devuelve los contadores en el orden en que se muestran.
         return [
@@ -107,14 +94,6 @@ class ReceptionStats extends StatsOverviewWidget
                 ->descriptionIcon(Heroicon::OutlinedClock)
                 // Celeste.
                 ->color('info'),
-            // Plata cobrada hoy.
-            Stat::make('Cobrado hoy', Number::currency($collectedToday, in: 'ARS', locale: 'es_AR'))
-                // Debajo: cuántos pagos fueron y cuánto va en el mes.
-                ->description(trans_choice('{0} Sin pagos hoy|{1} 1 pago|[2,*] :count pagos', $paymentsTodayCount).' · '.Number::currency($collectedThisMonth, in: 'ARS', locale: 'es_AR').' en el mes')
-                // Ícono de la aclaración.
-                ->descriptionIcon(Heroicon::OutlinedBanknotes)
-                // Verde.
-                ->color('success'),
         ];
     }
 
