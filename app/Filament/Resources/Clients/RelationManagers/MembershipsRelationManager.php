@@ -200,7 +200,9 @@ class MembershipsRelationManager extends RelationManager
             // Acciones arriba de la tabla.
             ->headerActions([
                 // Botón para crear una membresía nueva para este cliente.
-                CreateAction::make(),
+                CreateAction::make()
+                    // Después de crearla, avisa a la página para refrescar el vencimiento del cliente.
+                    ->after(fn () => $this->dispatch('cliente-actualizado')),
             ])
             // Acciones de cada fila.
             ->recordActions([
@@ -243,7 +245,7 @@ class MembershipsRelationManager extends RelationManager
                         $record->grantGraceDays((int) $data['dias']);
 
                         // Avisa a la página para que el formulario del cliente muestre su nuevo estado.
-                        $this->dispatch('estado-cliente-actualizado');
+                        $this->dispatch('cliente-actualizado');
 
                         // Confirma con la nueva fecha de vencimiento.
                         Notification::make()
@@ -257,18 +259,24 @@ class MembershipsRelationManager extends RelationManager
                             ->send();
                     }),
                 // Botón para editar la membresía.
-                EditAction::make(),
+                EditAction::make()
+                    // Después de guardarla, avisa a la página para refrescar el vencimiento del cliente.
+                    ->after(fn () => $this->dispatch('cliente-actualizado')),
                 // Botón para borrar la membresía (pide confirmación).
                 DeleteAction::make()
                     // Se oculta si la membresía ya tiene pagos registrados.
-                    ->hidden(fn (Membership $record): bool => (bool) $record->payments_exists),
+                    ->hidden(fn (Membership $record): bool => (bool) $record->payments_exists)
+                    // Después de borrarla, avisa a la página para refrescar el vencimiento del cliente.
+                    ->after(fn () => $this->dispatch('cliente-actualizado')),
             ])
             // Acciones sobre varias filas seleccionadas.
             ->toolbarActions([
                 // Agrupa las acciones masivas en un solo menú.
                 BulkActionGroup::make([
                     // Borra las membresías seleccionadas.
-                    DeleteBulkAction::make(),
+                    DeleteBulkAction::make()
+                        // Después de borrarlas, avisa a la página para refrescar el vencimiento del cliente.
+                        ->after(fn () => $this->dispatch('cliente-actualizado')),
                 ]),
             ]);
     }

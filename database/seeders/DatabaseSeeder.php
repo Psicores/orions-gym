@@ -56,7 +56,7 @@ class DatabaseSeeder extends Seeder
         // Si alguna de las tres credenciales está vacía, corta antes de escribir en la base.
         if (blank($admin['name']) || blank($admin['email']) || blank($admin['password'])) {
             // Avisa qué variables hay que completar en .env.
-            throw new RuntimeException('Set ADMIN_NAME, ADMIN_EMAIL and ADMIN_PASSWORD in .env before seeding.');
+            throw new RuntimeException('Completá ADMIN_NAME, ADMIN_EMAIL y ADMIN_PASSWORD en .env antes de cargar los datos iniciales.');
         }
 
         // Busca el usuario por email: si existe lo actualiza, si no lo crea (evita duplicados).

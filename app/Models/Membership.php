@@ -35,7 +35,8 @@ class Membership extends Model
     use HasFactory;
 
     /**
-     * Registra los eventos del modelo: al crear una membresía sin créditos, copia los del plan.
+     * Registra los eventos del modelo: al crear una membresía sin créditos copia los del plan, y
+     * cada vez que una membresía se guarda o se borra recalcula el vencimiento de su cliente.
      *
      * Precondiciones:
      * - Al crear la membresía, plan_id apunta a un plan existente (aunque esté dado de baja).
@@ -47,6 +48,11 @@ class Membership extends Model
      * - Si se indicó creditos_disponibles al crearla, se respeta ese valor.
      * - Editar una membresía existente no vuelve a copiar los créditos.
      * - Si plan_id no existe, la creación falla con ModelNotFoundException y no se guarda nada.
+     * - Después de crear, editar o borrar una membresía (también al dar días de gracia), el
+     *   cliente queda con fecha_vencimiento recalculada (ver Client::syncFechaVencimiento()).
+     * - Los cambios masivos por consulta (como el comando de vencimientos, que solo cambia el
+     *   estado a En pausa) no disparan estos eventos; no hace falta porque no cambian fechas
+     *   ni cierran membresías.
      */
     protected static function booted(): void
     {
@@ -62,6 +68,18 @@ class Membership extends Model
             $plan = Plan::withTrashed()->findOrFail($membership->plan_id);
             // Copia los créditos que otorga el plan como créditos iniciales de la membresía.
             $membership->creditos_disponibles = $plan->creditos_otorgados;
+        });
+
+        // Después de guardar (crear o editar) una membresía, actualiza el vencimiento del cliente.
+        static::saved(function (Membership $membership): void {
+            // Recalcula a partir de todas sus membresías.
+            $membership->client->syncFechaVencimiento();
+        });
+
+        // Después de borrar una membresía, actualiza el vencimiento del cliente sin ella.
+        static::deleted(function (Membership $membership): void {
+            // Recalcula a partir de las membresías que le quedan.
+            $membership->client->syncFechaVencimiento();
         });
     }
 

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\ClientStatusEnum;
+use App\Enums\MembershipStatusEnum;
 use App\Enums\PaymentMethodEnum;
 use Database\Factories\ClientFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -173,5 +174,34 @@ class Client extends Model
             // Devuelve el pago creado.
             return $payment;
         });
+    }
+
+    /**
+     * Recalcula la fecha de vencimiento del cliente a partir de sus membresías.
+     *
+     * Precondiciones:
+     * - El cliente existe en la base.
+     *
+     * Postcondiciones:
+     * - fecha_vencimiento = la fecha de vencimiento más lejana entre sus membresías abiertas
+     *   (todas menos las Vencidas).
+     * - Si no tiene membresías abiertas, toma la más lejana entre todas (la última que tuvo).
+     * - Si no tiene ninguna membresía, queda vacía (null).
+     * - El valor queda guardado en la base y en esta instancia. Si no cambió, no escribe nada.
+     * - No cambia el estado del cliente.
+     */
+    public function syncFechaVencimiento(): void
+    {
+        // Vencimiento más lejano entre las membresías abiertas (no vencidas).
+        $fechaVencimiento = $this->memberships()
+            // Excluye las membresías cerradas.
+            ->where('estado', '!=', MembershipStatusEnum::Vencida)
+            // Toma la fecha máxima (null si no hay ninguna).
+            ->max('fecha_vencimiento')
+            // Si no hay abiertas, usa la fecha máxima entre todas (null si no tiene membresías).
+            ?? $this->memberships()->max('fecha_vencimiento');
+
+        // Guarda la fecha (update no escribe si el valor es el mismo).
+        $this->update(['fecha_vencimiento' => $fechaVencimiento]);
     }
 }

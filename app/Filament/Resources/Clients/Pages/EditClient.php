@@ -58,25 +58,25 @@ class EditClient extends EditRecord
     }
 
     /**
-     * Actualiza el campo Estado del formulario cuando otra pestaña cambió el estado del cliente
-     * (por ejemplo, al dar días de gracia desde Membresías).
+     * Actualiza los campos Estado y Fecha de vencimiento del formulario cuando otra pestaña los
+     * cambió (por ejemplo, al crear, editar o borrar una membresía o al dar días de gracia).
      *
      * Precondiciones:
-     * - Algún componente de la página emitió el evento "estado-cliente-actualizado" después de
-     *   guardar un nuevo estado del cliente en la base.
+     * - Algún componente de la página emitió el evento "cliente-actualizado" después de
+     *   guardar cambios del cliente en la base.
      *
      * Postcondiciones:
-     * - El registro de la página se vuelve a leer de la base y el campo estado del formulario
-     *   muestra el valor actual.
+     * - El registro de la página se vuelve a leer de la base y los campos estado y
+     *   fecha_vencimiento del formulario muestran los valores actuales.
      * - Los demás campos del formulario conservan lo que el usuario haya editado sin guardar.
      * - Así, "Guardar cambios" no vuelve el estado a su valor anterior.
      */
-    #[On('estado-cliente-actualizado')]
+    #[On('cliente-actualizado')]
     public function refreshClientStatus(): void
     {
-        // Relee el cliente desde la base (el estado cambió fuera de este formulario).
+        // Relee el cliente desde la base (cambió fuera de este formulario).
         $this->getRecord()->refresh();
-        // Copia al formulario solo el estado, sin tocar el resto de los campos.
-        $this->refreshFormData(['estado']);
+        // Copia al formulario solo el estado y el vencimiento, sin tocar el resto de los campos.
+        $this->refreshFormData(['estado', 'fecha_vencimiento']);
     }
 }

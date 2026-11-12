@@ -36,6 +36,9 @@ class ClientResource extends Resource
 {
     protected static ?string $model = Client::class;
 
+    // URL en castellano: /admin/clientes.
+    protected static ?string $slug = 'clientes';
+
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUsers;
 
     protected static ?string $modelLabel = 'cliente';
@@ -95,6 +98,8 @@ class ClientResource extends Resource
                         TextInput::make('dni')
                             // Texto que ve el usuario sobre el campo.
                             ->label('DNI')
+                            // Nombre en los mensajes de error (si no, Filament lo pone como "dNI").
+                            ->validationAttribute('DNI')
                             // No se puede guardar vacío.
                             ->required()
                             // Máximo de caracteres, igual al de la columna string.
@@ -148,10 +153,16 @@ class ClientResource extends Resource
                             ->default(ClientStatusEnum::Inactivo)
                             // No se puede guardar sin estado.
                             ->required(),
-                        // Selector de fecha para el vencimiento de la cuota (opcional).
+                        // Vencimiento de la cuota: se calcula solo a partir de las membresías.
                         DatePicker::make('fecha_vencimiento')
                             // Texto que ve el usuario sobre el campo.
-                            ->label('Fecha de vencimiento'),
+                            ->label('Fecha de vencimiento')
+                            // Solo lectura: lo actualiza el sistema al cambiar las membresías.
+                            ->disabled()
+                            // No se envía al guardar, así el formulario nunca pisa el valor calculado.
+                            ->dehydrated(false)
+                            // Explica de dónde sale el valor.
+                            ->helperText('Se calcula solo: es el vencimiento más lejano de sus membresías.'),
                     ]),
                 // Sección 3: foto, certificado y datos de salud.
                 Section::make('Salud y documentación')
@@ -167,8 +178,10 @@ class ClientResource extends Resource
                             ->image()
                             // Muestra la vista previa redonda, tipo foto de perfil.
                             ->avatar()
-                            // Guarda el archivo en el disco public (storage/app/public).
-                            ->disk('public')
+                            // Guarda el archivo en el disco privado (storage/app/private), sin acceso público.
+                            ->disk('local')
+                            // Privado: el panel lo muestra con un enlace firmado que vence a los pocos minutos.
+                            ->visibility('private')
                             // Carpeta dentro del disco donde se guardan las fotos.
                             ->directory('clients/fotos')
                             // Tamaño máximo en KB (2 MB, el límite actual de PHP).
@@ -177,8 +190,10 @@ class ClientResource extends Resource
                         FileUpload::make('certificado_salud_path')
                             // Texto que ve el usuario sobre el campo.
                             ->label('Certificado de salud')
-                            // Guarda el archivo en el disco public (storage/app/public).
-                            ->disk('public')
+                            // Guarda el archivo en el disco privado (storage/app/private), sin acceso público.
+                            ->disk('local')
+                            // Privado: abrirlo o descargarlo usa un enlace firmado que vence a los pocos minutos.
+                            ->visibility('private')
                             // Carpeta dentro del disco donde se guardan los certificados.
                             ->directory('clients/certificados')
                             // Solo acepta PDF o cualquier tipo de imagen.
@@ -231,8 +246,10 @@ class ClientResource extends Resource
                 ImageColumn::make('foto_path')
                     // Encabezado de la columna.
                     ->label('Foto')
-                    // Busca el archivo en el disco public para armar la URL.
-                    ->disk('public')
+                    // Busca la foto en el disco privado.
+                    ->disk('local')
+                    // Arma un enlace firmado temporal en lugar de una URL pública.
+                    ->visibility('private')
                     // Muestra la imagen recortada en círculo.
                     ->circular(),
                 // Nombre del cliente.
@@ -322,13 +339,13 @@ class ClientResource extends Resource
     {
         return [
             'index' => ListClients::route('/'),
-            'create' => CreateClient::route('/create'),
-            'edit' => EditClient::route('/{record}/edit'),
+            'create' => CreateClient::route('/crear'),
+            'edit' => EditClient::route('/{record}/editar'),
         ];
     }
 
     /**
-     * Consulta que usa Filament para encontrar el cliente de la URL (por ejemplo /admin/clients/5/edit).
+     * Consulta que usa Filament para encontrar el cliente de la URL (por ejemplo /admin/clientes/5/editar).
      *
      * Precondiciones:
      * - El modelo Client usa SoftDeletes (columna deleted_at).
