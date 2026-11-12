@@ -1,8 +1,8 @@
 @php
     // DATOS DE EJEMPLO: reemplazar por los reales del gimnasio antes de publicar.
     $horarios = [
-        ['dias' => 'Lunes a viernes', 'horas' => '07:00 a 22:00'],
-        ['dias' => 'Sábados', 'horas' => '09:00 a 13:00'],
+        ['dias' => 'Lunes a viernes', 'horas' => '06:00 a 23:00'],
+        ['dias' => 'Sábados', 'horas' => '10:00 a 13:00 · 19:00 a 21:00'],
         ['dias' => 'Domingos y feriados', 'horas' => 'Cerrado'],
     ];
     $direccion = 'Dirección del gimnasio (a completar)';
