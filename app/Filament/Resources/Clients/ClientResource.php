@@ -30,6 +30,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class ClientResource extends Resource
@@ -226,7 +227,9 @@ class ClientResource extends Resource
      *
      * Postcondiciones:
      * - Lista los clientes activos (no dados de baja), ordenados por apellido.
-     * - La búsqueda encuentra por DNI o apellido (no por nombre).
+     * - La búsqueda encuentra por nombre, apellido o DNI (por ejemplo "juan perez").
+     * - El vencimiento muestra debajo cuánto falta o hace cuánto venció cuando está cerca
+     *   (7 días o menos) o ya pasó; si ya pasó, se pinta en amarillo (nunca en rojo).
      * - Se puede editar un cliente, darlo de baja (baja lógica) o restaurarlo. No hay
      *   borrado definitivo, para conservar el historial.
      * - Si un cliente no tiene foto o el archivo no existe, la celda Foto queda vacía.
@@ -256,6 +259,8 @@ class ClientResource extends Resource
                 TextColumn::make('nombre')
                     // Encabezado de la columna.
                     ->label('Nombre')
+                    // Incluye esta columna en el buscador de la tabla.
+                    ->searchable()
                     // Permite ordenar haciendo clic en el encabezado.
                     ->sortable(),
                 // Apellido del cliente.
@@ -284,6 +289,10 @@ class ClientResource extends Resource
                     ->label('Vencimiento')
                     // Formato día/mes/año.
                     ->date('d/m/Y')
+                    // Debajo de la fecha, aclara cuánto falta o hace cuánto venció (solo si está cerca o ya pasó).
+                    ->description(fn (Client $record): ?string => self::getExpirationHint($record))
+                    // Si ya venció, la pinta en amarillo suave; si no, queda con el color normal.
+                    ->color(fn (Client $record): ?string => $record->fecha_vencimiento?->isBefore(today()) ? 'warning' : null)
                     // Permite ordenar haciendo clic en el encabezado.
                     ->sortable(),
             ])
@@ -311,6 +320,109 @@ class ClientResource extends Resource
                     RestoreBulkAction::make(),
                 ]),
             ]);
+    }
+
+    /**
+     * Arma el texto que acompaña al vencimiento del cliente en la tabla.
+     *
+     * Precondiciones:
+     * - $client viene de la base; fecha_vencimiento puede estar vacía.
+     *
+     * Postcondiciones:
+     * - Sin fecha, o si faltan más de 7 días: devuelve null (no se muestra nada).
+     * - Si vence dentro de los próximos 7 días: "Vence hoy", "Vence mañana" o "Vence en N días".
+     * - Si ya venció: "Venció ayer" o "Venció hace N días".
+     * - No modifica datos.
+     *
+     * @return string|null Texto de ayuda, o null si no hace falta.
+     */
+    private static function getExpirationHint(Client $client): ?string
+    {
+        // Sin fecha de vencimiento no hay nada que aclarar.
+        if ($client->fecha_vencimiento === null) {
+            // No muestra texto.
+            return null;
+        }
+
+        // Días desde hoy hasta el vencimiento: negativo si ya pasó, 0 si es hoy.
+        $days = (int) today()->diffInDays($client->fecha_vencimiento->copy()->startOfDay(), absolute: false);
+
+        // Elige el texto según la distancia.
+        return match (true) {
+            // Falta más de una semana: no hace falta avisar.
+            $days > 7 => null,
+            // Faltan entre 2 y 7 días.
+            $days > 1 => "Vence en {$days} días",
+            // Falta un día.
+            $days === 1 => 'Vence mañana',
+            // Es hoy.
+            $days === 0 => 'Vence hoy',
+            // Pasó ayer.
+            $days === -1 => 'Venció ayer',
+            // Pasó hace más de un día.
+            default => 'Venció hace '.abs($days).' días',
+        };
+    }
+
+    /**
+     * Columnas por las que el buscador general (barra superior del panel) encuentra clientes.
+     *
+     * Precondiciones:
+     * - Ninguna.
+     *
+     * Postcondiciones:
+     * - Desde cualquier pantalla se puede buscar un cliente por nombre, apellido o DNI.
+     *
+     * @return array<string> Nombres de columnas de la tabla clients.
+     */
+    public static function getGloballySearchableAttributes(): array
+    {
+        // Mismas columnas que el buscador de la tabla.
+        return ['nombre', 'apellido', 'dni'];
+    }
+
+    /**
+     * Título de cada resultado del buscador general.
+     *
+     * Precondiciones:
+     * - $record es un Client.
+     *
+     * Postcondiciones:
+     * - Devuelve "Apellido, Nombre" (por ejemplo "Pérez, Juan").
+     *
+     * @param  Model  $record  Cliente encontrado.
+     * @return string Texto principal del resultado.
+     */
+    public static function getGlobalSearchResultTitle(Model $record): string
+    {
+        // Apellido primero, como se ordena la tabla.
+        return "{$record->apellido}, {$record->nombre}";
+    }
+
+    /**
+     * Datos que acompañan a cada resultado del buscador general.
+     *
+     * Precondiciones:
+     * - $record es un Client.
+     *
+     * Postcondiciones:
+     * - Devuelve el DNI y el estado, y el vencimiento si tiene, para reconocer al cliente y su
+     *   situación sin abrirlo.
+     *
+     * @param  Model  $record  Cliente encontrado.
+     * @return array<string, string> Pares "etiqueta => valor".
+     */
+    public static function getGlobalSearchResultDetails(Model $record): array
+    {
+        // Devuelve solo los datos que tienen valor (array_filter saca el vencimiento vacío).
+        return array_filter([
+            // Documento, para distinguir homónimos.
+            'DNI' => $record->dni,
+            // Estado actual (Entrenando, En pausa, etc.).
+            'Estado' => $record->estado->getLabel(),
+            // Vencimiento de la cuota, si tiene.
+            'Vence' => $record->fecha_vencimiento?->format('d/m/Y'),
+        ]);
     }
 
     /**

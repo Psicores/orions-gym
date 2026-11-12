@@ -85,7 +85,7 @@ enum ClientStatusEnum: string implements HasColor, HasDescription, HasLabel
      * - Ninguna: se llama sobre cualquier caso del enum.
      *
      * Postcondiciones:
-     * - Devuelve uno de los colores del panel: success, danger, warning o gray.
+     * - Devuelve uno de los colores del panel: success, warning, info o gray (nunca rojo).
      * - No modifica nada.
      *
      * @return string Nombre del color de Filament.
@@ -96,10 +96,10 @@ enum ClientStatusEnum: string implements HasColor, HasDescription, HasLabel
         return match ($this) {
             // Verde: todo en orden.
             self::Entrenando => 'success',
-            // Rojo: requiere atención, debe dinero.
-            self::EnPausa => 'danger',
-            // Amarillo: situación provisoria a vigilar.
-            self::ActivoTemporal => 'warning',
+            // Amarillo: debe la cuota. A propósito no es rojo, para avisar sin alarmar.
+            self::EnPausa => 'warning',
+            // Celeste: situación provisoria (mismo color que la membresía Activo flex).
+            self::ActivoTemporal => 'info',
             // Gris: sin actividad.
             self::Inactivo => 'gray',
         };
