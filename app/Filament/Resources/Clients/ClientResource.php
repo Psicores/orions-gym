@@ -306,7 +306,9 @@ class ClientResource extends Resource
             // Acciones de cada fila.
             ->recordActions([
                 // Cobro rápido: abre el modal para registrar un pago del cliente.
-                RegisterPaymentAction::make(),
+                RegisterPaymentAction::make()
+                    // Texto corto para la fila.
+                    ->label('Cobrar'),
                 // Botón para abrir el formulario de edición del cliente.
                 EditAction::make(),
             ])

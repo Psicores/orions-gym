@@ -10,22 +10,27 @@ use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\ToggleButtons;
+use Filament\Infolists\Components\TextEntry;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Number;
 use InvalidArgumentException;
 use Livewire\Component;
 
 /**
- * Acción "Registrar pago" (cobro rápido) sobre un cliente.
+ * Acción "Registrar pago" (cobro rápido).
  *
- * Abre un modal con la membresía a la que se imputa el pago (solo activas o pausadas),
- * el monto (sugiere el precio del plan) y el medio de pago, y guarda el pago a nombre
- * del usuario logueado mediante Client::registerPayment().
+ * Abre un modal con la membresía a la que se imputa el pago, el monto (sugiere el precio del
+ * plan) y el medio de pago, y guarda el pago a nombre del usuario logueado mediante
+ * Client::registerPayment().
  *
- * Se usa en la tabla de clientes (una por fila) y en el encabezado de la edición del cliente.
+ * Se puede montar sobre dos tipos de registro:
+ * - Un Client (tabla de clientes y encabezado de la edición): si el cliente tiene una sola
+ *   membresía cobrable se muestra como resumen; si tiene varias, se elige en un selector.
+ * - Una Membership (fila de la pestaña Membresías): el pago va directo a esa membresía.
  */
 class RegisterPaymentAction extends Action
 {
@@ -50,15 +55,16 @@ class RegisterPaymentAction extends Action
      * Configura el botón, el modal y la lógica de guardado de la acción.
      *
      * Precondiciones:
-     * - La acción se monta sobre un registro Client (fila de la tabla o página de edición).
+     * - La acción se monta sobre un registro Client o Membership.
      * - Hay un usuario logueado en el panel.
      *
      * Postcondiciones:
-     * - El botón queda deshabilitado (con un aviso) si el cliente no tiene membresías que admitan pagos.
+     * - El botón queda deshabilitado (con un aviso) si no hay ninguna membresía a la que cobrarle.
+     * - El modal pide la membresía solo cuando hay más de una opción; si no, la muestra como resumen.
      * - Al confirmar el modal se crea un Payment con el usuario logueado como registrado_por_user_id,
-     *   el cliente pasa a Entrenando (en la edición, el campo estado del formulario se actualiza),
-     *   se muestra una notificación y se avisa al resto de la página (evento "pago-registrado")
-     *   para que el historial de pagos se actualice.
+     *   el cliente pasa a Entrenando, se muestra una notificación y se avisa al resto de la página
+     *   (eventos "pago-registrado" y "cliente-actualizado") para que el historial de pagos y el
+     *   formulario del cliente se actualicen.
      * - Si el pago no se puede registrar, se muestra el motivo y no se guarda nada.
      */
     protected function setUp(): void
@@ -73,72 +79,99 @@ class RegisterPaymentAction extends Action
             // Verde, para distinguirlo de editar/borrar.
             ->color('success')
             // Título del modal con el nombre del cliente.
-            ->modalHeading(fn (Client $record): string => "Registrar pago de {$record->nombre} {$record->apellido}")
+            ->modalHeading(function (Model $record): string {
+                // Cliente al que se le cobra (el registro, o el dueño de la membresía).
+                $client = self::resolveClient($record);
+
+                // Arma el título.
+                return "Registrar pago de {$client->nombre} {$client->apellido}";
+            })
+            // Modal angosto: son tres datos.
+            ->modalWidth('md')
             // Texto del botón que confirma el modal.
             ->modalSubmitActionLabel('Registrar')
             // Deshabilita el botón si no hay a qué membresía imputar el pago.
-            ->disabled(fn (Client $record): bool => ! $record->memberships()->acceptingPayments()->exists())
+            ->disabled(fn (Model $record): bool => ! self::hasPayableMembership($record))
             // Explica por qué está deshabilitado (sin aviso cuando está habilitado).
-            ->tooltip(fn (Client $record): ?string => $record->memberships()->acceptingPayments()->exists()
+            ->tooltip(fn (Model $record): ?string => self::hasPayableMembership($record)
                 // Habilitado: sin tooltip.
                 ? null
                 // Deshabilitado: dice qué falta.
-                : 'El cliente no tiene membresías activas o en pausa')
-            // Valores iniciales del modal: la membresía más reciente, el precio de su plan y efectivo.
-            ->fillForm(fn (Client $record): array => self::getDefaultFormData($record))
+                : 'No hay membresías activas o en pausa para cobrar')
+            // Valores iniciales del modal: la membresía sugerida, el precio de su plan y efectivo.
+            ->fillForm(fn (Model $record): array => self::getDefaultFormData($record))
             // Campos del modal.
-            ->schema(fn (Client $record): array => [
-                // Membresía a la que se imputa el pago.
-                Select::make('membership_id')
-                    // Texto del campo.
-                    ->label('Membresía')
-                    // Solo las membresías activas o pausadas del cliente, la más nueva primero.
-                    ->options(fn (): array => self::getPayableMembershipOptions($record))
-                    // Obligatorio: todo pago se imputa a una membresía.
-                    ->required()
-                    // Avisa al servidor apenas cambia, para recalcular el monto sugerido.
-                    ->live()
-                    // Al elegir otra membresía, sugiere el precio de su plan como monto.
-                    ->afterStateUpdated(function (?string $state, Set $set) use ($record): void {
-                        // Busca la membresía elegida entre las del cliente, con su plan.
-                        $membership = $record->memberships()->with('plan')->find($state);
-                        // Si existe, copia el precio del plan al campo monto.
-                        if ($membership !== null) {
-                            // Sugiere el precio; el usuario puede cambiarlo.
-                            $set('monto', $membership->plan->precio);
-                        }
-                    }),
-                // Monto cobrado.
-                TextInput::make('monto')
-                    // Texto del campo.
-                    ->label('Monto')
-                    // Solo números.
-                    ->numeric()
-                    // Muestra el signo $ antes del número.
-                    ->prefix('$')
-                    // Permite centavos.
-                    ->step(0.01)
-                    // No acepta cero ni negativos.
-                    ->minValue(0.01)
-                    // Máximo que entra en la columna decimal(10,2).
-                    ->maxValue(99999999.99)
-                    // Obligatorio.
-                    ->required(),
-                // Medio de pago, como botones para elegir con un clic.
-                ToggleButtons::make('metodo_pago')
-                    // Texto del campo.
-                    ->label('Medio de pago')
-                    // Opciones, colores e íconos tomados del enum.
-                    ->options(PaymentMethodEnum::class)
-                    // Botones uno al lado del otro.
-                    ->inline()
-                    // Obligatorio.
-                    ->required(),
-            ])
+            ->schema(function (Model $record): array {
+                // Cliente al que se le cobra.
+                $client = self::resolveClient($record);
+                // Membresía ya decidida (fila de membresía, o la única cobrable del cliente); null si hay que elegir.
+                $fixedMembership = self::resolveFixedMembership($record);
+
+                // Devuelve los campos en orden.
+                return [
+                    // Primer campo: la membresía, como resumen o como selector según el caso.
+                    $fixedMembership !== null
+                        // Una sola opción: se muestra como dato, sin pedir un clic de más.
+                        ? TextEntry::make('membership_summary')
+                            // Texto del dato.
+                            ->label('Membresía')
+                            // Plan, vencimiento y estado de la membresía.
+                            ->state(self::getMembershipLabel($fixedMembership))
+                        // Varias opciones: se elige a cuál imputar el pago.
+                        : Select::make('membership_id')
+                            // Texto del campo.
+                            ->label('Membresía')
+                            // Solo las membresías activas o pausadas del cliente, la más nueva primero.
+                            ->options(fn (): array => self::getPayableMembershipOptions($client))
+                            // Obligatorio: todo pago se imputa a una membresía.
+                            ->required()
+                            // Avisa al servidor apenas cambia, para recalcular el monto sugerido.
+                            ->live()
+                            // Al elegir otra membresía, sugiere el precio de su plan como monto.
+                            ->afterStateUpdated(function (?string $state, Set $set) use ($client): void {
+                                // Busca la membresía elegida entre las del cliente, con su plan.
+                                $membership = $client->memberships()->with('plan')->find($state);
+                                // Si existe, copia el precio del plan al campo monto.
+                                if ($membership !== null) {
+                                    // Sugiere el precio; el usuario puede cambiarlo.
+                                    $set('monto', $membership->plan->precio);
+                                }
+                            }),
+                    // Monto cobrado.
+                    TextInput::make('monto')
+                        // Texto del campo.
+                        ->label('Monto')
+                        // Solo números.
+                        ->numeric()
+                        // Muestra el signo $ antes del número.
+                        ->prefix('$')
+                        // Permite centavos.
+                        ->step(0.01)
+                        // No acepta cero ni negativos.
+                        ->minValue(0.01)
+                        // Máximo que entra en la columna decimal(10,2).
+                        ->maxValue(99999999.99)
+                        // Obligatorio.
+                        ->required(),
+                    // Medio de pago, como botones para elegir con un clic.
+                    ToggleButtons::make('metodo_pago')
+                        // Texto del campo.
+                        ->label('Medio de pago')
+                        // Opciones, colores e íconos tomados del enum.
+                        ->options(PaymentMethodEnum::class)
+                        // Botones uno al lado del otro.
+                        ->inline()
+                        // Obligatorio.
+                        ->required(),
+                ];
+            })
             // Lógica al confirmar el modal.
-            ->action(function (array $data, Client $record, Component $livewire): void {
-                // Busca la membresía elegida, solo entre las del cliente.
-                $membership = $record->memberships()->find($data['membership_id']);
+            ->action(function (array $data, Model $record, Component $livewire): void {
+                // Cliente al que se le cobra.
+                $client = self::resolveClient($record);
+                // Membresía: la ya decidida o, si se eligió en el selector, la elegida entre las del cliente.
+                $membership = self::resolveFixedMembership($record)
+                    ?? $client->memberships()->find($data['membership_id'] ?? null);
                 // Usuario logueado: es quien cobró.
                 $user = auth()->user();
 
@@ -154,8 +187,8 @@ class RegisterPaymentAction extends Action
                 // Intenta guardar el pago; el modelo valida membresía y monto.
                 try {
                     // Crea el pago a nombre del usuario logueado.
-                    $payment = $record->registerPayment(
-                        // Membresía elegida.
+                    $payment = $client->registerPayment(
+                        // Membresía a la que se imputa.
                         $membership,
                         // Monto como texto, para no perder centavos.
                         (string) $data['monto'],
@@ -183,10 +216,13 @@ class RegisterPaymentAction extends Action
                     // La muestra.
                     ->send();
 
-                // En la edición del cliente, muestra el nuevo estado en el formulario.
+                // Refresca el estado del cliente en el formulario de edición, si está abierto.
                 if ($livewire instanceof EditRecord) {
-                    // Recarga solo el campo estado; así "Guardar cambios" no lo vuelve al valor viejo.
+                    // La acción corre en la propia página: recarga solo el campo estado.
                     $livewire->refreshFormData(['estado']);
+                } else {
+                    // La acción corre en una tabla (clientes o membresías): avisa a la página que el cliente cambió.
+                    $livewire->dispatch('cliente-actualizado');
                 }
 
                 // Avisa a la página para que la pestaña "Pagos" vuelva a cargar la tabla.
@@ -195,24 +231,101 @@ class RegisterPaymentAction extends Action
     }
 
     /**
+     * Devuelve el cliente al que se le cobra, según sobre qué registro está montada la acción.
+     *
+     * Precondiciones:
+     * - $record es un Client o una Membership.
+     *
+     * Postcondiciones:
+     * - Si es un Client, devuelve ese mismo objeto (así sus cambios se ven en la página).
+     * - Si es una Membership, devuelve su cliente (aunque esté dado de baja).
+     * - No modifica datos.
+     *
+     * @throws InvalidArgumentException Si el registro no es de ninguno de los dos tipos.
+     */
+    private static function resolveClient(Model $record): Client
+    {
+        // Elige según el tipo de registro.
+        return match (true) {
+            // La acción está sobre el cliente.
+            $record instanceof Client => $record,
+            // La acción está sobre una membresía: el cliente es su dueño.
+            $record instanceof Membership => $record->client,
+            // Cualquier otro registro es un error de programación.
+            default => throw new InvalidArgumentException('RegisterPaymentAction solo se usa sobre clientes o membresías.'),
+        };
+    }
+
+    /**
+     * Devuelve la membresía a la que va el pago cuando no hay nada que elegir.
+     *
+     * Precondiciones:
+     * - $record es un Client o una Membership.
+     *
+     * Postcondiciones:
+     * - Sobre una Membership: devuelve esa membresía.
+     * - Sobre un Client con exactamente una membresía cobrable: devuelve esa (con su plan cargado).
+     * - Sobre un Client con ninguna o con varias: devuelve null (no hay, o hay que elegir).
+     * - No modifica datos.
+     */
+    private static function resolveFixedMembership(Model $record): ?Membership
+    {
+        // En una fila de membresía, el pago va a esa membresía.
+        if ($record instanceof Membership) {
+            // No hay nada que elegir.
+            return $record;
+        }
+
+        // Trae como mucho dos membresías cobrables del cliente (alcanza para saber si hay una sola).
+        $payable = self::resolveClient($record)->memberships()->acceptingPayments()->with('plan')->limit(2)->get();
+
+        // Si hay exactamente una, es esa; si no, null.
+        return $payable->count() === 1 ? $payable->first() : null;
+    }
+
+    /**
+     * Indica si hay alguna membresía a la que se le pueda cobrar desde este registro.
+     *
+     * Precondiciones:
+     * - $record es un Client o una Membership.
+     *
+     * Postcondiciones:
+     * - Sobre una Membership: true si su estado admite pagos (no está vencida).
+     * - Sobre un Client: true si tiene al menos una membresía que admite pagos.
+     * - No modifica datos.
+     */
+    private static function hasPayableMembership(Model $record): bool
+    {
+        // En una fila de membresía, depende solo de su estado.
+        if ($record instanceof Membership) {
+            // Activa o pausada: se le puede cobrar.
+            return $record->estado->acceptsPayments();
+        }
+
+        // En un cliente, alcanza con que exista una membresía cobrable.
+        return self::resolveClient($record)->memberships()->acceptingPayments()->exists();
+    }
+
+    /**
      * Arma los valores con los que se abre el modal.
      *
      * Precondiciones:
-     * - $client existe en la base.
+     * - $record es un Client o una Membership.
      *
      * Postcondiciones:
-     * - membership_id es la membresía que admite pagos con fecha de inicio más reciente
-     *   (null si no hay ninguna).
+     * - membership_id es la membresía ya decidida o, si hay varias, la cobrable con fecha de
+     *   inicio más reciente (null si no hay ninguna).
      * - monto es el precio del plan de esa membresía (null si no hay membresía).
      * - metodo_pago es efectivo.
      * - No modifica datos.
      *
      * @return array{membership_id: int|null, monto: string|null, metodo_pago: string}
      */
-    private static function getDefaultFormData(Client $client): array
+    private static function getDefaultFormData(Model $record): array
     {
-        // Busca la membresía cobrable más reciente del cliente, con su plan para leer el precio.
-        $membership = $client->memberships()->acceptingPayments()->with('plan')->latest('fecha_inicio')->latest('id')->first();
+        // Usa la membresía ya decidida o, si hay que elegir, sugiere la cobrable más reciente del cliente.
+        $membership = self::resolveFixedMembership($record)
+            ?? self::resolveClient($record)->memberships()->acceptingPayments()->with('plan')->latest('fecha_inicio')->latest('id')->first();
 
         // Devuelve los valores iniciales de cada campo.
         return [
@@ -233,8 +346,7 @@ class RegisterPaymentAction extends Action
      *
      * Postcondiciones:
      * - Devuelve "id => texto" solo con membresías activas o pausadas, la de inicio más reciente
-     *   primero. El texto muestra plan, vencimiento y estado (por ejemplo
-     *   "3x semana · vence 11/12/2026 · Entrenando").
+     *   primero, con el texto de getMembershipLabel().
      * - No modifica datos.
      *
      * @return array<int, string>
@@ -254,11 +366,24 @@ class RegisterPaymentAction extends Action
             // Ejecuta la consulta.
             ->get()
             // Convierte cada membresía en "id => texto".
-            ->mapWithKeys(fn (Membership $membership): array => [
-                // Texto con plan, vencimiento y estado.
-                $membership->id => "{$membership->plan->nombre} · vence {$membership->fecha_vencimiento->format('d/m/Y')} · {$membership->estado->getLabel()}",
-            ])
+            ->mapWithKeys(fn (Membership $membership): array => [$membership->id => self::getMembershipLabel($membership)])
             // Lo devuelve como array común.
             ->all();
+    }
+
+    /**
+     * Texto que identifica una membresía en el modal.
+     *
+     * Precondiciones:
+     * - $membership existe y tiene plan (aunque esté dado de baja).
+     *
+     * Postcondiciones:
+     * - Devuelve plan, vencimiento y estado, por ejemplo "3 días · vence 11/12/2026 · Entrenando".
+     * - No modifica datos.
+     */
+    private static function getMembershipLabel(Membership $membership): string
+    {
+        // Une los tres datos con un punto medio.
+        return "{$membership->plan->nombre} · vence {$membership->fecha_vencimiento->format('d/m/Y')} · {$membership->estado->getLabel()}";
     }
 }
