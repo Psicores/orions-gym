@@ -4,6 +4,29 @@
 @source '../../storage/framework/views/*.php';
 
 @theme {
+    /* Tipografías: sans limpia para lectura y display pesada para títulos. */
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-display: 'Anton', 'Bebas Neue', Impact, ui-sans-serif, sans-serif;
+
+    /* Paleta Orions (la misma del panel). */
+    --color-carbon: #161817;
+    --color-carbon-800: #232625;
+    --color-carbon-700: #2f3332;
+    --color-salvia: #598f8b;
+    --color-salvia-light: #7aaea9;
+    --color-salvia-dark: #3e6662;
+    --color-oxido: #d9772f;
+    --color-oxido-light: #e69358;
+    --color-niebla: #e4e7e6;
+    --color-ceniza: #9ca3a1;
+
+    /* Cinta infinita de opiniones: el contenido está duplicado, por eso corre hasta -50%. */
+    --animate-marquee: marquee 45s linear infinite;
+
+    @keyframes marquee {
+        to {
+            transform: translateX(-50%);
+        }
+    }
 }
