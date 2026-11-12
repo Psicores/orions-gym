@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\ClientStatusEnum;
 use App\Enums\MembershipStatusEnum;
 use App\Enums\PaymentMethodEnum;
+use Carbon\CarbonInterface;
 use Database\Factories\ClientFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -222,6 +223,72 @@ class Client extends Model
 
             // Devuelve el pago creado.
             return $payment;
+        });
+    }
+
+    /**
+     * Le crea al cliente una membresía que arranca habilitada y lo deja en Entrenando.
+     *
+     * Lo usa el paso "Crear membresía" que aparece apenas se da de alta un cliente en el panel,
+     * que a continuación registra el pago con registerPayment().
+     *
+     * Precondiciones:
+     * - El cliente existe en la base.
+     * - $plan existe y no está dado de baja.
+     * - $fechaVencimiento es igual o posterior a $fechaInicio.
+     *
+     * Postcondiciones:
+     * - Se creó y devolvió una Membership de este cliente con ese plan y esas fechas, en estado
+     *   Entrenando y con los créditos que otorga el plan.
+     * - El cliente queda en estado Entrenando y con fecha_vencimiento recalculada, tanto en la
+     *   base como en esta instancia del modelo.
+     * - No registra ningún pago: eso lo hace quien llama.
+     * - La membresía y el cambio de estado se guardan juntos: si uno falla, no queda ninguno.
+     * - Si alguna precondición sobre el plan o las fechas no se cumple, lanza la excepción y no
+     *   guarda nada.
+     *
+     * @param  Plan  $plan  Plan que contrata.
+     * @param  CarbonInterface  $fechaInicio  Primer día de la membresía.
+     * @param  CarbonInterface  $fechaVencimiento  Último día de la membresía.
+     * @return Membership La membresía recién guardada.
+     *
+     * @throws InvalidArgumentException Si el plan está dado de baja o el vencimiento es anterior al inicio.
+     */
+    public function startMembership(Plan $plan, CarbonInterface $fechaInicio, CarbonInterface $fechaVencimiento): Membership
+    {
+        // Evita vender un plan que ya no se ofrece.
+        if ($plan->trashed()) {
+            // Corta sin guardar nada.
+            throw new InvalidArgumentException('El plan está dado de baja.');
+        }
+
+        // Evita una membresía que vence antes de empezar.
+        if ($fechaVencimiento->isBefore($fechaInicio)) {
+            // Corta sin guardar nada.
+            throw new InvalidArgumentException('El vencimiento no puede ser anterior al inicio.');
+        }
+
+        // Guarda la membresía y el nuevo estado en una transacción: o se guardan los dos o ninguno.
+        return DB::transaction(function () use ($plan, $fechaInicio, $fechaVencimiento): Membership {
+            // Crea la membresía ya vinculada a este cliente (client_id lo completa la relación).
+            $membership = $this->memberships()->create([
+                // Plan contratado; los créditos los copia el modelo desde el plan.
+                'plan_id' => $plan->id,
+                // Primer día.
+                'fecha_inicio' => $fechaInicio->toDateString(),
+                // Último día.
+                'fecha_vencimiento' => $fechaVencimiento->toDateString(),
+                // Arranca habilitada para entrar.
+                'estado' => MembershipStatusEnum::Entrenando,
+            ]);
+
+            // Con membresía cargada, el cliente pasa a Entrenando.
+            $this->update(['estado' => ClientStatusEnum::Entrenando]);
+            // Relee el cliente: al guardarse la membresía se recalculó su fecha de vencimiento.
+            $this->refresh();
+
+            // Devuelve la membresía creada.
+            return $membership;
         });
     }
 
