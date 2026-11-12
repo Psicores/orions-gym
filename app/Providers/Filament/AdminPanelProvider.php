@@ -27,6 +27,8 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('admin')
+            // Nombre que muestra el panel (arriba a la izquierda y en el título de la pestaña).
+            ->brandName('Orions')
             ->login()
             ->colors([
                 'primary' => Color::Amber,

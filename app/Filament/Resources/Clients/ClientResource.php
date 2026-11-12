@@ -36,6 +36,9 @@ class ClientResource extends Resource
 {
     protected static ?string $model = Client::class;
 
+    // URL en castellano: /admin/clientes.
+    protected static ?string $slug = 'clientes';
+
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUsers;
 
     protected static ?string $modelLabel = 'cliente';
@@ -95,6 +98,8 @@ class ClientResource extends Resource
                         TextInput::make('dni')
                             // Texto que ve el usuario sobre el campo.
                             ->label('DNI')
+                            // Nombre en los mensajes de error (si no, Filament lo pone como "dNI").
+                            ->validationAttribute('DNI')
                             // No se puede guardar vacío.
                             ->required()
                             // Máximo de caracteres, igual al de la columna string.
@@ -322,13 +327,13 @@ class ClientResource extends Resource
     {
         return [
             'index' => ListClients::route('/'),
-            'create' => CreateClient::route('/create'),
-            'edit' => EditClient::route('/{record}/edit'),
+            'create' => CreateClient::route('/crear'),
+            'edit' => EditClient::route('/{record}/editar'),
         ];
     }
 
     /**
-     * Consulta que usa Filament para encontrar el cliente de la URL (por ejemplo /admin/clients/5/edit).
+     * Consulta que usa Filament para encontrar el cliente de la URL (por ejemplo /admin/clientes/5/editar).
      *
      * Precondiciones:
      * - El modelo Client usa SoftDeletes (columna deleted_at).

@@ -25,6 +25,9 @@ class PlanResource extends Resource
 {
     protected static ?string $model = Plan::class;
 
+    // URL en castellano: /admin/planes.
+    protected static ?string $slug = 'planes';
+
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCreditCard;
 
     protected static ?string $modelLabel = 'plan';
@@ -179,13 +182,13 @@ class PlanResource extends Resource
     {
         return [
             'index' => ListPlans::route('/'),
-            'create' => CreatePlan::route('/create'),
-            'edit' => EditPlan::route('/{record}/edit'),
+            'create' => CreatePlan::route('/crear'),
+            'edit' => EditPlan::route('/{record}/editar'),
         ];
     }
 
     /**
-     * Consulta que usa Filament para encontrar el plan de la URL (por ejemplo /admin/plans/3/edit).
+     * Consulta que usa Filament para encontrar el plan de la URL (por ejemplo /admin/planes/3/editar).
      *
      * Precondiciones:
      * - El modelo Plan usa SoftDeletes (columna deleted_at).
