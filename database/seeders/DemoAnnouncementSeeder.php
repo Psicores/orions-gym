@@ -17,6 +17,27 @@ use Illuminate\Support\Facades\Storage;
 class DemoAnnouncementSeeder extends Seeder
 {
     /**
+     * Títulos de los anuncios de ejemplo. Los usa "php artisan demo:remove" para borrarlos.
+     *
+     * @var list<string>
+     */
+    public const array TITLES = [
+        'Llegaron las barras nuevas',
+        'Feriado del lunes: horario especial',
+        'Torneo interno de fuerza',
+        'Promo de verano: traé un amigo',
+        'Corte de agua el martes',
+        'Clase abierta de movilidad',
+    ];
+
+    /**
+     * Banners de ejemplo que vienen con el proyecto (database/seeders/images).
+     *
+     * @var list<string>
+     */
+    public const array BANNERS = ['demo-banner-gimnasio.jpg', 'demo-banner-entrenamiento.jpg'];
+
+    /**
      * Carga los anuncios de ejemplo.
      *
      * Precondiciones:

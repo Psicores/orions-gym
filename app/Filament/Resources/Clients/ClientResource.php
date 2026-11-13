@@ -214,6 +214,8 @@ class ClientResource extends Resource
                                     ->label('Foto')
                                     // Solo acepta imágenes.
                                     ->image()
+                                    // Solo fotos comunes: un SVG puede traer código que corre en el navegador.
+                                    ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
                                     // Muestra la vista previa redonda, tipo foto de perfil.
                                     ->avatar()
                                     // Guarda el archivo en el disco privado (storage/app/private), sin acceso público.
@@ -234,8 +236,8 @@ class ClientResource extends Resource
                                     ->visibility('private')
                                     // Carpeta dentro del disco donde se guardan los certificados.
                                     ->directory('clients/certificados')
-                                    // Solo acepta PDF o cualquier tipo de imagen.
-                                    ->acceptedFileTypes(['application/pdf', 'image/*'])
+                                    // Solo PDF o fotos comunes: un SVG puede traer código que corre en el navegador.
+                                    ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png', 'image/webp'])
                                     // Tamaño máximo en KB (2 MB, el límite actual de PHP).
                                     ->maxSize(2048)
                                     // Agrega un botón para abrir el archivo en otra pestaña.

@@ -23,13 +23,13 @@ return [
     |--------------------------------------------------------------------------
     |
     | Con true, "php artisan db:seed" carga también los clientes y anuncios de
-    | ejemplo, en cualquier entorno. Sirve para probar el sistema recién
-    | desplegado. Cuando el gimnasio empiece a operar con socios reales,
-    | poner SEED_DEMO_DATA=false en el .env para que un seed posterior no
-    | vuelva a crear los de ejemplo que se hayan borrado.
+    | ejemplo, en cualquier entorno. Sirve para probar el sistema. Viene
+    | apagado: los clientes de ejemplo tienen DNI conocidos (están en el
+    | código) y cualquiera podría entrar al portal con ellos. Para borrar los
+    | que ya estén cargados: "php artisan demo:remove".
     |
     */
 
-    'seed_demo_data' => (bool) env('SEED_DEMO_DATA', true),
+    'seed_demo_data' => (bool) env('SEED_DEMO_DATA', false),
 
 ];

@@ -84,20 +84,26 @@ class MemberPortalTest extends TestCase
             ->assertDontSee('Plan ajeno');
     }
 
-    public function test_the_dashboard_suggests_changing_the_password_only_while_it_is_the_dni(): void
+    public function test_a_member_whose_password_is_still_the_dni_must_change_it_before_using_the_portal(): void
     {
-        $client = Client::factory()->create();
+        $client = Client::factory()->withDniAsPassword()->create();
+
+        foreach (['member.dashboard', 'member.history', 'member.scan'] as $route) {
+            $this->actingAs($client, 'client')->get(route($route))->assertRedirect(route('member.account'));
+        }
 
         $this->actingAs($client, 'client')
-            ->get(route('member.dashboard'))
-            ->assertSee('Tu contraseña todavía es tu DNI.');
+            ->get(route('member.account'))
+            ->assertOk()
+            ->assertSee('Antes de seguir, elegí una contraseña propia.');
 
         $client->password = 'fierros-2026';
         $client->save();
 
+        $this->actingAs($client, 'client')->get(route('member.dashboard'))->assertOk();
         $this->actingAs($client, 'client')
-            ->get(route('member.dashboard'))
-            ->assertDontSee('Tu contraseña todavía es tu DNI.');
+            ->get(route('member.account'))
+            ->assertDontSee('Antes de seguir, elegí una contraseña propia.');
     }
 
     public function test_the_dashboard_shows_the_active_announcements_with_safe_content(): void
@@ -230,7 +236,7 @@ class MemberPortalTest extends TestCase
 
     public function test_a_member_can_change_the_dni_password_for_their_own(): void
     {
-        $client = Client::factory()->create(['dni' => '30123456']);
+        $client = Client::factory()->withDniAsPassword()->create(['dni' => '30123456']);
 
         Livewire::actingAs($client, 'client')
             ->test(MemberAccount::class)
@@ -251,7 +257,7 @@ class MemberPortalTest extends TestCase
 
     public function test_changing_the_password_requires_the_current_one(): void
     {
-        $client = Client::factory()->create(['dni' => '30123456']);
+        $client = Client::factory()->withDniAsPassword()->create(['dni' => '30123456']);
 
         Livewire::actingAs($client, 'client')
             ->test(MemberAccount::class)
@@ -267,14 +273,17 @@ class MemberPortalTest extends TestCase
 
     public function test_the_new_password_must_be_confirmed_long_enough_and_different_from_the_dni(): void
     {
-        $client = Client::factory()->create(['dni' => '30123456']);
+        $client = Client::factory()->withDniAsPassword()->create(['dni' => '30123456']);
         $component = Livewire::actingAs($client, 'client')->test(MemberAccount::class)->set('current_password', '30123456');
 
         $component->set('password', 'fierros-2026')->set('password_confirmation', 'otra-cosa')
             ->call('updatePassword')->assertHasErrors(['password' => 'confirmed']);
 
         $component->set('password', 'corta')->set('password_confirmation', 'corta')
-            ->call('updatePassword')->assertHasErrors(['password' => 'min']);
+            ->call('updatePassword')->assertHasErrors('password');
+
+        $component->set('password', 'sololetras')->set('password_confirmation', 'sololetras')
+            ->call('updatePassword')->assertHasErrors('password');
 
         $component->set('password', '30.123.456')->set('password_confirmation', '30.123.456')
             ->call('updatePassword')->assertHasErrors('password');

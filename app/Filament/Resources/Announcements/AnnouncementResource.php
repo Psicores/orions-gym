@@ -60,7 +60,8 @@ class AnnouncementResource extends Resource
      *
      * Postcondiciones:
      * - Solo el título es obligatorio: el anuncio puede llevar texto, imagen, las dos cosas o ninguna.
-     * - La imagen se guarda en el disco "public", carpeta "announcements", y pesa hasta 2 MB.
+     * - La imagen (JPG, PNG o WebP) se guarda en el disco "public", carpeta "announcements", y
+     *   pesa hasta 2 MB.
      * - "Activo" viene encendido. Las fechas son opcionales; si se cargan las dos, el fin no
      *   puede ser anterior al inicio.
      *
@@ -107,6 +108,8 @@ class AnnouncementResource extends Resource
                             ->label('Imagen')
                             // Solo acepta imágenes.
                             ->image()
+                            // Solo fotos comunes: un SVG puede traer código que corre en el navegador de quien lo abre.
+                            ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
                             // Disco público: los socios la ven desde su portal.
                             ->disk('public')
                             // Carpeta dentro del disco.
