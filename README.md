@@ -323,7 +323,8 @@ que estar en `false`. Después de cambiar el `.env`, correr `php artisan config:
 - **Verificación en dos pasos del personal.** Cada cuenta la activa desde su **Perfil** (menú de
   usuario del panel) con una app de autenticación, y guarda los códigos de recuperación. Con
   `STAFF_TWO_FACTOR_REQUIRED=true` en el `.env`, el panel obliga a activarla. Quien la tiene
-  activa ingresa por `/admin/login`, que pide el código. Si alguien pierde el celular y los
+  activa ingresa igual por `/ingresar`: después de la contraseña se le pide el código de la app (o
+  un código de recuperación). `/admin/login` también lo pide. Si alguien pierde el celular y los
   códigos: `php artisan staff:disable-two-factor su@email.com` desde el servidor.
 - **Datos entre socios.** Las pantallas del portal solo leen los datos del socio con sesión.
 - **Archivos.** Foto y certificado van a un disco privado. No se aceptan SVG en ninguna subida.

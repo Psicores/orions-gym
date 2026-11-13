@@ -8,11 +8,22 @@ use Filament\Auth\Pages\Login;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
+use PragmaRX\Google2FA\Google2FA;
 use Tests\TestCase;
 
 class StaffTwoFactorTest extends TestCase
 {
     use RefreshDatabase;
+
+    private const string SECRET = 'JBSWY3DPEHPK3PXP';
+
+    private function staffWithTwoFactor(): User
+    {
+        $user = User::factory()->create(['email' => 'profe@example.com', 'password' => 'clave-segura-1']);
+        $user->saveAppAuthenticationSecret(self::SECRET);
+
+        return $user;
+    }
 
     public function test_staff_without_two_factor_still_log_in_from_the_shared_login(): void
     {
@@ -24,14 +35,69 @@ class StaffTwoFactorTest extends TestCase
         $this->assertAuthenticatedAs($user, 'web');
     }
 
-    public function test_staff_with_two_factor_are_sent_to_the_panel_login_without_a_session(): void
+    public function test_staff_with_two_factor_finish_the_shared_login_with_the_app_code(): void
     {
-        $user = User::factory()->create(['email' => 'profe@example.com', 'password' => 'clave-segura-1']);
-        $user->saveAppAuthenticationSecret('JBSWY3DPEHPK3PXP');
+        $user = $this->staffWithTwoFactor();
 
         $this->post(route('login.store'), ['usuario' => 'profe@example.com', 'password' => 'clave-segura-1'])
-            ->assertRedirect(Filament::getPanel('admin')->getLoginUrl());
+            ->assertRedirect(route('login.code'));
+        $this->assertGuest('web');
+        $this->get(Filament::getPanel('admin')->getUrl())->assertRedirect();
+        $this->assertGuest('web');
 
+        $this->get(route('login.code'))->assertOk()->assertSee('Código');
+
+        $this->post(route('login.code.store'), ['codigo' => app(Google2FA::class)->getCurrentOtp(self::SECRET)])
+            ->assertRedirect(Filament::getPanel('admin')->getUrl());
+        $this->assertAuthenticatedAs($user, 'web');
+    }
+
+    public function test_a_wrong_code_does_not_open_the_session_and_is_throttled(): void
+    {
+        $this->staffWithTwoFactor();
+        $this->post(route('login.store'), ['usuario' => 'profe@example.com', 'password' => 'clave-segura-1']);
+
+        foreach (range(1, 5) as $attempt) {
+            $this->post(route('login.code.store'), ['codigo' => '000000'])->assertSessionHasErrors(['codigo' => 'El código no es correcto.']);
+        }
+
+        $this->post(route('login.code.store'), ['codigo' => app(Google2FA::class)->getCurrentOtp(self::SECRET)])
+            ->assertSessionHasErrors('codigo');
+        $this->assertGuest('web');
+    }
+
+    public function test_a_recovery_code_finishes_the_login_once(): void
+    {
+        $user = $this->staffWithTwoFactor();
+        $provider = Filament::getPanel('admin')->getMultiFactorAuthenticationProviders()['app'];
+        $provider->saveRecoveryCodes($user, ['abcde-fghij', 'klmno-pqrst']);
+
+        $this->post(route('login.store'), ['usuario' => 'profe@example.com', 'password' => 'clave-segura-1']);
+        $this->post(route('login.code.store'), ['codigo' => 'abcde-fghij'])
+            ->assertRedirect(Filament::getPanel('admin')->getUrl());
+        $this->assertAuthenticatedAs($user, 'web');
+
+        auth()->guard('web')->logout();
+        $this->flushSession();
+
+        $this->post(route('login.store'), ['usuario' => 'profe@example.com', 'password' => 'clave-segura-1']);
+        $this->post(route('login.code.store'), ['codigo' => 'abcde-fghij'])->assertSessionHasErrors('codigo');
+        $this->assertGuest('web');
+    }
+
+    public function test_the_code_screen_needs_the_password_first_and_expires(): void
+    {
+        $this->staffWithTwoFactor();
+
+        $this->get(route('login.code'))->assertRedirect(route('login'));
+        $this->post(route('login.code.store'), ['codigo' => app(Google2FA::class)->getCurrentOtp(self::SECRET)])
+            ->assertRedirect(route('login'));
+
+        $this->post(route('login.store'), ['usuario' => 'profe@example.com', 'password' => 'clave-segura-1']);
+        $this->travel(11)->minutes();
+
+        $this->post(route('login.code.store'), ['codigo' => app(Google2FA::class)->getCurrentOtp(self::SECRET)])
+            ->assertRedirect(route('login'));
         $this->assertGuest('web');
     }
 

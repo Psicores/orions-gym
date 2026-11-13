@@ -5,9 +5,8 @@ namespace App\Http\Controllers;
 use App\Http\Middleware\EnsureMemberSessionIsCurrent;
 use App\Models\Client;
 use App\Models\User;
-use Filament\Auth\MultiFactor\Contracts\MultiFactorAuthenticationProvider;
+use Filament\Auth\MultiFactor\App\AppAuthentication;
 use Filament\Facades\Filament;
-use Filament\Notifications\Notification;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -33,6 +32,12 @@ class MemberSessionController extends Controller
 
     // Ingresos que puede intentar una misma IP por hora, acierte o no.
     private const int MAX_ATTEMPTS_PER_IP_PER_HOUR = 60;
+
+    // Clave de sesión donde se anota quién acertó la contraseña y todavía debe el código de dos pasos.
+    private const string PENDING_TWO_FACTOR_KEY = 'staff_two_factor_pending';
+
+    // Minutos que tiene para escribir el código antes de tener que volver a poner la contraseña.
+    private const int TWO_FACTOR_MINUTES = 10;
 
     /**
      * Muestra la pantalla de ingreso.
@@ -61,8 +66,8 @@ class MemberSessionController extends Controller
      * - Si corresponden a un socio no dado de baja, inicia su sesión (queda recordada en el
      *   dispositivo solo si marcó "Mantener la sesión iniciada") y redirige a la pantalla del portal que quería ver o, si no, a /mi-perfil.
      * - Si no, y corresponden a un usuario del personal con acceso al panel, inicia su sesión y
-     *   redirige a /admin. Si esa cuenta tiene verificación en dos pasos, no inicia la sesión:
-     *   lo manda al ingreso del panel (/admin/login), que pide la contraseña y el código.
+     *   redirige a /admin. Si esa cuenta tiene verificación en dos pasos, todavía no inicia la
+     *   sesión: lo manda a /ingresar/codigo, que pide el código (ver storeCode).
      * - Si no corresponden a nadie, vuelve al formulario con un error y no inicia ninguna sesión.
      * - Tras 5 intentos fallidos seguidos con el mismo usuario desde la misma IP, rechaza los
      *   siguientes durante un minuto, aunque los datos sean correctos.
@@ -118,30 +123,26 @@ class MemberSessionController extends Controller
             // Usuario del personal que acaba de acertar la contraseña.
             $user = Auth::guard('web')->user();
 
-            // Con verificación en dos pasos, la contraseña sola no alcanza: este formulario no pide el código.
-            if ($this->hasTwoFactorEnabled($user)) {
-                // Cierra la sesión recién abierta: todavía no demostró el segundo factor.
-                Auth::guard('web')->logout();
-                // El intento fue correcto: no cuenta como fallido.
-                RateLimiter::clear($throttleKey);
-
-                // Aviso que se muestra en el ingreso del panel.
-                Notification::make()
-                    // Título.
-                    ->title('Tu cuenta tiene verificación en dos pasos')
-                    // Qué tiene que hacer.
-                    ->body('Ingresá desde acá: después de la contraseña te vamos a pedir el código.')
-                    // Celeste: es informativo.
-                    ->info()
-                    // Queda en la sesión hasta la próxima pantalla del panel.
-                    ->send();
-
-                // Lo manda al ingreso del panel, que pide la contraseña y después el código.
-                return redirect()->to(Filament::getPanel('admin')->getLoginUrl());
-            }
-
             // Solo sirve si además puede entrar al panel (por ejemplo, tiene el email verificado).
             if ($user->canAccessPanel(Filament::getPanel('admin'))) {
+                // Con verificación en dos pasos, la contraseña sola no alcanza: falta el código.
+                if ($this->twoFactorProvider($user) !== null) {
+                    // Cierra la sesión recién abierta: todavía no demostró el segundo factor.
+                    Auth::guard('web')->logout();
+                    // El intento fue correcto: no cuenta como fallido.
+                    RateLimiter::clear($throttleKey);
+                    // Anota quién está a mitad del ingreso y hasta cuándo puede escribir el código.
+                    $request->session()->put(self::PENDING_TWO_FACTOR_KEY, [
+                        // Cuenta que ya acertó la contraseña.
+                        'id' => $user->getKey(),
+                        // Pasado este momento tiene que volver a escribir la contraseña.
+                        'expires_at' => now()->addMinutes(self::TWO_FACTOR_MINUTES)->getTimestamp(),
+                    ]);
+
+                    // Lo lleva a la pantalla que pide el código.
+                    return redirect()->route('login.code');
+                }
+
                 // Termina el ingreso y lo lleva al panel.
                 return $this->finishLogin($request, $throttleKey, redirect()->to(Filament::getPanel('admin')->getUrl()));
             }
@@ -160,25 +161,166 @@ class MemberSessionController extends Controller
     }
 
     /**
-     * Indica si un usuario del personal tiene activada la verificación en dos pasos.
+     * Muestra la pantalla que pide el código de la verificación en dos pasos.
+     *
+     * Precondiciones:
+     * - Quien la pide no tiene sesión iniciada (middleware "guest" de la ruta).
+     *
+     * Postcondiciones:
+     * - Si hay un ingreso del personal a medio hacer y no venció, devuelve la vista del código.
+     * - Si no, redirige a /ingresar. No modifica datos.
+     *
+     * @param  Request  $request  Pedido actual.
+     * @return View|RedirectResponse La vista auth.two-factor o la redirección al ingreso.
+     */
+    public function createCode(Request $request): View|RedirectResponse
+    {
+        // Sin un ingreso a medio hacer no hay nada que verificar: vuelve al formulario.
+        if ($this->pendingTwoFactorUser($request) === null) {
+            // Redirige al ingreso.
+            return redirect()->route('login');
+        }
+
+        // Muestra el formulario del código.
+        return view('auth.two-factor');
+    }
+
+    /**
+     * Verifica el código de la verificación en dos pasos y termina el ingreso del personal.
+     *
+     * Precondiciones:
+     * - El pedido trae "codigo": el código de 6 dígitos de la app o un código de recuperación.
+     * - Esa persona ya acertó su contraseña en /ingresar hace menos de 10 minutos.
+     *
+     * Postcondiciones:
+     * - Si el código es correcto, inicia la sesión del personal y redirige a /admin. Un código
+     *   de la app no se puede usar dos veces y un código de recuperación se gasta al usarlo.
+     * - Si es incorrecto, vuelve al formulario con un error y no inicia ninguna sesión.
+     * - Tras 5 códigos incorrectos seguidos de la misma cuenta desde la misma IP, rechaza los
+     *   siguientes durante un minuto; además valen los topes por IP del ingreso.
+     * - Si el ingreso a medio hacer venció o no existe, redirige a /ingresar.
+     *
+     * @param  Request  $request  Pedido con el código.
+     * @return RedirectResponse Redirección al panel o al ingreso.
+     *
+     * @throws ValidationException Si falta el código, es incorrecto o hay demasiados intentos.
+     */
+    public function storeCode(Request $request): RedirectResponse
+    {
+        // Cuenta que está a mitad del ingreso; null si no hay o venció.
+        $user = $this->pendingTwoFactorUser($request);
+
+        // Sin ingreso a medio hacer, tiene que empezar de nuevo.
+        if ($user === null) {
+            // Redirige al ingreso.
+            return redirect()->route('login');
+        }
+
+        // Valida que haya escrito algo razonable.
+        $data = $request->validate(['codigo' => ['required', 'string', 'max:255']], attributes: ['codigo' => 'código']);
+
+        // Frena a quien manda una ráfaga de intentos desde la misma IP.
+        $this->ensureIpIsNotFlooding($request);
+
+        // Clave del contador de códigos fallidos: la cuenta y la IP.
+        $throttleKey = 'two-factor|'.$user->getKey().'|'.$request->ip();
+
+        // Si ya falló demasiadas veces, no deja seguir probando.
+        if (RateLimiter::tooManyAttempts($throttleKey, self::MAX_ATTEMPTS)) {
+            // Vuelve al formulario diciendo cuánto falta para reintentar.
+            throw ValidationException::withMessages([
+                'codigo' => trans('auth.throttle', ['seconds' => RateLimiter::availableIn($throttleKey)]),
+            ]);
+        }
+
+        // Método de segundo factor activo en la cuenta (la app de autenticación).
+        $provider = $this->twoFactorProvider($user);
+        // Lo que escribió, sin espacios (las apps muestran "123 456").
+        $code = str_replace(' ', '', $data['codigo']);
+
+        // Seis dígitos: es un código de la app; cualquier otra cosa se prueba como código de recuperación.
+        $isValid = $provider !== null && (preg_match('/^\d{6}$/', $code) === 1
+            // Código de la app; no acepta uno ya usado.
+            ? $provider->verifyCode($code, $provider->getSecret($user), shouldPreventCodeReuse: true)
+            // Código de recuperación; si es válido se gasta.
+            : $provider->isRecoverable() && $provider->verifyRecoveryCode($code, $user));
+
+        // Código incorrecto.
+        if (! $isValid) {
+            // Suma un intento fallido.
+            RateLimiter::hit($throttleKey);
+
+            // Vuelve al formulario con el error.
+            throw ValidationException::withMessages(['codigo' => 'El código no es correcto.']);
+        }
+
+        // Ya no hay ingreso a medio hacer.
+        $request->session()->forget(self::PENDING_TWO_FACTOR_KEY);
+        // Inicia la sesión del personal.
+        Auth::guard('web')->login($user);
+
+        // Termina el ingreso y lo lleva al panel.
+        return $this->finishLogin($request, $throttleKey, redirect()->to(Filament::getPanel('admin')->getUrl()));
+    }
+
+    /**
+     * Devuelve la cuenta del personal que acertó la contraseña y todavía debe el código.
+     *
+     * Precondiciones:
+     * - Ninguna.
+     *
+     * Postcondiciones:
+     * - Devuelve el usuario anotado en la sesión si el plazo no venció, la cuenta existe y
+     *   sigue teniendo la verificación en dos pasos activa.
+     * - En cualquier otro caso borra la anotación de la sesión y devuelve null.
+     *
+     * @param  Request  $request  Pedido actual.
+     * @return User|null La cuenta a mitad del ingreso, o null.
+     */
+    private function pendingTwoFactorUser(Request $request): ?User
+    {
+        // Anotación guardada al acertar la contraseña.
+        $pending = $request->session()->get(self::PENDING_TWO_FACTOR_KEY);
+
+        // Busca la cuenta solo si la anotación existe y no venció.
+        $user = is_array($pending) && ($pending['expires_at'] ?? 0) >= now()->getTimestamp()
+            // Cuenta anotada (null si fue borrada).
+            ? User::query()->find($pending['id'] ?? null)
+            // Sin anotación vigente.
+            : null;
+
+        // Si no hay cuenta o ya no usa el segundo factor, la anotación no sirve.
+        if ($user === null || $this->twoFactorProvider($user) === null) {
+            // La borra.
+            $request->session()->forget(self::PENDING_TWO_FACTOR_KEY);
+
+            // No hay ingreso a medio hacer.
+            return null;
+        }
+
+        // Cuenta que debe el código.
+        return $user;
+    }
+
+    /**
+     * Devuelve el método de verificación en dos pasos que un usuario del personal tiene activo.
      *
      * Precondiciones:
      * - $user es una cuenta del personal.
      *
      * Postcondiciones:
-     * - Devuelve true si alguno de los métodos de segundo factor del panel está activo para
-     *   esa cuenta (hoy: la app de autenticación).
+     * - Devuelve la app de autenticación del panel si la cuenta la tiene activada; si no, null.
      * - No modifica nada.
      *
      * @param  User  $user  Cuenta del personal.
-     * @return bool true si tiene el segundo factor activo.
+     * @return AppAuthentication|null El método activo, o null si no usa segundo factor.
      */
-    private function hasTwoFactorEnabled(User $user): bool
+    private function twoFactorProvider(User $user): ?AppAuthentication
     {
-        // Revisa cada método de segundo factor configurado en el panel.
+        // Recorre los métodos de segundo factor configurados en el panel.
         return collect(Filament::getPanel('admin')->getMultiFactorAuthenticationProviders())
-            // Alcanza con que uno esté activo para esa cuenta.
-            ->contains(fn (MultiFactorAuthenticationProvider $provider): bool => $provider->isEnabled($user));
+            // Se queda con la app de autenticación, si esta cuenta la tiene activada.
+            ->first(fn (object $provider): bool => $provider instanceof AppAuthentication && $provider->isEnabled($user));
     }
 
     /**
