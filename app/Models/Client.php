@@ -177,6 +177,25 @@ class Client extends Authenticatable
     }
 
     /**
+     * Huella de la contraseña vigente, para reconocer las sesiones abiertas con una anterior.
+     *
+     * Precondiciones:
+     * - La aplicación tiene su clave (APP_KEY) configurada.
+     *
+     * Postcondiciones:
+     * - Devuelve un texto que cambia cada vez que cambia la contraseña del cliente (también al
+     *   elegir la primera o al restablecerla) y que no permite deducirla.
+     * - No modifica nada.
+     *
+     * @return string Huella de 64 caracteres hexadecimales.
+     */
+    public function passwordStamp(): string
+    {
+        // Firma el hash guardado (vacío si todavía usa el DNI) con la clave de la aplicación.
+        return hash_hmac('sha256', (string) $this->password, (string) config('app.key'));
+    }
+
+    /**
      * Restablece la contraseña del portal: el cliente vuelve a entrar con su DNI y tiene que
      * elegir una contraseña nueva. Es lo que hace el personal cuando un socio la olvidó.
      *
@@ -187,8 +206,8 @@ class Client extends Authenticatable
      * - La columna password queda vacía: hasCustomPassword() devuelve false, la contraseña
      *   vuelve a ser el DNI y el portal lo obliga a elegir una nueva en el próximo ingreso.
      * - La contraseña anterior deja de servir.
-     * - El token de "recordarme" cambia, así los dispositivos que habían quedado recordados
-     *   tienen que volver a ingresar.
+     * - El token de "recordarme" cambia y la huella de la contraseña (passwordStamp()) también:
+     *   los dispositivos recordados y las sesiones que estaban abiertas tienen que volver a ingresar.
      * - No cambia ningún otro dato del cliente.
      */
     public function resetPassword(): void

@@ -318,6 +318,8 @@ que estar en `false`. Después de cambiar el `.env`, correr `php artisan config:
   que nadie pruebe un DNI tras otro.
 - **Contraseña del socio.** Mientras sea el DNI, solo puede entrar a “Mi cuenta” a cambiarla.
   Si la olvida, el personal la restablece desde la ficha: nadie más que el socio conoce la nueva.
+- **Sesiones del socio.** “Mantener la sesión iniciada” es opcional al ingresar. Al cambiar o
+  restablecer la contraseña, se cierran las sesiones abiertas en los demás dispositivos.
 - **Datos entre socios.** Las pantallas del portal solo leen los datos del socio con sesión.
 - **Archivos.** Foto y certificado van a un disco privado. No se aceptan SVG en ninguna subida.
 - **Texto de los anuncios.** Se limpia antes de mostrarse: no puede traer código.
@@ -332,7 +334,6 @@ que estar en `false`. Después de cambiar el `.env`, correr `php artisan config:
 - **Roles dentro del personal** (hoy todos son administradores) y alta de profes desde el panel.
 - **Segunda barrera en el servidor**: apuntar el dominio a la carpeta `public/` en vez de
   depender de la regla del `.htaccess`.
-- **“Recordarme” opcional** y cierre de las otras sesiones al cambiar la contraseña.
 - **Cifrar las observaciones de salud** en la base.
 - **Revisar dependencias** con `composer audit` y `npm audit` antes de cada despliegue.
 

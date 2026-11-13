@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\MembershipStatusEnum;
 use App\Enums\PaymentMethodEnum;
+use App\Http\Middleware\EnsureMemberSessionIsCurrent;
 use App\Livewire\MemberAccount;
 use App\Livewire\MemberDashboard;
 use App\Models\Announcement;
@@ -99,6 +100,8 @@ class MemberPortalTest extends TestCase
 
         $client->password = 'fierros-2026';
         $client->save();
+        // La contraseña cambió por fuera de esta sesión: vuelve a ingresar con la nueva.
+        $this->flushSession();
 
         $this->actingAs($client, 'client')->get(route('member.dashboard'))->assertOk();
         $this->actingAs($client, 'client')
@@ -253,6 +256,56 @@ class MemberPortalTest extends TestCase
         $this->assertTrue(Hash::check('fierros-2026', $client->password));
         $this->assertTrue($client->passwordMatches('fierros-2026'));
         $this->assertFalse($client->passwordMatches('30123456'));
+    }
+
+    public function test_changing_the_password_closes_the_sessions_opened_on_other_devices(): void
+    {
+        $client = Client::factory()->create(['dni' => '30123456', 'password' => 'clave-propia-1']);
+        $client->forceFill(['remember_token' => 'token-viejo'])->save();
+        $oldStamp = EnsureMemberSessionIsCurrent::stampFor($client);
+
+        Livewire::actingAs($client, 'client')
+            ->test(MemberAccount::class)
+            ->set('current_password', 'clave-propia-1')
+            ->set('password', 'fierros-2026')
+            ->set('password_confirmation', 'fierros-2026')
+            ->call('updatePassword')
+            ->assertHasNoErrors();
+
+        $client->refresh();
+        $this->assertNotSame('token-viejo', $client->remember_token);
+        $this->assertNotSame($oldStamp, EnsureMemberSessionIsCurrent::stampFor($client));
+
+        // Otro dispositivo: su sesión se abrió con la contraseña anterior.
+        $this->actingAs($client, 'client')
+            ->withSession([EnsureMemberSessionIsCurrent::SESSION_KEY => $oldStamp])
+            ->get(route('member.dashboard'))
+            ->assertRedirect(route('login'));
+        $this->assertGuest('client');
+    }
+
+    public function test_a_session_opened_with_the_current_password_stays_open(): void
+    {
+        $client = Client::factory()->create(['password' => 'clave-propia-1']);
+
+        $this->actingAs($client, 'client')
+            ->withSession([EnsureMemberSessionIsCurrent::SESSION_KEY => EnsureMemberSessionIsCurrent::stampFor($client)])
+            ->get(route('member.dashboard'))
+            ->assertOk();
+        $this->assertAuthenticatedAs($client, 'client');
+    }
+
+    public function test_resetting_the_password_from_the_panel_closes_the_member_sessions(): void
+    {
+        $client = Client::factory()->create(['password' => 'clave-propia-1']);
+        $oldStamp = EnsureMemberSessionIsCurrent::stampFor($client);
+
+        $client->resetPassword();
+
+        $this->actingAs($client->refresh(), 'client')
+            ->withSession([EnsureMemberSessionIsCurrent::SESSION_KEY => $oldStamp])
+            ->get(route('member.account'))
+            ->assertRedirect(route('login'));
     }
 
     public function test_changing_the_password_requires_the_current_one(): void

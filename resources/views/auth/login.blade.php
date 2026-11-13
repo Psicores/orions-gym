@@ -56,6 +56,21 @@
                     <p class="mt-2 text-sm text-ceniza">Si es tu primera vez, tu contraseña es tu DNI.</p>
                 </div>
 
+                <label class="flex cursor-pointer items-start gap-3 text-sm text-niebla">
+                    {{-- Marcado por defecto: el portal se usa como una app en el celular propio. --}}
+                    <input
+                        type="checkbox"
+                        name="remember"
+                        value="1"
+                        @checked(old('remember', true))
+                        class="mt-0.5 size-5 shrink-0 cursor-pointer rounded border-carbon-700 bg-carbon-800 accent-salvia focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-salvia-light"
+                    >
+                    <span>
+                        Mantener la sesión iniciada
+                        <span class="block text-ceniza">Desmarcalo si el dispositivo no es tuyo.</span>
+                    </span>
+                </label>
+
                 <button
                     type="submit"
                     class="w-full cursor-pointer rounded-full bg-salvia px-8 py-4 text-sm font-bold tracking-widest text-carbon uppercase transition hover:bg-salvia-light focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-salvia-light"

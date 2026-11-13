@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Middleware\EnsureMemberSessionIsCurrent;
 use App\Models\Client;
 use Filament\Facades\Filament;
 use Illuminate\Contracts\View\View;
@@ -55,7 +56,7 @@ class MemberSessionController extends Controller
      *
      * Postcondiciones:
      * - Si corresponden a un socio no dado de baja, inicia su sesión (queda recordada en el
-     *   dispositivo) y redirige a la pantalla del portal que quería ver o, si no, a /mi-perfil.
+     *   dispositivo solo si marcó "Mantener la sesión iniciada") y redirige a la pantalla del portal que quería ver o, si no, a /mi-perfil.
      * - Si no, y corresponden a un usuario del personal con acceso al panel, inicia su sesión y
      *   redirige a /admin.
      * - Si no corresponden a nadie, vuelve al formulario con un error y no inicia ninguna sesión.
@@ -99,8 +100,10 @@ class MemberSessionController extends Controller
 
         // Socio encontrado y contraseña correcta.
         if ($client?->passwordMatches($data['password'])) {
-            // Inicia la sesión del socio y la deja recordada: el portal se usa como una app del celular.
-            Auth::guard('client')->login($client, remember: true);
+            // Inicia la sesión del socio; queda recordada solo si lo pidió (en un celular propio conviene).
+            Auth::guard('client')->login($client, remember: $request->boolean('remember'));
+            // Anota con qué contraseña se abrió esta sesión, para cerrarla si después cambia.
+            EnsureMemberSessionIsCurrent::stampSession($client);
 
             // Termina el ingreso y lo lleva a donde iba o a su inicio.
             return $this->finishLogin($request, $throttleKey, redirect()->intended(route('member.dashboard')));

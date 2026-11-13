@@ -2,9 +2,11 @@
 
 namespace App\Livewire;
 
+use App\Http\Middleware\EnsureMemberSessionIsCurrent;
 use App\Models\Client;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
@@ -41,7 +43,9 @@ class MemberAccount extends Component
      *   repetida y no es su DNI: la guarda hasheada, vacía los campos y deja $saved en true.
      *   Desde ese momento el DNI deja de servir como contraseña.
      * - Si algo no se cumple, muestra el error en el campo que corresponde y no guarda nada.
-     * - La sesión del socio sigue abierta.
+     * - La sesión del socio sigue abierta en este dispositivo (y recordada, si lo estaba).
+     * - En los demás dispositivos donde había entrado, tiene que volver a ingresar: sus sesiones
+     *   se cierran y sus "recordarme" dejan de valer.
      *
      * @throws ValidationException Si algún dato no pasa la validación.
      */
@@ -77,9 +81,23 @@ class MemberAccount extends Component
             throw ValidationException::withMessages(['password' => 'Elegí una contraseña distinta de tu DNI.']);
         }
 
+        // ¿Este dispositivo había quedado recordado? (tiene la cookie de "recordarme").
+        $wasRemembered = request()->hasCookie(Auth::guard('client')->getRecallerName());
+
         // Guarda la contraseña nueva (el modelo la hashea).
         $client->password = $this->password;
+        // Token nuevo: los "recordarme" de los otros dispositivos dejan de valer.
+        $client->setRememberToken(Str::random(60));
         $client->save();
+
+        // Esta sesión pasa a ser la de la contraseña nueva: las demás se cierran solas.
+        EnsureMemberSessionIsCurrent::stampSession($client);
+
+        // Si este dispositivo estaba recordado, le emite la cookie con el token nuevo.
+        if ($wasRemembered) {
+            // Vuelve a iniciar la sesión acá mismo, recordada.
+            Auth::guard('client')->login($client, remember: true);
+        }
 
         // Vacía el formulario.
         $this->reset('current_password', 'password', 'password_confirmation');
