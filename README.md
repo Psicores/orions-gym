@@ -140,7 +140,7 @@ Cada socio puede cerrar un anuncio en su portal y no le vuelve a aparecer; a los
 
 En `/ingresar`, con el **DNI** (o el email) como usuario. La primera vez la contraseña también es
 el DNI, y el portal **obliga a elegir una contraseña propia** antes de mostrar nada más: al
-menos 8 caracteres, con letras y números, y distinta del DNI. La sesión queda recordada en el
+menos 8 caracteres, con letras y números, y distinta del DNI. Marcando “Mantener la sesión iniciada”, queda recordada en el
 celular.
 
 Si un socio olvida su contraseña, el personal la restablece desde su ficha con **Restablecer
