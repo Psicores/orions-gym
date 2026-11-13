@@ -5,11 +5,67 @@
     izquierda, y cada grupo con título (por ejemplo "Admin del sitio") arranca con una línea
     separadora y el título en mayúsculas chicas.
 
+    .orions-qr-*: cartel del QR de ingreso (/admin/qr-de-ingreso); al imprimir sale solo el cartel.
+
     .orions-modal: ventana modal con cabecera en el color principal, sólido (el mismo tono de los
     botones). El cuerpo y el pie conservan el fondo normal del panel. Se activa en una acción con
     ->extraModalWindowAttributes(['class' => 'orions-modal']).
 --}}
 <style>
+    /* Cartel del QR de ingreso. */
+    .orions-qr-cartel {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 1.5rem 1rem;
+        text-align: center;
+    }
+
+    .orions-qr-marca {
+        font-size: 1.5rem;
+        font-weight: 800;
+        letter-spacing: 0.3em;
+        text-transform: uppercase;
+    }
+
+    .orions-qr-imagen {
+        width: min(20rem, 100%);
+        height: auto;
+        border-radius: 0.75rem;
+        background: #fff;
+    }
+
+    .orions-qr-titulo {
+        font-size: 1.25rem;
+        font-weight: 700;
+    }
+
+    .orions-qr-ayuda,
+    .orions-qr-nota {
+        color: var(--gray-500);
+        font-size: 0.875rem;
+    }
+
+    .orions-qr-nota {
+        margin-top: 0.75rem;
+        max-width: 40rem;
+    }
+
+    /* Al imprimir: solo el cartel, sin menú, barra superior, título ni botones. */
+    @media print {
+        .fi-sidebar,
+        .fi-topbar,
+        .fi-header,
+        .orions-no-print {
+            display: none !important;
+        }
+
+        .orions-qr-imagen {
+            width: 12cm;
+        }
+    }
+
     /* Línea separadora arriba de cada grupo con título. */
     .fi-sidebar-nav-groups > .fi-sidebar-group:has(> .fi-sidebar-group-btn) {
         padding-top: 1.25rem;

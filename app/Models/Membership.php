@@ -197,6 +197,24 @@ class Membership extends Model
     }
 
     /**
+     * Asistencias registradas con esta membresía (cada una le descontó un crédito).
+     *
+     * Precondiciones:
+     * - Existe la tabla attendances con la columna membership_id.
+     *
+     * Postcondiciones:
+     * - Devuelve la relación "una membresía tiene muchas asistencias", sin ejecutar la consulta.
+     * - No modifica datos.
+     *
+     * @return HasMany<Attendance, $this>
+     */
+    public function attendances(): HasMany
+    {
+        // Busca en attendances las filas cuyo membership_id es el id de esta membresía.
+        return $this->hasMany(Attendance::class);
+    }
+
+    /**
      * Da días de gracia: habilita la membresía por excepción (Activo flex) y corre el vencimiento.
      *
      * Precondiciones:

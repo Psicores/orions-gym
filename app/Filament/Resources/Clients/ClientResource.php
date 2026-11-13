@@ -49,6 +49,9 @@ class ClientResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUsers;
 
+    // En el menú va después del Escritorio y antes del QR de ingreso (que usa el orden 2).
+    protected static ?int $navigationSort = 1;
+
     protected static ?string $modelLabel = 'cliente';
 
     protected static ?string $pluralModelLabel = 'clientes';
