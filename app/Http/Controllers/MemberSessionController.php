@@ -4,7 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Http\Middleware\EnsureMemberSessionIsCurrent;
 use App\Models\Client;
+use App\Models\User;
+use Filament\Auth\MultiFactor\Contracts\MultiFactorAuthenticationProvider;
 use Filament\Facades\Filament;
+use Filament\Notifications\Notification;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -58,7 +61,8 @@ class MemberSessionController extends Controller
      * - Si corresponden a un socio no dado de baja, inicia su sesión (queda recordada en el
      *   dispositivo solo si marcó "Mantener la sesión iniciada") y redirige a la pantalla del portal que quería ver o, si no, a /mi-perfil.
      * - Si no, y corresponden a un usuario del personal con acceso al panel, inicia su sesión y
-     *   redirige a /admin.
+     *   redirige a /admin. Si esa cuenta tiene verificación en dos pasos, no inicia la sesión:
+     *   lo manda al ingreso del panel (/admin/login), que pide la contraseña y el código.
      * - Si no corresponden a nadie, vuelve al formulario con un error y no inicia ninguna sesión.
      * - Tras 5 intentos fallidos seguidos con el mismo usuario desde la misma IP, rechaza los
      *   siguientes durante un minuto, aunque los datos sean correctos.
@@ -111,8 +115,33 @@ class MemberSessionController extends Controller
 
         // Después prueba como personal, que entra con su email.
         if (Auth::guard('web')->attempt(['email' => trim($data['usuario']), 'password' => $data['password']])) {
+            // Usuario del personal que acaba de acertar la contraseña.
+            $user = Auth::guard('web')->user();
+
+            // Con verificación en dos pasos, la contraseña sola no alcanza: este formulario no pide el código.
+            if ($this->hasTwoFactorEnabled($user)) {
+                // Cierra la sesión recién abierta: todavía no demostró el segundo factor.
+                Auth::guard('web')->logout();
+                // El intento fue correcto: no cuenta como fallido.
+                RateLimiter::clear($throttleKey);
+
+                // Aviso que se muestra en el ingreso del panel.
+                Notification::make()
+                    // Título.
+                    ->title('Tu cuenta tiene verificación en dos pasos')
+                    // Qué tiene que hacer.
+                    ->body('Ingresá desde acá: después de la contraseña te vamos a pedir el código.')
+                    // Celeste: es informativo.
+                    ->info()
+                    // Queda en la sesión hasta la próxima pantalla del panel.
+                    ->send();
+
+                // Lo manda al ingreso del panel, que pide la contraseña y después el código.
+                return redirect()->to(Filament::getPanel('admin')->getLoginUrl());
+            }
+
             // Solo sirve si además puede entrar al panel (por ejemplo, tiene el email verificado).
-            if (Auth::guard('web')->user()->canAccessPanel(Filament::getPanel('admin'))) {
+            if ($user->canAccessPanel(Filament::getPanel('admin'))) {
                 // Termina el ingreso y lo lleva al panel.
                 return $this->finishLogin($request, $throttleKey, redirect()->to(Filament::getPanel('admin')->getUrl()));
             }
@@ -128,6 +157,28 @@ class MemberSessionController extends Controller
         throw ValidationException::withMessages([
             'usuario' => 'El DNI o la contraseña no son correctos.',
         ]);
+    }
+
+    /**
+     * Indica si un usuario del personal tiene activada la verificación en dos pasos.
+     *
+     * Precondiciones:
+     * - $user es una cuenta del personal.
+     *
+     * Postcondiciones:
+     * - Devuelve true si alguno de los métodos de segundo factor del panel está activo para
+     *   esa cuenta (hoy: la app de autenticación).
+     * - No modifica nada.
+     *
+     * @param  User  $user  Cuenta del personal.
+     * @return bool true si tiene el segundo factor activo.
+     */
+    private function hasTwoFactorEnabled(User $user): bool
+    {
+        // Revisa cada método de segundo factor configurado en el panel.
+        return collect(Filament::getPanel('admin')->getMultiFactorAuthenticationProviders())
+            // Alcanza con que uno esté activo para esa cuenta.
+            ->contains(fn (MultiFactorAuthenticationProvider $provider): bool => $provider->isEnabled($user));
     }
 
     /**

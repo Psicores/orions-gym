@@ -2,6 +2,7 @@
 
 namespace App\Providers\Filament;
 
+use Filament\Auth\MultiFactor\App\AppAuthentication;
 use Filament\Enums\ThemeMode;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -31,6 +32,14 @@ class AdminPanelProvider extends PanelProvider
             // Nombre que muestra el panel (arriba a la izquierda y en el título de la pestaña).
             ->brandName('Orions')
             ->login()
+            // Perfil del usuario del personal: nombre, email, contraseña y verificación en dos pasos.
+            ->profile()
+            // Verificación en dos pasos con una app de autenticación, con códigos de recuperación.
+            // Es optativa salvo que STAFF_TWO_FACTOR_REQUIRED=true, que obliga a activarla al ingresar.
+            ->multiFactorAuthentication(
+                [AppAuthentication::make()->recoverable()->brandName('Orions')],
+                isRequired: (bool) config('app.staff_two_factor_required'),
+            )
             // Paleta de Orions.
             ->colors([
                 // Color principal (botones, enlaces, pestaña activa): verde Orions #598F8B,
