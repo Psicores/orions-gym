@@ -76,11 +76,15 @@
                                     <span aria-hidden="true" class="size-2 rounded-full bg-oxido"></span>
                                 </button>
                             @endif
-                            {{-- Curev Hue: futura escuela de windsurf. Cuando exista, cambiar este <span> por un <a>. --}}
-                            <span class="hidden items-center gap-2 text-niebla/60 sm:flex" title="Escuela de windsurf · Próximamente">
+                            {{-- Curev Hue: futura escuela de windsurf. Lleva a su pantalla de "Próximamente". --}}
+                            <a
+                                href="{{ route('curev-hue') }}"
+                                title="Escuela de windsurf · Próximamente"
+                                class="hidden items-center gap-2 text-niebla uppercase transition hover:text-oxido focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-oxido sm:flex"
+                            >
                                 Curev Hue
                                 <span class="rounded-full border border-salvia/60 px-2 py-0.5 text-[0.6rem] tracking-wider text-salvia-light">Pronto</span>
-                            </span>
+                            </a>
                         </div>
 
                         <a href="{{ route('inicio') }}" aria-label="Orions, inicio" class="justify-self-center">
@@ -237,7 +241,7 @@
 
         <footer class="border-t border-carbon-700">
             <div class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-5 py-8 text-sm text-ceniza sm:px-8">
-                <p>Curev Hue · escuela de windsurf · <span class="text-salvia-light">próximamente</span></p>
+                <a href="{{ route('curev-hue') }}" class="transition hover:text-niebla">Curev Hue · escuela de windsurf · <span class="text-salvia-light">próximamente</span></a>
                 <a href="{{ route('login') }}" class="transition hover:text-niebla">Ingreso de socios</a>
             </div>
 
