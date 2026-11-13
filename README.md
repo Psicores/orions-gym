@@ -326,6 +326,9 @@ que estar en `false`. Después de cambiar el `.env`, correr `php artisan config:
   activa ingresa igual por `/ingresar`: después de la contraseña se le pide el código de la app (o
   un código de recuperación). `/admin/login` también lo pide. Si alguien pierde el celular y los
   códigos: `php artisan staff:disable-two-factor su@email.com` desde el servidor.
+- **Observaciones de salud cifradas.** En la base y en sus backups no se pueden leer: solo el
+  sistema las descifra, con la `APP_KEY` del `.env`. **Si esa clave se pierde o se cambia, las
+  observaciones no se recuperan**: guardala aparte, junto con los backups.
 - **Datos entre socios.** Las pantallas del portal solo leen los datos del socio con sesión.
 - **Archivos.** Foto y certificado van a un disco privado. No se aceptan SVG en ninguna subida.
 - **Texto de los anuncios.** Se limpia antes de mostrarse: no puede traer código.
@@ -339,7 +342,6 @@ que estar en `false`. Después de cambiar el `.env`, correr `php artisan config:
 - **Roles dentro del personal** (hoy todos son administradores) y alta de profes desde el panel.
 - **Segunda barrera en el servidor**: apuntar el dominio a la carpeta `public/` en vez de
   depender de la regla del `.htaccess`.
-- **Cifrar las observaciones de salud** en la base.
 - **Revisar dependencias** con `composer audit` y `npm audit` antes de cada despliegue.
 
 ## Referencia técnica

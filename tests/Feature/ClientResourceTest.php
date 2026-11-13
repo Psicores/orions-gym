@@ -17,6 +17,8 @@ use App\Models\User;
 use Filament\Actions\CreateAction;
 use Filament\Actions\Testing\TestAction;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\DB;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -188,10 +190,43 @@ class ClientResourceTest extends TestCase
             ])
             ->assertHasNoFormErrors();
 
-        $this->assertDatabaseHas(Client::class, [
-            'dni' => '30123456',
-            'observaciones_dolencias' => 'Lesión de rodilla derecha.',
-        ]);
+        $client = Client::query()->where('dni', '30123456')->sole();
+        $this->assertSame('Lesión de rodilla derecha.', $client->observaciones_dolencias);
+    }
+
+    public function test_the_health_observations_are_stored_encrypted(): void
+    {
+        $client = Client::factory()->create(['observaciones_dolencias' => 'Lesión de rodilla derecha.']);
+
+        $raw = DB::table('clients')->where('id', $client->id)->value('observaciones_dolencias');
+        $this->assertStringNotContainsString('rodilla', $raw);
+        $this->assertSame('Lesión de rodilla derecha.', Crypt::decryptString($raw));
+        $this->assertSame('Lesión de rodilla derecha.', $client->fresh()->observaciones_dolencias);
+
+        $this->get(ClientResource::getUrl('view', ['record' => $client]))->assertOk()->assertSee('Lesión de rodilla derecha.');
+    }
+
+    public function test_the_migration_encrypts_existing_plain_observations_only_once_and_can_be_reverted(): void
+    {
+        $plain = Client::factory()->create();
+        $already = Client::factory()->create(['observaciones_dolencias' => 'Asma.']);
+        $empty = Client::factory()->create(['observaciones_dolencias' => null]);
+        DB::table('clients')->where('id', $plain->id)->update(['observaciones_dolencias' => 'Dolor lumbar.']);
+        $alreadyRaw = DB::table('clients')->where('id', $already->id)->value('observaciones_dolencias');
+
+        $migration = require database_path('migrations/2026_11_13_081936_encrypt_client_health_notes.php');
+        $migration->up();
+        $migration->up();
+
+        $this->assertNotSame('Dolor lumbar.', DB::table('clients')->where('id', $plain->id)->value('observaciones_dolencias'));
+        $this->assertSame('Dolor lumbar.', $plain->fresh()->observaciones_dolencias);
+        $this->assertSame($alreadyRaw, DB::table('clients')->where('id', $already->id)->value('observaciones_dolencias'));
+        $this->assertNull($empty->fresh()->observaciones_dolencias);
+
+        $migration->down();
+
+        $this->assertSame('Dolor lumbar.', DB::table('clients')->where('id', $plain->id)->value('observaciones_dolencias'));
+        $this->assertSame('Asma.', DB::table('clients')->where('id', $already->id)->value('observaciones_dolencias'));
     }
 
     public function test_the_create_modal_rejects_a_client_without_required_fields(): void

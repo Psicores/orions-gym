@@ -197,6 +197,8 @@ class ClientResource extends Resource
                                     ->placeholder('Opcional: lesiones, dolencias o algo a tener en cuenta.')
                                     // Alto inicial de 3 renglones.
                                     ->rows(3)
+                                    // Tope de largo: el texto se guarda cifrado y ocupa más que el original.
+                                    ->maxLength(5000)
                                     // Ocupa el ancho completo de la pestaña.
                                     ->columnSpanFull(),
                             ]),
