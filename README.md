@@ -88,8 +88,9 @@ plan y vence un mes después del inicio.
 ### Cobrar
 
 **Registrar pago**, desde el Escritorio, el listado o la ficha del cliente. Se elige la membresía
-(si tiene más de una), el monto (se sugiere el precio del plan, se puede cambiar) y el medio:
-efectivo o transferencia. Queda guardado quién cobró y cuándo.
+(si tiene más de una), el monto y el medio: efectivo o transferencia. El monto se sugiere solo y
+se puede cambiar: en efectivo es el precio en efectivo del plan (si lo tiene cargado) y con otro
+medio el precio normal. Al cambiar el medio, el monto se vuelve a calcular. Queda guardado quién cobró y cuándo.
 
 - El cobro deja al cliente en **Entrenando**.
 - Si la membresía ya había terminado su ciclo (En pausa, Activo flex o con la fecha pasada), el
@@ -117,7 +118,8 @@ del servidor, se corre `php artisan config:cache` y se imprime el cartel de nuev
 
 ### Admin del sitio
 
-**Planes.** El catálogo que se ofrece: nombre, precio y créditos (ingresos por mes). `999`
+**Planes.** El catálogo que se ofrece: nombre, precio, precio en efectivo (opcional, para dar un
+descuento a quien paga en efectivo) y créditos (ingresos por mes). `999`
 créditos significa pase libre. Se pueden editar, dar de baja y restaurar; un plan dado de baja
 deja de ofrecerse pero se conserva en las membresías viejas. Los planes activos se muestran en el
 sitio público.

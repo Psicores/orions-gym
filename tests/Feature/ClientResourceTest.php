@@ -73,14 +73,10 @@ class ClientResourceTest extends TestCase
         $plan = Plan::factory()->create(['creditos_otorgados' => 12]);
 
         Livewire::test(ListClients::class)
-            ->callAction(
-                TestAction::make('createMembership')->arguments(['client' => $client->getKey()]),
-                [
-                    'plan_id' => $plan->getKey(),
-                    'monto' => 25000.50,
-                    'metodo_pago' => PaymentMethodEnum::Transferencia->value,
-                ],
-            )
+            ->mountAction(TestAction::make('createMembership')->arguments(['client' => $client->getKey()]))
+            ->fillForm(['plan_id' => $plan->getKey(), 'metodo_pago' => PaymentMethodEnum::Transferencia->value])
+            ->fillForm(['monto' => 25000.50])
+            ->callMountedAction()
             ->assertHasNoFormErrors()
             ->assertRedirect(ClientResource::getUrl('view', ['record' => $client]));
 
