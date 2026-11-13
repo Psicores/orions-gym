@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Plans;
 
+use App\Enums\SiteSectionEnum;
 use App\Filament\Resources\Plans\Pages\ManagePlans;
 use App\Models\Plan;
 use BackedEnum;
@@ -20,6 +21,7 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
+use UnitEnum;
 
 class PlanResource extends Resource
 {
@@ -29,6 +31,12 @@ class PlanResource extends Resource
     protected static ?string $slug = 'planes';
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCreditCard;
+
+    // Va en el grupo "Admin del sitio" del menú: los planes son lo que se muestra y se vende en la página pública.
+    protected static string|UnitEnum|null $navigationGroup = SiteSectionEnum::NAVIGATION_GROUP;
+
+    // Primero dentro del grupo; las demás secciones del sitio siguen desde 2 (ver ComingSoon).
+    protected static ?int $navigationSort = 1;
 
     protected static ?string $modelLabel = 'plan';
 

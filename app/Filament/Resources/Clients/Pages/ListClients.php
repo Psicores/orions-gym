@@ -44,8 +44,8 @@ class ListClients extends ListRecords
                 ->modalIcon(Heroicon::OutlinedUserPlus)
                 // Texto de ayuda debajo del título.
                 ->modalDescription('Completá los datos del cliente. La foto y el certificado se pueden cargar después.')
-                // Modal mediano: los campos van de a dos por fila.
-                ->modalWidth(Width::TwoExtraLarge)
+                // Modal ancho: entran cuatro campos por fila.
+                ->modalWidth(Width::FiveExtraLarge)
                 // Botones del pie alineados a la derecha.
                 ->modalFooterActionsAlignment(Alignment::End)
                 // Cabecera en el color principal (ver resources/views/filament/admin/styles.blade.php).

@@ -1,11 +1,69 @@
 {{--
     Estilos propios del panel /admin. Se cargan después de los de Filament (ver AdminPanelProvider).
 
+    Menú lateral: el enlace activo se pinta con un tinte del color principal y una barrita a la
+    izquierda, y cada grupo con título (por ejemplo "Admin del sitio") arranca con una línea
+    separadora y el título en mayúsculas chicas.
+
     .orions-modal: ventana modal con cabecera en el color principal, sólido (el mismo tono de los
     botones). El cuerpo y el pie conservan el fondo normal del panel. Se activa en una acción con
     ->extraModalWindowAttributes(['class' => 'orions-modal']).
 --}}
 <style>
+    /* Línea separadora arriba de cada grupo con título. */
+    .fi-sidebar-nav-groups > .fi-sidebar-group:has(> .fi-sidebar-group-btn) {
+        padding-top: 1.25rem;
+        border-top: 1px solid var(--gray-200);
+    }
+
+    .dark .fi-sidebar-nav-groups > .fi-sidebar-group:has(> .fi-sidebar-group-btn) {
+        border-top-color: rgb(255 255 255 / 0.1);
+    }
+
+    /* Título del grupo: chico, en mayúsculas y espaciado. */
+    .fi-sidebar-group-label {
+        font-size: 0.6875rem;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    /* Al pasar el mouse, el ícono toma el color principal. */
+    .fi-sidebar-item.fi-sidebar-item-has-url > .fi-sidebar-item-btn:hover > .fi-icon {
+        color: var(--primary-600);
+    }
+
+    /* Enlace activo: tinte del color principal y barrita a la izquierda. */
+    .fi-sidebar-item.fi-active > .fi-sidebar-item-btn {
+        background: var(--primary-50);
+    }
+
+    .fi-sidebar-item.fi-active > .fi-sidebar-item-btn::before {
+        content: '';
+        position: absolute;
+        inset-block: 0.5rem;
+        inset-inline-start: 0;
+        width: 3px;
+        border-radius: 999px;
+        background: var(--primary-600);
+    }
+
+    .fi-sidebar-item.fi-active > .fi-sidebar-item-btn > .fi-sidebar-item-label {
+        font-weight: 600;
+    }
+
+    .dark .fi-sidebar-item.fi-active > .fi-sidebar-item-btn {
+        background: rgb(255 255 255 / 0.06);
+    }
+
+    .dark .fi-sidebar-item.fi-active > .fi-sidebar-item-btn::before {
+        background: var(--primary-400);
+    }
+
+    .dark .fi-sidebar-item.fi-sidebar-item-has-url > .fi-sidebar-item-btn:hover > .fi-icon {
+        color: var(--primary-400);
+    }
+
     .orions-modal .fi-modal-header {
         position: relative;
         align-items: center;

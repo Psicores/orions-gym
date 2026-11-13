@@ -80,7 +80,9 @@ class AdminPanelProvider extends PanelProvider
             ])
             // Arranca en modo claro; cada usuario puede cambiarlo desde su menú.
             ->defaultThemeMode(ThemeMode::Light)
-            // Estilos propios del panel (por ejemplo la cabecera de color de los modales), después de los de Filament.
+            // Los grupos del menú lateral quedan siempre abiertos: son pocos enlaces y no hace falta plegarlos.
+            ->collapsibleNavigationGroups(false)
+            // Estilos propios del panel (menú lateral y cabecera de color de los modales), después de los de Filament.
             ->renderHook(
                 PanelsRenderHook::STYLES_AFTER,
                 fn (): View => view('filament.admin.styles'),
