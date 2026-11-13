@@ -141,4 +141,16 @@ return [
         'password' => env('ADMIN_PASSWORD'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Verificación en dos pasos del personal
+    |--------------------------------------------------------------------------
+    |
+    | Con false, cada cuenta del personal decide si la activa desde su perfil.
+    | Con true, el panel obliga a activarla en el próximo ingreso.
+    |
+    */
+
+    'staff_two_factor_required' => (bool) env('STAFF_TWO_FACTOR_REQUIRED', false),
+
 ];

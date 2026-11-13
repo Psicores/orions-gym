@@ -60,6 +60,8 @@ class Client extends Authenticatable
      *   se guarda su valor de texto.
      * - Si la base tiene un estado que no existe en el enum, leerlo lanza un ValueError.
      * - Al asignar $client->password un texto plano, se guarda su hash; null se guarda como null.
+     * - $client->observaciones_dolencias se lee y se asigna como texto plano, pero en la base
+     *   queda cifrado (null sigue siendo null). Por eso no se puede buscar por ese campo con SQL.
      *
      * @return array<string, string>
      */
@@ -75,6 +77,9 @@ class Client extends Authenticatable
             'fecha_vencimiento' => 'date',
             // La contraseña del portal se guarda siempre hasheada (null = todavía usa su DNI).
             'password' => 'hashed',
+            // Las observaciones de salud se guardan cifradas con la clave de la aplicación (APP_KEY):
+            // en la base y en sus backups no se leen; el modelo las cifra y descifra solo.
+            'observaciones_dolencias' => 'encrypted',
         ];
     }
 

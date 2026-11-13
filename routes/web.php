@@ -25,6 +25,10 @@ Route::middleware('guest:client,web')->group(function (): void {
     Route::get('/ingresar', [MemberSessionController::class, 'create'])->name('login');
     // Envío del formulario.
     Route::post('/ingresar', [MemberSessionController::class, 'store'])->name('login.store');
+    // Segundo paso del personal con verificación en dos pasos: pide el código de la app.
+    Route::get('/ingresar/codigo', [MemberSessionController::class, 'createCode'])->name('login.code');
+    // Envío del código.
+    Route::post('/ingresar/codigo', [MemberSessionController::class, 'storeCode'])->name('login.code.store');
 });
 
 // Portal del socio: solo con sesión de socio (guard "client"); sin ella redirige a /ingresar.
