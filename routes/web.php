@@ -18,6 +18,9 @@ Route::get('/', fn () => view('welcome', [
     'anuncios' => Announcement::query()->active()->latest()->latest('id')->get(),
 ]))->name('inicio');
 
+// Curev Hue (futura escuela de windsurf): por ahora, una pantalla con su video y el aviso "Próximamente".
+Route::view('/curev-hue', 'curev-hue')->name('curev-hue');
+
 // Ingreso único para socios y personal. Quien ya tiene sesión es redirigido a su lugar:
 // el socio a /mi-perfil y el personal a /admin (ver redirectUsersTo en bootstrap/app.php).
 Route::middleware('guest:client,web')->group(function (): void {

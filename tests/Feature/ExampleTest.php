@@ -19,4 +19,14 @@ class ExampleTest extends TestCase
 
         $response->assertStatus(200);
     }
+
+    public function test_the_landing_links_to_the_curev_hue_coming_soon_page(): void
+    {
+        $this->get('/')->assertOk()->assertSee(route('curev-hue'));
+
+        $this->get(route('curev-hue'))
+            ->assertOk()
+            ->assertSee('Próximamente')
+            ->assertSee('images/windsurf.mp4');
+    }
 }
