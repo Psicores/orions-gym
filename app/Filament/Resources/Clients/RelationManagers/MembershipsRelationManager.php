@@ -142,8 +142,8 @@ class MembershipsRelationManager extends RelationManager
                     ->label('Créditos disponibles')
                     // Solo acepta números enteros.
                     ->integer()
-                    // No permite créditos negativos.
-                    ->minValue(0)
+                    // Admite negativos: quien ingresa sin créditos queda debiendo clases.
+                    ->minValue(-999)
                     // Obligatorio cuando se muestra.
                     ->required()
                     // Solo aparece al editar: al crear, el modelo copia los créditos del plan.

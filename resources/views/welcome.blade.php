@@ -78,7 +78,7 @@
                         </a>
 
                         <a
-                            href="{{ route('filament.admin.auth.login') }}"
+                            href="{{ route('login') }}"
                             class="justify-self-end rounded-full border border-oxido px-5 py-2 text-sm font-semibold tracking-widest text-niebla uppercase transition hover:bg-oxido hover:text-carbon focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-oxido"
                         >
                             Socios
@@ -227,7 +227,7 @@
             <div class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-5 py-8 text-sm text-ceniza sm:px-8">
                 <p>© {{ date('Y') }} Orions</p>
                 <p>Curev Hue · escuela de windsurf · <span class="text-salvia-light">próximamente</span></p>
-                <a href="{{ route('filament.admin.auth.login') }}" class="transition hover:text-niebla">Ingreso de socios</a>
+                <a href="{{ route('login') }}" class="transition hover:text-niebla">Ingreso de socios</a>
             </div>
         </footer>
 

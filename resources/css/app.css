@@ -30,3 +30,8 @@
         }
     }
 }
+
+/* Alpine: lo marcado con x-cloak queda oculto hasta que el componente termina de iniciar. */
+[x-cloak] {
+    display: none !important;
+}
