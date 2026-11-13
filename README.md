@@ -143,8 +143,8 @@ el DNI, y el portal **obliga a elegir una contraseña propia** antes de mostrar 
 menos 8 caracteres, con letras y números, y distinta del DNI. La sesión queda recordada en el
 celular.
 
-Si un socio olvida su contraseña, hoy no la puede recuperar por su cuenta (ver
-[Pendientes](#pendientes-de-seguridad)).
+Si un socio olvida su contraseña, el personal la restablece desde su ficha con **Restablecer
+contraseña**: vuelve a entrar con el DNI y el portal le pide que elija una nueva.
 
 ### Instalarlo como app
 
@@ -317,6 +317,7 @@ que estar en `false`. Después de cambiar el `.env`, correr `php artisan config:
   minuto. Además, una misma IP puede intentar hasta 10 ingresos por minuto y 60 por hora, para
   que nadie pruebe un DNI tras otro.
 - **Contraseña del socio.** Mientras sea el DNI, solo puede entrar a “Mi cuenta” a cambiarla.
+  Si la olvida, el personal la restablece desde la ficha: nadie más que el socio conoce la nueva.
 - **Datos entre socios.** Las pantallas del portal solo leen los datos del socio con sesión.
 - **Archivos.** Foto y certificado van a un disco privado. No se aceptan SVG en ninguna subida.
 - **Texto de los anuncios.** Se limpia antes de mostrarse: no puede traer código.
@@ -327,8 +328,6 @@ que estar en `false`. Después de cambiar el `.env`, correr `php artisan config:
 
 ### Pendientes de seguridad
 
-- **Recuperar la contraseña del socio.** No existe: falta un botón “Restablecer contraseña” en la
-  ficha del cliente.
 - **Segundo factor para el personal** en `/admin`.
 - **Roles dentro del personal** (hoy todos son administradores) y alta de profes desde el panel.
 - **Segunda barrera en el servidor**: apuntar el dominio a la carpeta `public/` en vez de

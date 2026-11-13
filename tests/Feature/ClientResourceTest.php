@@ -8,6 +8,7 @@ use App\Enums\PaymentMethodEnum;
 use App\Filament\Resources\Clients\ClientResource;
 use App\Filament\Resources\Clients\Pages\EditClient;
 use App\Filament\Resources\Clients\Pages\ListClients;
+use App\Filament\Resources\Clients\Pages\ViewClient;
 use App\Models\Client;
 use App\Models\Membership;
 use App\Models\Payment;
@@ -240,6 +241,37 @@ class ClientResourceTest extends TestCase
             'id' => $client->id,
             'nombre' => 'Juan Carlos',
         ]);
+    }
+
+    public function test_staff_can_reset_a_member_password_so_they_log_in_with_their_dni_again(): void
+    {
+        $client = Client::factory()->create(['dni' => '30123456', 'password' => 'clave-propia-1']);
+        $client->forceFill(['remember_token' => 'token-viejo'])->save();
+
+        Livewire::test(ViewClient::class, ['record' => $client->getRouteKey()])
+            ->assertActionVisible('resetMemberPassword')
+            ->callAction('resetMemberPassword')
+            ->assertNotified('Contraseña restablecida');
+
+        $client->refresh();
+        $this->assertFalse($client->hasCustomPassword());
+        $this->assertFalse($client->passwordMatches('clave-propia-1'));
+        $this->assertTrue($client->passwordMatches('30123456'));
+        $this->assertNotSame('token-viejo', $client->remember_token);
+
+        auth()->guard('web')->logout();
+
+        $this->post(route('login.store'), ['usuario' => '30123456', 'password' => '30123456'])
+            ->assertRedirect(route('member.dashboard'));
+        $this->get(route('member.dashboard'))->assertRedirect(route('member.account'));
+    }
+
+    public function test_the_reset_password_button_is_hidden_while_the_member_still_uses_their_dni(): void
+    {
+        $client = Client::factory()->withDniAsPassword()->create();
+
+        Livewire::test(ViewClient::class, ['record' => $client->getRouteKey()])
+            ->assertActionHidden('resetMemberPassword');
     }
 
     /**

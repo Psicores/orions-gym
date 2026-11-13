@@ -18,6 +18,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use InvalidArgumentException;
 
 #[Fillable([
@@ -173,6 +174,35 @@ class Client extends Authenticatable
 
         // Sin contraseña propia, la contraseña es el DNI; un DNI vacío nunca habilita el ingreso.
         return $dni !== '' && hash_equals($dni, static::normalizeDni($password));
+    }
+
+    /**
+     * Restablece la contraseña del portal: el cliente vuelve a entrar con su DNI y tiene que
+     * elegir una contraseña nueva. Es lo que hace el personal cuando un socio la olvidó.
+     *
+     * Precondiciones:
+     * - El cliente existe en la base.
+     *
+     * Postcondiciones:
+     * - La columna password queda vacía: hasCustomPassword() devuelve false, la contraseña
+     *   vuelve a ser el DNI y el portal lo obliga a elegir una nueva en el próximo ingreso.
+     * - La contraseña anterior deja de servir.
+     * - El token de "recordarme" cambia, así los dispositivos que habían quedado recordados
+     *   tienen que volver a ingresar.
+     * - No cambia ningún otro dato del cliente.
+     */
+    public function resetPassword(): void
+    {
+        // Carga los dos cambios saltando la lista de campos asignables (password no está en ella).
+        $this->forceFill([
+            // Sin contraseña propia: vuelve a valer el DNI.
+            'password' => null,
+            // Token nuevo: invalida las cookies de "recordarme" ya emitidas.
+            'remember_token' => Str::random(60),
+        ]);
+
+        // Guarda los cambios.
+        $this->save();
     }
 
     /**
