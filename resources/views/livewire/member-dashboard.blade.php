@@ -32,6 +32,9 @@
 @endphp
 
 <div>
+    {{-- Termómetro de ocupación: qué tan lleno está el gimnasio ahora (se actualiza solo). --}}
+    <livewire:gym-occupancy-meter />
+
     <p class="text-sm text-ceniza">Hola,</p>
     <h1 class="font-display text-4xl leading-tight uppercase">{{ $client->nombre }}</h1>
 
