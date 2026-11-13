@@ -13,6 +13,10 @@
     .orions-modal: ventana modal con cabecera en el color principal, sólido (el mismo tono de los
     botones). El cuerpo y el pie conservan el fondo normal del panel. Se activa en una acción con
     ->extraModalWindowAttributes(['class' => 'orions-modal']).
+
+    Calendario de los campos de fecha (.fi-fo-date-time-picker-panel): cabecera en el color
+    principal con el mes en Anton, días redondos, el día elegido relleno en el color principal y
+    el día de hoy con un aro naranja. Vale para todos los campos (ver AppServiceProvider).
 --}}
 {{-- Carga solo Anton (la fuente de títulos del home) desde los assets compilados. --}}
 @fonts('anton')
@@ -236,5 +240,153 @@
 
     .orions-modal .fi-modal-footer.fi-align-end .fi-modal-footer-actions > :first-child {
         order: 1;
+    }
+
+    /* Calendario de los campos de fecha: tarjeta con borde y esquinas como las del resto del panel. */
+    .fi-fo-date-time-picker .fi-fo-date-time-picker-panel {
+        min-width: 19rem;
+        padding: 0 1rem 1rem;
+        overflow: hidden;
+        border-radius: 0.875rem;
+        box-shadow: 0 18px 40px -16px rgb(22 24 23 / 0.45), 0 0 0 1px rgb(22 24 23 / 0.08);
+    }
+
+    /* Cabecera: banda en el color principal, de lado a lado, con mes y año en blanco. */
+    .fi-fo-date-time-picker .fi-fo-date-time-picker-panel .fi-fo-date-time-picker-panel-header {
+        margin: 0 -1rem 0.875rem;
+        padding: 0.875rem 1rem;
+        background: var(--primary-600);
+    }
+
+    /* Mes: con la fuente de los títulos. */
+    .fi-fo-date-time-picker .fi-fo-date-time-picker-panel .fi-fo-date-time-picker-month-select {
+        font-family: 'Anton', 'Bebas Neue', Impact, ui-sans-serif, sans-serif;
+        font-size: 1.25rem;
+        font-weight: 400;
+        line-height: 1.75rem;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: #fff;
+        background-color: transparent;
+        /* Flecha del desplegable en blanco. */
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='white' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 0 center;
+        background-size: 1.25rem;
+        padding-inline-end: 1.75rem;
+        appearance: none;
+    }
+
+    /* La lista de meses se abre sobre fondo claro: ahí el texto va oscuro y en la fuente normal. */
+    .fi-fo-date-time-picker .fi-fo-date-time-picker-panel .fi-fo-date-time-picker-month-select option {
+        font-family: ui-sans-serif, system-ui, sans-serif;
+        letter-spacing: normal;
+        text-transform: none;
+        color: #161817;
+        background: #fff;
+    }
+
+    /* Año: blanco, en una pastilla translúcida. */
+    .fi-fo-date-time-picker .fi-fo-date-time-picker-panel .fi-fo-date-time-picker-year-input {
+        width: 4.5rem;
+        padding: 0.125rem 0.375rem;
+        border-radius: 0.5rem;
+        font-weight: 600;
+        color: #fff;
+        background: rgb(255 255 255 / 0.16);
+    }
+
+    /* Foco de mes y año: aro blanco, que se ve sobre la banda de color. */
+    .fi-fo-date-time-picker .fi-fo-date-time-picker-panel .fi-fo-date-time-picker-month-select:focus-visible,
+    .fi-fo-date-time-picker .fi-fo-date-time-picker-panel .fi-fo-date-time-picker-year-input:focus-visible {
+        outline: 2px solid #fff;
+        outline-offset: 2px;
+    }
+
+    /* Días de la semana: chicos, en mayúsculas y espaciados, como los títulos de grupo del menú. */
+    .fi-fo-date-time-picker .fi-fo-date-time-picker-panel .fi-fo-date-time-picker-calendar-header-day {
+        font-size: 0.6875rem;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    /* Días: redondos y con los números alineados. */
+    .fi-fo-date-time-picker .fi-fo-date-time-picker-panel .fi-fo-date-time-picker-calendar .fi-fo-date-time-picker-calendar-day {
+        aspect-ratio: 1;
+        display: grid;
+        place-items: center;
+        border-radius: 999px;
+        font-variant-numeric: tabular-nums;
+        line-height: 1;
+        transition: background-color 120ms, color 120ms;
+    }
+
+    /* Al pasar el mouse: tinte del color principal. */
+    .fi-fo-date-time-picker .fi-fo-date-time-picker-panel .fi-fo-date-time-picker-calendar .fi-fo-date-time-picker-calendar-day:not(.fi-disabled):not(.fi-selected):is(:hover, :focus-visible) {
+        color: var(--primary-800);
+        background: var(--primary-100);
+    }
+
+    /* Hoy: aro naranja (el contraste de la paleta). */
+    .fi-fo-date-time-picker .fi-fo-date-time-picker-panel .fi-fo-date-time-picker-calendar .fi-fo-date-time-picker-calendar-day.fi-fo-date-time-picker-calendar-day-today:not(.fi-selected) {
+        font-weight: 700;
+        color: #b85f1f;
+        box-shadow: inset 0 0 0 2px #d9772f;
+    }
+
+    /* Día elegido: relleno en el color principal. */
+    .fi-fo-date-time-picker .fi-fo-date-time-picker-panel .fi-fo-date-time-picker-calendar .fi-fo-date-time-picker-calendar-day.fi-selected,
+    .fi-fo-date-time-picker .fi-fo-date-time-picker-panel .fi-fo-date-time-picker-calendar .fi-fo-date-time-picker-calendar-day.fi-selected:is(:hover, :focus-visible) {
+        font-weight: 700;
+        color: #fff;
+        background: var(--primary-600);
+    }
+
+    /* Hora: separada del calendario por una línea, con cada casillero como una cajita. */
+    .fi-fo-date-time-picker .fi-fo-date-time-picker-panel .fi-fo-date-time-picker-time-inputs {
+        margin-top: 0.875rem;
+        padding-top: 0.875rem;
+        border-top: 1px solid var(--gray-200);
+    }
+
+    .fi-fo-date-time-picker .fi-fo-date-time-picker-panel .fi-fo-date-time-picker-time-inputs input {
+        width: 3rem;
+        padding: 0.375rem 0;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+        background: var(--gray-100);
+    }
+
+    /* Modo oscuro. */
+    .dark .fi-fo-date-time-picker .fi-fo-date-time-picker-panel {
+        box-shadow: 0 18px 40px -16px rgb(0 0 0 / 0.7), 0 0 0 1px rgb(255 255 255 / 0.1);
+    }
+
+    .dark .fi-fo-date-time-picker .fi-fo-date-time-picker-panel .fi-fo-date-time-picker-panel-header {
+        background: var(--primary-700);
+    }
+
+    .dark .fi-fo-date-time-picker .fi-fo-date-time-picker-panel .fi-fo-date-time-picker-calendar .fi-fo-date-time-picker-calendar-day:not(.fi-disabled):not(.fi-selected):is(:hover, :focus-visible) {
+        color: #fff;
+        background: rgb(122 174 169 / 0.22);
+    }
+
+    .dark .fi-fo-date-time-picker .fi-fo-date-time-picker-panel .fi-fo-date-time-picker-calendar .fi-fo-date-time-picker-calendar-day.fi-fo-date-time-picker-calendar-day-today:not(.fi-selected) {
+        color: #f0a469;
+    }
+
+    .dark .fi-fo-date-time-picker .fi-fo-date-time-picker-panel .fi-fo-date-time-picker-calendar .fi-fo-date-time-picker-calendar-day.fi-selected,
+    .dark .fi-fo-date-time-picker .fi-fo-date-time-picker-panel .fi-fo-date-time-picker-calendar .fi-fo-date-time-picker-calendar-day.fi-selected:is(:hover, :focus-visible) {
+        color: #fff;
+        background: var(--primary-500);
+    }
+
+    .dark .fi-fo-date-time-picker .fi-fo-date-time-picker-panel .fi-fo-date-time-picker-time-inputs {
+        border-top-color: rgb(255 255 255 / 0.1);
+    }
+
+    .dark .fi-fo-date-time-picker .fi-fo-date-time-picker-panel .fi-fo-date-time-picker-time-inputs input {
+        background: rgb(255 255 255 / 0.06);
     }
 </style>
