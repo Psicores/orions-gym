@@ -9,6 +9,7 @@ use App\Models\Attendance;
 use App\Models\Client;
 use App\Models\Membership;
 use App\Models\User;
+use chillerlan\QRCode\QRCode;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -207,9 +208,22 @@ class CheckInTest extends TestCase
             ->get(CheckInQr::getUrl())
             ->assertOk()
             ->assertSee('QR de ingreso')
-            ->assertSee('src="data:image/svg+xml;base64,', escape: false)
-            ->assertSee(self::TOKEN)
+            ->assertSee('src="data:image/png;base64,', escape: false)
             ->assertSee('Imprimir');
+    }
+
+    public function test_the_printable_qr_still_reads_as_the_gym_token_with_the_logo_on_top(): void
+    {
+        $html = $this->actingAs(User::factory()->create())->get(CheckInQr::getUrl())->getContent();
+
+        $this->assertSame(1, preg_match('/src="data:image\/png;base64,([^"]+)"/', $html, $matches));
+
+        // El lector consume mucha memoria con la imagen a tamaño de impresión: la lee achicada, como la vería una cámara.
+        $small = imagescale(imagecreatefromstring(base64_decode($matches[1])), 300);
+        ob_start();
+        imagepng($small);
+
+        $this->assertSame(self::TOKEN, (new QRCode)->readFromBlob((string) ob_get_clean())->data);
     }
 
     public function test_members_cannot_open_the_reception_qr_page(): void
