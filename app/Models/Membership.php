@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\ClientStatusEnum;
 use App\Enums\MembershipStatusEnum;
+use Carbon\CarbonInterface;
 use Database\Factories\MembershipFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Scope;
@@ -48,7 +49,7 @@ class Membership extends Model
      * - Si se indicó creditos_disponibles al crearla, se respeta ese valor.
      * - Editar una membresía existente no vuelve a copiar los créditos.
      * - Si plan_id no existe, la creación falla con ModelNotFoundException y no se guarda nada.
-     * - Después de crear, editar o borrar una membresía (también al dar días de gracia), el
+     * - Después de crear, editar o borrar una membresía (también al dar cortesía o renovar), el
      *   cliente queda con fecha_vencimiento recalculada (ver Client::syncFechaVencimiento()).
      * - Los cambios masivos por consulta (como el comando de vencimientos, que solo cambia el
      *   estado a En pausa) no disparan estos eventos; no hace falta porque no cambian fechas
@@ -215,54 +216,142 @@ class Membership extends Model
     }
 
     /**
-     * Da días de gracia: habilita la membresía por excepción (Activo flex) y corre el vencimiento.
+     * Filtra las membresías que terminaron su ciclo y esperan la renovación.
+     *
+     * Precondiciones:
+     * - Ninguna.
+     *
+     * Postcondiciones:
+     * - La consulta queda limitada a las membresías no vencidas que están En pausa o Activo flex,
+     *   o cuya fecha_vencimiento es anterior a hoy. Es la misma regla de hasCompletedCycle().
+     * - No ejecuta la consulta ni modifica datos.
+     *
+     * @param  Builder<Membership>  $query  Consulta de membresías.
+     */
+    #[Scope]
+    protected function completedCycle(Builder $query): void
+    {
+        // Nunca las cerradas: a esas se les crea una membresía nueva.
+        $query->where('estado', '!=', MembershipStatusEnum::Vencida)
+            // Y además, alguna de las señales de ciclo terminado.
+            ->where(fn (Builder $query): Builder => $query
+                // Pausada por el cierre de ciclo o habilitada por cortesía.
+                ->whereIn('estado', [MembershipStatusEnum::EnPausa, MembershipStatusEnum::ActivoFlex])
+                // O con la fecha ya pasada (todavía no corrió el cierre de la madrugada).
+                ->orWhereDate('fecha_vencimiento', '<', today()));
+    }
+
+    /**
+     * Indica si la membresía terminó su ciclo y espera la renovación.
+     *
+     * Precondiciones:
+     * - Ninguna.
+     *
+     * Postcondiciones:
+     * - Devuelve false si está Vencida (cerrada).
+     * - Devuelve true si está En pausa o Activo flex, o si su fecha_vencimiento es anterior a hoy.
+     * - Devuelve false si está Entrenando y todavía no venció (el día del vencimiento inclusive).
+     * - No modifica nada.
+     *
+     * @return bool true si le toca renovar.
+     */
+    public function hasCompletedCycle(): bool
+    {
+        // Una membresía cerrada no se renueva.
+        if ($this->estado === MembershipStatusEnum::Vencida) {
+            // No aplica.
+            return false;
+        }
+
+        // Pausada, con cortesía o con la fecha pasada: terminó su ciclo.
+        return in_array($this->estado, [MembershipStatusEnum::EnPausa, MembershipStatusEnum::ActivoFlex], true)
+            || $this->fecha_vencimiento->isBefore(today());
+    }
+
+    /**
+     * Inicia un ciclo (mes) nuevo en la misma membresía: es la renovación.
+     *
+     * La llama Client::registerPayment() cuando se cobra una membresía con el ciclo terminado,
+     * y el comando memberships:renew-credits como red de seguridad.
      *
      * Precondiciones:
      * - La membresía existe en la base y no está vencida (MembershipStatusEnum::Vencida).
-     * - $dias es un entero entre 1 y 60.
+     * - $inicio es el primer día del ciclo nuevo (normalmente, el día del pago).
      *
      * Postcondiciones:
-     * - estado = ActivoFlex.
-     * - El cliente de la membresía queda en estado Activo temporal (acuerdo de pago atrasado).
-     * - fecha_vencimiento = la mayor entre la fecha de vencimiento actual y hoy, más $dias días.
-     *   Si ya estaba vencida por fecha, los días se cuentan desde hoy, para que la gracia no
-     *   termine en el pasado.
-     * - Los cambios de la membresía y del cliente se guardan juntos (si uno falla, no queda ninguno)
-     *   y quedan también en esta instancia.
-     * - Si alguna precondición no se cumple, lanza la excepción y no guarda nada.
+     * - fecha_inicio = $inicio y fecha_vencimiento = un mes después (si ese día no existe en el
+     *   mes siguiente, el último día de ese mes: del 31/01 al 28/02).
+     * - estado = Entrenando.
+     * - creditos_disponibles = creditos_otorgados del plan. No arrastra el saldo anterior: ni los
+     *   créditos que sobraron ni los que quedó debiendo.
+     * - El cliente de la membresía queda en estado Entrenando y con fecha_vencimiento recalculada.
+     * - Los cambios de la membresía y del cliente se guardan juntos (si uno falla, no queda
+     *   ninguno) y quedan también en esta instancia.
+     * - Si la membresía está vencida, lanza la excepción y no guarda nada.
      *
-     * @param  int  $dias  Cantidad de días de gracia.
+     * @param  CarbonInterface  $inicio  Primer día del ciclo nuevo.
      *
-     * @throws InvalidArgumentException Si la membresía está vencida o $dias está fuera de rango.
+     * @throws InvalidArgumentException Si la membresía está vencida.
      */
-    public function grantGraceDays(int $dias): void
+    public function renewCycle(CarbonInterface $inicio): void
     {
-        // Una membresía cerrada no se reabre con gracia: se le crea una nueva al cliente.
+        // Una membresía cerrada no se reabre: se le crea una nueva al cliente.
         if ($this->estado === MembershipStatusEnum::Vencida) {
             // Corta sin guardar nada.
             throw new InvalidArgumentException('La membresía está vencida; creale una nueva.');
         }
 
-        // Limita la gracia a un rango razonable.
-        if ($dias < 1 || $dias > 60) {
-            // Corta sin guardar nada.
-            throw new InvalidArgumentException('Los días de gracia deben estar entre 1 y 60.');
-        }
-
-        // Toma como base el vencimiento actual, o hoy si ese vencimiento ya pasó.
-        $base = $this->fecha_vencimiento->max(today());
-
         // Guarda membresía y cliente en una transacción: o cambian los dos o ninguno.
-        DB::transaction(function () use ($base, $dias): void {
-            // Actualiza la membresía.
+        DB::transaction(function () use ($inicio): void {
+            // Actualiza la membresía (al guardarse, recalcula el vencimiento del cliente).
             $this->update([
-                // Habilitada por excepción del dueño.
-                'estado' => MembershipStatusEnum::ActivoFlex,
-                // Corre el vencimiento los días indicados.
-                'fecha_vencimiento' => $base->copy()->addDays($dias),
+                // Primer día del mes nuevo.
+                'fecha_inicio' => $inicio->toDateString(),
+                // Un mes después, sin pasarse al mes siguiente si el día no existe.
+                'fecha_vencimiento' => $inicio->copy()->addMonthNoOverflow()->toDateString(),
+                // Vuelve al estado normal.
+                'estado' => MembershipStatusEnum::Entrenando,
+                // Recarga los créditos del plan (incluye planes dados de baja).
+                'creditos_disponibles' => $this->plan->creditos_otorgados,
             ]);
 
-            // El cliente pasa a Activo temporal: puede entrar aunque todavía debe la cuota.
+            // El cliente queda al día.
+            $this->client->update(['estado' => ClientStatusEnum::Entrenando]);
+        });
+    }
+
+    /**
+     * Da cortesía: habilita la membresía por confianza del dueño (Activo flex), sin fecha de fin.
+     *
+     * Precondiciones:
+     * - La membresía existe en la base y no está vencida (MembershipStatusEnum::Vencida).
+     *
+     * Postcondiciones:
+     * - estado = ActivoFlex: el socio puede escanear y entrar aunque su fecha haya terminado.
+     * - No cambia fecha_vencimiento ni los créditos.
+     * - El cliente de la membresía queda en estado Activo temporal.
+     * - La cortesía no termina sola (el cierre de ciclo de la madrugada no toca Activo flex):
+     *   termina cuando el socio renueva (ver renewCycle()) o cuando el dueño le cambia el estado.
+     * - Los cambios de la membresía y del cliente se guardan juntos (si uno falla, no queda ninguno)
+     *   y quedan también en esta instancia.
+     * - Si la membresía está vencida, lanza la excepción y no guarda nada.
+     *
+     * @throws InvalidArgumentException Si la membresía está vencida.
+     */
+    public function grantCourtesy(): void
+    {
+        // Una membresía cerrada no se reabre con cortesía: se le crea una nueva al cliente.
+        if ($this->estado === MembershipStatusEnum::Vencida) {
+            // Corta sin guardar nada.
+            throw new InvalidArgumentException('La membresía está vencida; creale una nueva.');
+        }
+
+        // Guarda membresía y cliente en una transacción: o cambian los dos o ninguno.
+        DB::transaction(function (): void {
+            // Habilitada por cortesía del dueño.
+            $this->update(['estado' => MembershipStatusEnum::ActivoFlex]);
+
+            // El cliente pasa a Activo temporal: puede entrar aunque todavía no renovó.
             $this->client->update(['estado' => ClientStatusEnum::ActivoTemporal]);
         });
     }

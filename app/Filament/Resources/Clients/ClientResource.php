@@ -316,7 +316,7 @@ class ClientResource extends Resource
                             ->label('Estado')
                             // Como etiqueta de color.
                             ->badge()
-                            // Debajo, qué significa el estado (por ejemplo "Debe abonar").
+                            // Debajo, qué significa el estado (por ejemplo "Le toca renovar").
                             ->belowContent(fn (Client $record): string => $record->estado->getDescription()),
                         // Vencimiento de la cuota.
                         TextEntry::make('fecha_vencimiento')

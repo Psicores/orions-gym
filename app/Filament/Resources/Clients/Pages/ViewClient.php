@@ -2,7 +2,7 @@
 
 namespace App\Filament\Resources\Clients\Pages;
 
-use App\Filament\Resources\Clients\Actions\GrantGraceDaysAction;
+use App\Filament\Resources\Clients\Actions\GrantCourtesyAction;
 use App\Filament\Resources\Clients\Actions\RegisterPaymentAction;
 use App\Filament\Resources\Clients\ClientResource;
 use Filament\Actions\Action;
@@ -14,7 +14,7 @@ use Livewire\Attributes\On;
  * Ficha del cliente: la pantalla de trabajo de recepción.
  *
  * Muestra el resumen del cliente (ClientResource::infolist()) y, en pestañas, sus membresías
- * y sus pagos. Desde el encabezado se cobra, se dan días de gracia o se pasa a editar los datos.
+ * y sus pagos. Desde el encabezado se cobra, se da cortesía o se pasa a editar los datos.
  */
 class ViewClient extends ViewRecord
 {
@@ -44,8 +44,8 @@ class ViewClient extends ViewRecord
      * - La página tiene cargado un cliente.
      *
      * Postcondiciones:
-     * - Ofrece, en este orden: registrar un pago, dar días de gracia a la membresía vigente
-     *   (solo si tiene una) y editar los datos del cliente.
+     * - Ofrece, en este orden: registrar un pago, dar cortesía a la membresía vigente
+     *   (solo si tiene una Entrenando o En pausa) y editar los datos del cliente.
      *
      * @return array<Action>
      */
@@ -55,8 +55,8 @@ class ViewClient extends ViewRecord
         return [
             // Cobro rápido.
             RegisterPaymentAction::make(),
-            // Días de gracia sobre la membresía vigente; con borde para que no compita con el cobro.
-            GrantGraceDaysAction::make()->outlined(),
+            // Cortesía sobre la membresía vigente; con borde para que no compita con el cobro.
+            GrantCourtesyAction::make()->outlined(),
             // Pasa al formulario de datos del cliente.
             EditAction::make(),
         ];
@@ -99,7 +99,7 @@ class ViewClient extends ViewRecord
 
     /**
      * Vuelve a leer el cliente cuando algo cambió sus datos desde la misma página
-     * (un cobro, días de gracia, o crear, editar o borrar una membresía).
+     * (un cobro, una cortesía, o crear, editar o borrar una membresía).
      *
      * Precondiciones:
      * - Alguna acción o pestaña emitió "cliente-actualizado" o "pago-registrado" después de

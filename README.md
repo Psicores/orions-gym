@@ -107,51 +107,81 @@ Los estados de cliente y de membresía representan cosas distintas:
 | Estado del cliente | Significado |
 | --- | --- |
 | Entrenando | Cuota al día |
-| En pausa | Debe abonar |
-| Activo temporal | Tiene un acuerdo de pago atrasado |
+| En pausa | Terminó su mes: le toca renovar |
+| Activo temporal | Entra por cortesía del dueño hasta renovar |
 | Inactivo | Sin actividad |
 
 | Estado de la membresía | Acceso al gimnasio | Admite pagos |
 | --- | --- | --- |
 | Entrenando | Sí | Sí |
 | En pausa | No | Sí |
-| Activo flex | Sí, por excepción | Sí |
+| Activo flex | Sí, por cortesía del dueño | Sí |
 | Vencida | No | No |
 
 El pago y el acceso no son lo mismo: por ejemplo, una membresía puede estar en pausa y permitir
 que se registre un pago, pero no permite entrar al gimnasio.
 
-### Cobros y días de gracia
+### Cobros, renovación y cortesía
 
 **Registrar pago** permite imputar un monto a una membresía no vencida. Si hay varias, se elige
 una; se sugiere el precio del plan, pero el monto se puede ajustar. Los medios disponibles son
 efectivo y transferencia. El sistema guarda fecha y hora, cliente, membresía, monto, medio y
 usuario del personal que cobró.
 
-El cobro actualiza el estado del cliente a **Entrenando**, pero no extiende la membresía ni cambia
-su vencimiento. Para renovar, se debe crear o editar una membresía. El historial de pagos se puede
+El cobro deja al cliente en **Entrenando**. Además, si la membresía ya había terminado su ciclo
+(está **En pausa**, en **Activo flex** o con la fecha pasada), el pago **inicia el mes nuevo**:
+la membresía vuelve a **Entrenando**, con un mes de vigencia desde el día del pago y los créditos
+del plan (no se arrastran los que sobraron ni los que quedó debiendo). Si la membresía todavía
+está en su ciclo, el pago no le cambia las fechas ni los créditos. El historial de pagos se puede
 consultar y filtrar por medio, pero no editar ni borrar desde el panel.
 
-**Dar días de gracia** permite extender entre 1 y 60 días la membresía vigente no vencida (7 días
-por defecto). La membresía pasa a **Activo flex** y el cliente a **Activo temporal**. Los días se
-suman desde la fecha de vencimiento vigente, o desde hoy si esa fecha ya pasó.
+**Dar cortesía** pasa una membresía **Entrenando** o **En pausa** a **Activo flex** y al cliente a
+**Activo temporal**: el socio puede escanear y entrar aunque su fecha haya terminado, por
+confianza del dueño. No cambia la fecha ni los créditos, y no termina sola: dura hasta que el
+socio renueva (al registrar su pago) o hasta que se le cambia el estado a mano.
 
-### Vencimientos automáticos
+### Piloto automático (tareas de la madrugada)
 
-El comando `memberships:check-expired` se ejecuta diariamente a las 00:05, según la zona horaria
-de la aplicación. Pausa las membresías **Entrenando** o **Activo flex** cuya fecha de vencimiento
-sea anterior a hoy; las que vencen hoy siguen vigentes durante ese día. También pasa el cliente a
-**En pausa** si ninguna otra membresía todavía le permite entrar.
+Dos comandos corren solos todas las madrugadas, en la zona horaria de la aplicación:
 
-El comando puede ejecutarse manualmente:
+| Hora | Comando | Qué hace |
+| --- | --- | --- |
+| 01:00 | `memberships:update-completed-cycles` | Pasa a **En pausa** las membresías **Entrenando** cuya fecha de vencimiento es anterior a hoy (las que vencen hoy siguen vigentes ese día). También pasa al cliente a **En pausa** si ninguna otra membresía le permite entrar. No toca las que están en **Activo flex**. |
+| 01:05 | `memberships:renew-credits` | Red de seguridad de la renovación: inicia el mes nuevo (Entrenando, créditos del plan) en las membresías con el ciclo terminado que tienen un pago posterior a su vencimiento y quedaron sin renovar. |
+
+"En pausa" no marca al socio como deudor: indica que terminó su mes y le toca renovar. El dueño
+los encuentra en la pestaña **En pausa** del listado de clientes.
+
+Los dos comandos se pueden ejecutar a mano, y correrlos de más no cambia nada:
 
 ```bash
-php artisan memberships:check-expired
+php artisan memberships:update-completed-cycles
+php artisan memberships:renew-credits
 ```
 
-En un servidor de producción hay que mantener activo el scheduler de Laravel (por ejemplo,
-invocando `php artisan schedule:run` cada minuto desde cron); definir la tarea en el proyecto no
-la ejecuta por sí sola.
+#### Activar el scheduler en Hostinger
+
+Definir las tareas en el proyecto no las ejecuta por sí solas: el servidor tiene que llamar a
+`php artisan schedule:run` periódicamente. En Hostinger se hace con una tarea cron:
+
+1. Entrar a **hPanel → Sitios web → (el sitio) → Avanzado → Tareas cron**.
+2. Elegir el tipo **Personalizado** y cargar este comando, reemplazando `u123456789` por el
+   usuario de la cuenta y `tudominio.com` por el dominio (la ruta es la de la carpeta donde está
+   el archivo `artisan`; se puede ver en el Administrador de archivos):
+
+   ```bash
+   /usr/bin/php /home/u123456789/domains/tudominio.com/public_html/artisan schedule:run >> /dev/null 2>&1
+   ```
+
+3. En la frecuencia, poner **cada minuto** (`* * * * *`). Si el plan no permite menos de 5
+   minutos, sirve `*/5 * * * *`: las tareas están a la 01:00 y a la 01:05, que coinciden con esa
+   frecuencia.
+4. Guardar. Para comprobarlo, correr por SSH `php artisan schedule:list`, que muestra las dos
+   tareas y cuándo vuelven a ejecutarse.
+
+La hora de las tareas es la de la aplicación (`config/app.php`, hora argentina), sin importar la
+zona horaria del servidor. Si se cambia el horario de una tarea y el cron corre cada 5 minutos,
+hay que elegir un minuto múltiplo de 5.
 
 ## Modelo de datos
 
@@ -159,14 +189,16 @@ la ejecuta por sí sola.
 - `plans`: catálogo con precio decimal y créditos; usa baja lógica.
 - `memberships`: historial de contratos, fechas, estado de acceso y créditos restantes.
 - `payments`: cobros asociados al cliente y a una membresía, con el usuario que los registró.
+- `attendances`: ingresos al gimnasio, con el cliente, la membresía usada y la fecha y hora.
 - `users`: cuentas del personal que accede al panel.
 
 Las relaciones se protegen contra borrados que dejarían el historial inconsistente. El precio y
 los montos se almacenan con dos decimales. Los archivos de clientes se guardan en el disco
 privado `local`, bajo `storage/app/private`; no se exponen como archivos públicos.
 
-Los créditos se inicializan y muestran en la membresía, pero el sistema actual no registra
-asistencias ni descuenta créditos automáticamente.
+Los créditos se inicializan con los del plan. Cada ingreso que el socio registra escaneando el QR
+de recepción desde su portal guarda una asistencia y descuenta un crédito (el saldo puede quedar
+en negativo). Al renovar, los créditos vuelven a los del plan.
 
 ## Estructura principal
 
