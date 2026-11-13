@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Http\Middleware\EnsureMemberHasOwnPassword;
+use App\Http\Middleware\EnsureMemberSessionIsCurrent;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 use Livewire\Livewire;
@@ -36,7 +37,7 @@ class AppServiceProvider extends ServiceProvider
             URL::forceHttps();
         }
 
-        // Livewire vuelve a aplicar este middleware en cada acción de las pantallas que lo usan.
-        Livewire::addPersistentMiddleware([EnsureMemberHasOwnPassword::class]);
+        // Livewire vuelve a aplicar estos middlewares en cada acción de las pantallas que los usan.
+        Livewire::addPersistentMiddleware([EnsureMemberHasOwnPassword::class, EnsureMemberSessionIsCurrent::class]);
     }
 }

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\MemberSessionController;
 use App\Http\Middleware\EnsureMemberHasOwnPassword;
+use App\Http\Middleware\EnsureMemberSessionIsCurrent;
 use App\Livewire\MemberAccount;
 use App\Livewire\MemberDashboard;
 use App\Livewire\MemberHistory;
@@ -27,7 +28,9 @@ Route::middleware('guest:client,web')->group(function (): void {
 });
 
 // Portal del socio: solo con sesión de socio (guard "client"); sin ella redirige a /ingresar.
-Route::middleware('auth:client')->group(function (): void {
+// Si la contraseña cambió después de abrir la sesión (desde otro dispositivo o por un
+// restablecimiento del personal), la sesión se cierra y tiene que volver a ingresar.
+Route::middleware(['auth:client', EnsureMemberSessionIsCurrent::class])->group(function (): void {
     // Estas pantallas piden además que el socio ya haya elegido una contraseña propia: mientras
     // siga siendo su DNI, lo mandan a "Mi cuenta" a cambiarla.
     Route::middleware(EnsureMemberHasOwnPassword::class)->group(function (): void {

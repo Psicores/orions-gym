@@ -57,6 +57,28 @@ class MemberLoginTest extends TestCase
         $this->assertAuthenticatedAs($client, 'client');
     }
 
+    public function test_the_member_is_remembered_only_when_they_ask_for_it(): void
+    {
+        $client = Client::factory()->withDniAsPassword()->create(['dni' => '30123456']);
+        $recaller = auth()->guard('client')->getRecallerName();
+
+        $this->post(route('login.store'), ['usuario' => '30123456', 'password' => '30123456'])
+            ->assertRedirect(route('member.dashboard'))
+            ->assertCookieMissing($recaller);
+        $this->assertNull($client->refresh()->remember_token);
+
+        auth()->guard('client')->logout();
+
+        $this->post(route('login.store'), ['usuario' => '30123456', 'password' => '30123456', 'remember' => '1'])
+            ->assertRedirect(route('member.dashboard'))
+            ->assertCookie($recaller);
+    }
+
+    public function test_the_login_screen_offers_to_keep_the_session_open(): void
+    {
+        $this->get(route('login'))->assertOk()->assertSee('Mantener la sesión iniciada')->assertSee('name="remember"', escape: false);
+    }
+
     public function test_a_wrong_password_is_rejected(): void
     {
         Client::factory()->withDniAsPassword()->create(['dni' => '30123456']);
