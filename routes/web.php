@@ -5,12 +5,15 @@ use App\Livewire\MemberAccount;
 use App\Livewire\MemberDashboard;
 use App\Livewire\MemberHistory;
 use App\Livewire\MemberScan;
+use App\Models\Announcement;
 use App\Models\Plan;
 use Illuminate\Support\Facades\Route;
 
-// Página pública del gimnasio: muestra los planes vigentes (no dados de baja), del más barato al más caro.
+// Página pública del gimnasio: muestra los planes vigentes (no dados de baja), del más barato al más caro,
+// y las novedades: los anuncios activos y dentro de sus fechas, del más nuevo al más viejo.
 Route::get('/', fn () => view('welcome', [
     'planes' => Plan::query()->orderBy('precio')->get(),
+    'anuncios' => Announcement::query()->active()->latest()->latest('id')->get(),
 ]))->name('inicio');
 
 // Ingreso único para socios y personal. Quien ya tiene sesión es redirigido a su lugar:

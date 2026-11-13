@@ -17,7 +17,7 @@ use RuntimeException;
  * Clientes de ejemplo para desarrollo: cubren todos los estados del cliente y de la membresía,
  * vencimientos pasados, de hoy y próximos, pagos con ambos medios y un cliente dado de baja.
  *
- * No se corre en producción (ver DatabaseSeeder). A mano:
+ * Lo carga DatabaseSeeder junto con todo lo demás (salvo con SEED_DEMO_DATA=false). A mano:
  * php artisan db:seed --class=DemoClientSeeder
  */
 class DemoClientSeeder extends Seeder
@@ -52,7 +52,7 @@ class DemoClientSeeder extends Seeder
             ]],
             // Al día, vence hoy y le quedan pocos créditos.
             ['dni' => '30100003', 'nombre' => 'Sofía', 'apellido' => 'Rodríguez', 'nacimiento' => '2001-11-23', 'estado' => ClientStatusEnum::Entrenando, 'membresias' => [
-                ['plan' => '4 días', 'inicio' => -30, 'vence' => 0, 'estado' => MembershipStatusEnum::Entrenando, 'usados' => 14, 'pagos' => [[30, $efectivo]]],
+                ['plan' => '2 días', 'inicio' => -30, 'vence' => 0, 'estado' => MembershipStatusEnum::Entrenando, 'usados' => 14, 'pagos' => [[30, $efectivo]]],
             ]],
             // Al día, vence mañana.
             ['dni' => '30100004', 'nombre' => 'Julieta', 'apellido' => 'Torres', 'nacimiento' => '1998-01-30', 'estado' => ClientStatusEnum::Entrenando, 'membresias' => [
@@ -64,7 +64,7 @@ class DemoClientSeeder extends Seeder
             ]],
             // Debe: venció hace 20 días y nunca pagó.
             ['dni' => '30100006', 'nombre' => 'Valentina', 'apellido' => 'Díaz', 'nacimiento' => '1993-09-17', 'estado' => ClientStatusEnum::EnPausa, 'membresias' => [
-                ['plan' => '4 días', 'inicio' => -50, 'vence' => -20, 'estado' => MembershipStatusEnum::EnPausa, 'usados' => 9],
+                ['plan' => '2 días', 'inicio' => -50, 'vence' => -20, 'estado' => MembershipStatusEnum::EnPausa, 'usados' => 9],
             ]],
             // Con cortesía: una membresía vieja paga y la actual en Activo flex sin pagar.
             ['dni' => '30100007', 'nombre' => 'Nicolás', 'apellido' => 'Martínez', 'nacimiento' => '1985-12-05', 'estado' => ClientStatusEnum::ActivoTemporal, 'membresias' => [
@@ -80,7 +80,7 @@ class DemoClientSeeder extends Seeder
             // Con historial: cambió de plan, la anterior vencida y la actual al día, dos pagos.
             ['dni' => '30100010', 'nombre' => 'Agustina', 'apellido' => 'Romero', 'nacimiento' => '1992-02-28', 'estado' => ClientStatusEnum::Entrenando, 'membresias' => [
                 ['plan' => '3 días', 'inicio' => -65, 'vence' => -35, 'estado' => MembershipStatusEnum::Vencida, 'usados' => 12, 'pagos' => [[65, $efectivo]]],
-                ['plan' => '4 días', 'inicio' => -5, 'vence' => 25, 'estado' => MembershipStatusEnum::Entrenando, 'usados' => 2, 'pagos' => [[5, $transferencia]]],
+                ['plan' => '2 días', 'inicio' => -5, 'vence' => 25, 'estado' => MembershipStatusEnum::Entrenando, 'usados' => 2, 'pagos' => [[5, $transferencia]]],
             ]],
             // Dado de baja (se ve con el filtro de eliminados), con historial viejo.
             ['dni' => '30100011', 'nombre' => 'Tomás', 'apellido' => 'Álvarez', 'nacimiento' => '1980-10-03', 'estado' => ClientStatusEnum::Inactivo, 'baja' => true, 'membresias' => [
@@ -119,7 +119,7 @@ class DemoClientSeeder extends Seeder
         // Sin usuarios no se pueden registrar pagos.
         if ($user === null) {
             // Avisa cómo resolverlo.
-            throw new RuntimeException('No hay usuarios: corré primero "php artisan db:seed".');
+            throw new RuntimeException('No hay usuarios: corré "php artisan db:seed", que crea las cuentas antes que los clientes.');
         }
 
         // Planes base indexados por nombre (incluye dados de baja, por si el dueño archivó alguno).

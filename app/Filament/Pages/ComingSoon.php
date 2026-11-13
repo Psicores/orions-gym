@@ -73,7 +73,7 @@ class ComingSoon extends Page
      *
      * Postcondiciones:
      * - Devuelve un enlace por cada caso de SiteSectionEnum, en el orden del enum y después de
-     *   Planes (que usa el orden 1 en el mismo grupo).
+     *   Planes y Anuncios (que usan los órdenes 1 y 2 en el mismo grupo).
      * - Cada enlace abre esta pantalla con su sección y se marca como activo solo en esa sección.
      *
      * @return array<NavigationItem> Los enlaces, listos para el menú.
@@ -93,8 +93,8 @@ class ComingSoon extends Page
                 ->group(SiteSectionEnum::NAVIGATION_GROUP)
                 // Ícono de la sección.
                 ->icon($section->getIcon())
-                // Orden: Planes es 1, las secciones siguen desde 2.
-                ->sort($position + 2)
+                // Orden: Planes es 1 y Anuncios 2; las secciones siguen desde 3.
+                ->sort($position + 3)
                 // Activo solo cuando se está mirando esta sección (el tramo de la URL llega ya convertido en la sección).
                 ->isActiveWhen(fn (): bool => original_request()->routeIs(static::getRouteName())
                     && original_request()->route('section') === $section)

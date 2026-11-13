@@ -44,16 +44,29 @@ php artisan test
 
 ### Datos iniciales y de ejemplo
 
-`php artisan db:seed` ejecuta `DatabaseSeeder`: crea o actualiza el administrador indicado en
-`.env`, crea una cuenta de prueba compartida y carga los planes base. Fuera de producción también
-intenta cargar clientes de ejemplo. El seeder es repetible: no duplica los usuarios, planes ni
-clientes que ya existen.
+Toda la carga de datos está en un solo comando:
 
-**Limitación actual:** `DemoClientSeeder` usa un plan llamado `4 días`, pero `PlanSeeder` crea
-`2 días`, `3 días` y `Pase libre`. Por esa diferencia, el seeder de ejemplo puede fallar en un
-entorno no productivo. La cuenta de prueba también se crea con una contraseña fija en el código,
-incluso en producción; no usarla para operar una instalación desplegada y revisar ese seeder antes
-de publicar el sistema.
+```bash
+php artisan db:seed          # en producción: php artisan db:seed --force
+```
+
+`DatabaseSeeder` carga, en orden: el administrador indicado en `.env` (`ADMIN_NAME`, `ADMIN_EMAIL`
+y `ADMIN_PASSWORD`), la cuenta de prueba compartida, los planes base, los clientes de ejemplo con
+sus membresías y pagos, y los anuncios de ejemplo con sus imágenes. También intenta crear el
+enlace `public/storage` para que las imágenes se vean.
+
+Se puede correr las veces que haga falta, en cualquier entorno: no duplica nada, y los planes,
+clientes y anuncios que ya existen no se modifican ni se borran. Lo único que se vuelve a escribir
+son el nombre y la contraseña de las dos cuentas del personal. Si faltan las variables `ADMIN_*`,
+avisa y carga el resto.
+
+Los datos de ejemplo se cargan también en producción. Cuando el gimnasio empiece a operar con
+socios reales, poner `SEED_DEMO_DATA=false` en el `.env`: así un seed posterior no vuelve a crear
+los clientes o anuncios de ejemplo que se hayan borrado. Los clientes de ejemplo pueden entrar al
+portal con su DNI (`30100001` en adelante) como usuario y contraseña.
+
+La cuenta de prueba se crea con una contraseña fija en el código, también en producción: conviene
+cambiarla o eliminarla antes de publicar el sistema.
 
 Los planes base solo se crean si todavía no existe un plan con ese nombre. Volver a ejecutar el
 seeder no sobrescribe precios o créditos modificados desde el panel.

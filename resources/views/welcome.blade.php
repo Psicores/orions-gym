@@ -33,9 +33,9 @@
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
     <body
-        x-data="{ planes: false }"
-        @keydown.escape.window="planes = false"
-        :class="{ 'overflow-hidden': planes }"
+        x-data="{ planes: false, novedades: false }"
+        @keydown.escape.window="planes = false; novedades = false"
+        :class="{ 'overflow-hidden': planes || novedades }"
         class="bg-carbon font-sans text-niebla antialiased selection:bg-oxido selection:text-carbon"
     >
         <main>
@@ -64,6 +64,18 @@
                             >
                                 Planes
                             </button>
+                            {{-- Novedades: solo aparece si hay anuncios vigentes. El punto naranja avisa que hay algo para ver. --}}
+                            @if ($anuncios->isNotEmpty())
+                                <button
+                                    type="button"
+                                    @click="novedades = true"
+                                    aria-haspopup="dialog"
+                                    class="flex cursor-pointer items-center gap-2 tracking-widest text-niebla uppercase transition hover:text-oxido focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-oxido"
+                                >
+                                    Novedades
+                                    <span aria-hidden="true" class="size-2 rounded-full bg-oxido"></span>
+                                </button>
+                            @endif
                             {{-- Curev Hue: futura escuela de windsurf. Cuando exista, cambiar este <span> por un <a>. --}}
                             <span class="hidden items-center gap-2 text-niebla/60 sm:flex" title="Escuela de windsurf · Próximamente">
                                 Curev Hue
@@ -326,6 +338,76 @@
                 <p class="mt-8 text-center text-xs text-ceniza">Acercate al gimnasio para inscribirte. Esc o clic afuera para cerrar.</p>
             </div>
         </div>
+
+        {{-- ===================== NOVEDADES: mismos anuncios que ven los socios, con el estilo del panel de planes ===================== --}}
+        @if ($anuncios->isNotEmpty())
+            <div
+                x-show="novedades"
+                x-transition:enter="transition-opacity duration-300 ease-out"
+                x-transition:enter-start="opacity-0"
+                x-transition:leave="transition-opacity delay-200 duration-300 ease-in"
+                x-transition:leave-end="opacity-0"
+                x-trap="novedades"
+                x-cloak
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="titulo-novedades"
+                class="fixed inset-0 z-50 overflow-x-hidden overflow-y-auto bg-carbon/85 backdrop-blur-md [&[x-cloak]]:hidden"
+            >
+                {{-- Clic fuera de las tarjetas: cierra. --}}
+                <div class="flex min-h-full flex-col items-center justify-center px-5 py-20" @click.self="novedades = false">
+                    <button
+                        type="button"
+                        @click="novedades = false"
+                        class="absolute top-5 right-5 flex size-11 cursor-pointer items-center justify-center rounded-full border border-carbon-700 text-niebla transition hover:border-oxido hover:text-oxido focus-visible:outline-2 focus-visible:outline-oxido sm:top-8 sm:right-8"
+                    >
+                        <span class="sr-only">Cerrar novedades</span>
+                        <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path stroke-linecap="round" d="M6 6l12 12M18 6 6 18" />
+                        </svg>
+                    </button>
+
+                    <div class="text-center">
+                        <p class="text-xs font-semibold tracking-[0.4em] text-oxido uppercase">Lo último del gimnasio</p>
+                        <h2 id="titulo-novedades" class="mt-3 font-display text-5xl uppercase sm:text-7xl">Novedades</h2>
+                    </div>
+
+                    {{-- Con una o dos novedades, las tarjetas quedan centradas en lugar de pegadas a la izquierda. --}}
+                    <div class="mt-10 flex w-full max-w-6xl flex-wrap justify-center gap-6">
+                        @foreach ($anuncios as $anuncio)
+                            {{-- Cada tarjeta entra deslizándose desde la derecha, una detrás de otra, igual que los planes. --}}
+                            <article
+                                x-show="novedades"
+                                x-transition:enter="transition duration-700 ease-out motion-reduce:duration-0 {{ $demoras[$loop->index % 3] }}"
+                                x-transition:enter-start="translate-x-[100vw] opacity-0"
+                                x-transition:enter-end="translate-x-0 opacity-100"
+                                x-transition:leave="transition duration-300 ease-in motion-reduce:duration-0"
+                                x-transition:leave-start="translate-x-0 opacity-100"
+                                x-transition:leave-end="-translate-x-24 opacity-0"
+                                class="flex w-full flex-col overflow-hidden rounded-3xl border border-carbon-700 bg-carbon-800 shadow-2xl shadow-oxido/10 hover:border-oxido/60 hover:shadow-oxido/25 md:w-[calc((100%-3rem)/3)]"
+                            >
+                                @if ($anuncio->imageUrl())
+                                    <img src="{{ $anuncio->imageUrl() }}" alt="" loading="lazy" class="aspect-2/1 w-full object-cover">
+                                @endif
+
+                                <div class="p-7">
+                                    <p class="text-[0.65rem] font-bold tracking-[0.3em] text-oxido uppercase">Novedad</p>
+                                    <h3 class="mt-2 font-display text-3xl leading-tight uppercase">{{ $anuncio->titulo }}</h3>
+
+                                    @if ($anuncio->safeContent())
+                                        <div class="mt-4 space-y-2 text-sm leading-relaxed text-niebla/85 [&_a]:text-salvia-light [&_a]:underline [&_ol]:list-decimal [&_ol]:pl-5 [&_ul]:list-disc [&_ul]:pl-5">
+                                            {{ $anuncio->safeContent() }}
+                                        </div>
+                                    @endif
+                                </div>
+                            </article>
+                        @endforeach
+                    </div>
+
+                    <p class="mt-8 text-center text-xs text-ceniza">Esc o clic afuera para cerrar.</p>
+                </div>
+            </div>
+        @endif
 
         {{-- Alpine.js viene incluido en Livewire (ya instalado por el panel): no hace falta sumarlo aparte. --}}
         @livewireScripts

@@ -35,7 +35,7 @@ class PlanResource extends Resource
     // Va en el grupo "Admin del sitio" del menú: los planes son lo que se muestra y se vende en la página pública.
     protected static string|UnitEnum|null $navigationGroup = SiteSectionEnum::NAVIGATION_GROUP;
 
-    // Primero dentro del grupo; las demás secciones del sitio siguen desde 2 (ver ComingSoon).
+    // Primero dentro del grupo; siguen Anuncios (2) y las secciones del sitio desde 3 (ver ComingSoon).
     protected static ?int $navigationSort = 1;
 
     protected static ?string $modelLabel = 'plan';

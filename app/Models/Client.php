@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -210,6 +211,47 @@ class Client extends Authenticatable
     {
         // Busca en payments las filas cuyo client_id es el id de este cliente.
         return $this->hasMany(Payment::class);
+    }
+
+    /**
+     * Anuncios que el cliente ya cerró (leyó) en su portal.
+     *
+     * Precondiciones:
+     * - Existe la tabla announcement_client con announcement_id, client_id y read_at.
+     *
+     * Postcondiciones:
+     * - Devuelve la relación "un cliente cerró muchos anuncios", sin ejecutar la consulta.
+     * - Cada anuncio trae en ->pivot->read_at cuándo lo cerró.
+     * - No modifica datos.
+     *
+     * @return BelongsToMany<Announcement, $this>
+     */
+    public function announcements(): BelongsToMany
+    {
+        // Une clientes y anuncios a través de announcement_client, con la fecha de lectura.
+        return $this->belongsToMany(Announcement::class)->withPivot('read_at');
+    }
+
+    /**
+     * Marca un anuncio como cerrado (leído) por el cliente: deja de aparecerle en su portal.
+     *
+     * Precondiciones:
+     * - El cliente y $announcement existen en la base.
+     *
+     * Postcondiciones:
+     * - Queda una sola marca del cliente para ese anuncio en announcement_client, con read_at =
+     *   el momento en que lo cerró por primera vez. Cerrarlo de nuevo no cambia nada.
+     * - No modifica el anuncio: los demás socios lo siguen viendo.
+     *
+     * @param  Announcement  $announcement  Anuncio que cierra.
+     */
+    public function dismissAnnouncement(Announcement $announcement): void
+    {
+        // Agrega la marca solo si todavía no existe (no pisa la fecha de la primera vez).
+        $this->announcements()->syncWithoutDetaching([
+            // Anuncio => datos de la marca.
+            $announcement->getKey() => ['read_at' => now()],
+        ]);
     }
 
     /**

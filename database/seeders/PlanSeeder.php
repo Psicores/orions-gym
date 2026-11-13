@@ -26,7 +26,7 @@ class PlanSeeder extends Seeder
      * - Las migraciones están corridas (existe la tabla plans).
      *
      * Postcondiciones:
-     * - Existen los planes "3 días" (12 créditos), "4 días" (16 créditos) y "Pase libre" (999).
+     * - Existen los planes "2 días" (8 créditos), "3 días" (12 créditos) y "Pase libre" (999).
      * - Si un plan con ese nombre ya existía (aunque esté dado de baja), no se toca: se respetan
      *   el precio y los créditos que el dueño haya cambiado desde el panel.
      * - Correrlo varias veces no duplica planes.

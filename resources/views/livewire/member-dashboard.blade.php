@@ -1,6 +1,7 @@
 {{--
     Inicio del portal del socio (ver App\Livewire\MemberDashboard).
-    Recibe $client y $membership (la membresía vigente con su plan, o null).
+    Recibe $client, $membership (la membresía vigente con su plan, o null) y $announcements
+    (los anuncios vigentes que el socio todavía no cerró).
 --}}
 @php
     use App\Enums\MembershipStatusEnum;
@@ -33,6 +34,40 @@
 <div>
     <p class="text-sm text-ceniza">Hola,</p>
     <h1 class="font-display text-4xl leading-tight uppercase">{{ $client->nombre }}</h1>
+
+    {{-- Anuncios del gimnasio: cada socio los puede cerrar y no le vuelven a aparecer. --}}
+    @if ($announcements->isNotEmpty())
+        <section aria-label="Anuncios" class="mt-6 space-y-4">
+            @foreach ($announcements as $announcement)
+                <article wire:key="anuncio-{{ $announcement->id }}" class="relative overflow-hidden rounded-3xl border border-oxido/40 bg-carbon-800">
+                    <button
+                        type="button"
+                        wire:click="dismissAnnouncement({{ $announcement->id }})"
+                        wire:loading.attr="disabled"
+                        aria-label="Cerrar el anuncio: {{ $announcement->titulo }}"
+                        class="absolute top-3 right-3 z-10 flex size-9 cursor-pointer items-center justify-center rounded-full bg-carbon/80 text-niebla backdrop-blur transition hover:bg-carbon hover:text-oxido-light focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-oxido"
+                    >
+                        <x-heroicon-o-x-mark class="size-5" />
+                    </button>
+
+                    @if ($announcement->imageUrl())
+                        <img src="{{ $announcement->imageUrl() }}" alt="" loading="lazy" class="max-h-72 w-full object-cover">
+                    @endif
+
+                    <div class="p-5 @unless ($announcement->imageUrl()) pr-14 @endunless">
+                        <p class="text-[0.65rem] font-bold tracking-[0.3em] text-oxido uppercase">Novedad</p>
+                        <h2 class="mt-1 font-display text-2xl leading-tight uppercase">{{ $announcement->titulo }}</h2>
+
+                        @if ($announcement->safeContent())
+                            <div class="mt-3 space-y-2 text-sm leading-relaxed text-niebla/90 [&_a]:text-salvia-light [&_a]:underline [&_ol]:list-decimal [&_ol]:pl-5 [&_ul]:list-disc [&_ul]:pl-5">
+                                {{ $announcement->safeContent() }}
+                            </div>
+                        @endif
+                    </div>
+                </article>
+            @endforeach
+        </section>
+    @endif
 
     @if ($membership)
         <section aria-label="Mi membresía" class="mt-6 rounded-3xl border {{ $colores['borde'] }} bg-carbon-800 p-6 text-center">
