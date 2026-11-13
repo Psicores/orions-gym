@@ -123,14 +123,4 @@
         </section>
     @endif
 
-    @unless ($client->hasCustomPassword())
-        <a
-            href="{{ route('member.account') }}"
-            wire:navigate
-            class="mt-4 flex items-center justify-between gap-4 rounded-2xl border border-carbon-700 px-4 py-3 text-sm text-niebla transition hover:border-salvia"
-        >
-            <span>Tu contraseña todavía es tu DNI. Cambiala por una propia.</span>
-            <x-heroicon-o-chevron-right class="size-5 shrink-0 text-ceniza" />
-        </a>
-    @endunless
 </div>

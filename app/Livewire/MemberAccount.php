@@ -5,6 +5,7 @@ namespace App\Livewire;
 use App\Models\Client;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -53,8 +54,8 @@ class MemberAccount extends Component
         $this->validate([
             // Contraseña actual.
             'current_password' => ['required', 'string'],
-            // Nueva: mínimo 6 caracteres y repetida igual.
-            'password' => ['required', 'string', 'min:6', 'max:255', 'confirmed'],
+            // Nueva: mínimo 8 caracteres, con letras y números, y repetida igual.
+            'password' => ['required', 'string', 'max:255', 'confirmed', Password::min(8)->letters()->numbers()],
         ], attributes: [
             // Nombres para los mensajes de error.
             'current_password' => 'contraseña actual',

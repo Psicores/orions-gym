@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\SecurityHeaders;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -14,6 +15,8 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Cabeceras de seguridad en todas las respuestas (landing, portal y panel).
+        $middleware->append(SecurityHeaders::class);
         // Quien entra sin sesión a una pantalla protegida va al ingreso único (/ingresar).
         $middleware->redirectGuestsTo(fn (): string => route('login'));
         // Quien ya tiene sesión y abre el ingreso va a su lugar: el socio a su portal, el personal al panel.

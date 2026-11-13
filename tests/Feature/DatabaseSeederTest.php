@@ -23,6 +23,7 @@ class DatabaseSeederTest extends TestCase
 
         Storage::fake('public');
         config(['app.admin' => ['name' => 'Dueño', 'email' => 'dueno@example.com', 'password' => 'secreto-123']]);
+        config(['gym.seed_demo_data' => true]);
     }
 
     public function test_a_single_seed_on_an_empty_database_loads_everything(): void
@@ -30,7 +31,7 @@ class DatabaseSeederTest extends TestCase
         $this->seed();
 
         $this->assertDatabaseHas(User::class, ['email' => 'dueno@example.com']);
-        $this->assertSame(2, User::query()->count());
+        $this->assertSame(1, User::query()->count());
         $this->assertSame(3, Plan::query()->count());
         $this->assertSame(11, Client::withTrashed()->count());
         $this->assertSame(1, Client::onlyTrashed()->count());
@@ -76,7 +77,7 @@ class DatabaseSeederTest extends TestCase
 
         $this->seed();
 
-        $this->assertSame(2, User::query()->count());
+        $this->assertSame(1, User::query()->count());
         $this->assertSame(3, Plan::query()->count());
         $this->assertSame(0, Client::withTrashed()->count());
         $this->assertSame(0, Announcement::query()->count());
@@ -88,9 +89,9 @@ class DatabaseSeederTest extends TestCase
 
         $this->seed();
 
-        $this->assertSame(1, User::query()->count());
+        $this->assertSame(0, User::query()->count());
         $this->assertSame(3, Plan::query()->count());
-        $this->assertSame(11, Client::withTrashed()->count());
+        $this->assertSame(0, Client::withTrashed()->count());
     }
 
     /**

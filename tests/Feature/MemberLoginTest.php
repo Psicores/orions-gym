@@ -28,7 +28,7 @@ class MemberLoginTest extends TestCase
 
     public function test_a_member_logs_in_with_their_dni_as_user_and_password(): void
     {
-        $client = Client::factory()->create(['dni' => '30123456']);
+        $client = Client::factory()->withDniAsPassword()->create(['dni' => '30123456']);
 
         $this->post(route('login.store'), ['usuario' => '30123456', 'password' => '30123456'])
             ->assertRedirect(route('member.dashboard'));
@@ -39,7 +39,7 @@ class MemberLoginTest extends TestCase
 
     public function test_a_member_can_type_the_dni_with_dots(): void
     {
-        $client = Client::factory()->create(['dni' => '30123456']);
+        $client = Client::factory()->withDniAsPassword()->create(['dni' => '30123456']);
 
         $this->post(route('login.store'), ['usuario' => '30.123.456', 'password' => '30.123.456'])
             ->assertRedirect(route('member.dashboard'));
@@ -49,7 +49,7 @@ class MemberLoginTest extends TestCase
 
     public function test_a_member_can_log_in_with_their_email_instead_of_the_dni(): void
     {
-        $client = Client::factory()->create(['dni' => '30123456', 'email' => 'juan@example.com']);
+        $client = Client::factory()->withDniAsPassword()->create(['dni' => '30123456', 'email' => 'juan@example.com']);
 
         $this->post(route('login.store'), ['usuario' => 'Juan@Example.com', 'password' => '30123456'])
             ->assertRedirect(route('member.dashboard'));
@@ -59,7 +59,7 @@ class MemberLoginTest extends TestCase
 
     public function test_a_wrong_password_is_rejected(): void
     {
-        Client::factory()->create(['dni' => '30123456']);
+        Client::factory()->withDniAsPassword()->create(['dni' => '30123456']);
 
         $this->from(route('login'))
             ->post(route('login.store'), ['usuario' => '30123456', 'password' => '11111111'])
@@ -71,7 +71,7 @@ class MemberLoginTest extends TestCase
 
     public function test_once_the_member_chose_a_password_the_dni_stops_working(): void
     {
-        $client = Client::factory()->create(['dni' => '30123456']);
+        $client = Client::factory()->withDniAsPassword()->create(['dni' => '30123456']);
         $client->password = 'fierros-2026';
         $client->save();
 
@@ -86,7 +86,7 @@ class MemberLoginTest extends TestCase
 
     public function test_a_deleted_member_cannot_log_in(): void
     {
-        Client::factory()->create(['dni' => '30123456'])->delete();
+        Client::factory()->withDniAsPassword()->create(['dni' => '30123456'])->delete();
 
         $this->post(route('login.store'), ['usuario' => '30123456', 'password' => '30123456'])
             ->assertSessionHasErrors('usuario');
@@ -117,7 +117,7 @@ class MemberLoginTest extends TestCase
 
     public function test_login_is_blocked_after_five_failed_attempts(): void
     {
-        Client::factory()->create(['dni' => '30123456']);
+        Client::factory()->withDniAsPassword()->create(['dni' => '30123456']);
 
         foreach (range(1, 5) as $attempt) {
             $this->post(route('login.store'), ['usuario' => '30123456', 'password' => 'mal']);
@@ -131,7 +131,7 @@ class MemberLoginTest extends TestCase
 
     public function test_guests_are_sent_to_the_login_and_back_to_the_screen_they_wanted(): void
     {
-        Client::factory()->create(['dni' => '30123456']);
+        Client::factory()->withDniAsPassword()->create(['dni' => '30123456']);
 
         $this->get(route('member.history'))->assertRedirect(route('login'));
 
@@ -148,14 +148,14 @@ class MemberLoginTest extends TestCase
 
     public function test_a_member_cannot_open_the_admin_panel(): void
     {
-        $this->actingAs(Client::factory()->create(), 'client')
+        $this->actingAs(Client::factory()->withDniAsPassword()->create(), 'client')
             ->get(Filament::getPanel('admin')->getUrl())
             ->assertRedirect(Filament::getPanel('admin')->getLoginUrl());
     }
 
     public function test_someone_already_logged_in_skips_the_login_screen(): void
     {
-        $this->actingAs(Client::factory()->create(), 'client')
+        $this->actingAs(Client::factory()->withDniAsPassword()->create(), 'client')
             ->get(route('login'))
             ->assertRedirect(route('member.dashboard'));
     }
@@ -169,7 +169,7 @@ class MemberLoginTest extends TestCase
 
     public function test_a_member_can_log_out(): void
     {
-        $this->actingAs(Client::factory()->create(), 'client')
+        $this->actingAs(Client::factory()->withDniAsPassword()->create(), 'client')
             ->post(route('logout'))
             ->assertRedirect(route('login'));
 

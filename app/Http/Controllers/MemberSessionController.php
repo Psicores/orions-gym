@@ -24,6 +24,12 @@ class MemberSessionController extends Controller
     // Intentos fallidos permitidos por usuario e IP antes de frenar el ingreso por un minuto.
     private const int MAX_ATTEMPTS = 5;
 
+    // Ingresos que puede intentar una misma IP por minuto, acierte o no.
+    private const int MAX_ATTEMPTS_PER_IP_PER_MINUTE = 10;
+
+    // Ingresos que puede intentar una misma IP por hora, acierte o no.
+    private const int MAX_ATTEMPTS_PER_IP_PER_HOUR = 60;
+
     /**
      * Muestra la pantalla de ingreso.
      *
@@ -55,6 +61,9 @@ class MemberSessionController extends Controller
      * - Si no corresponden a nadie, vuelve al formulario con un error y no inicia ninguna sesión.
      * - Tras 5 intentos fallidos seguidos con el mismo usuario desde la misma IP, rechaza los
      *   siguientes durante un minuto, aunque los datos sean correctos.
+     * - Una misma IP puede intentar hasta 10 ingresos por minuto y 60 por hora, acierte o no y
+     *   con el usuario que sea: pasado ese tope rechaza los siguientes. Evita que alguien
+     *   pruebe un DNI tras otro.
      *
      * @param  Request  $request  Pedido con los datos del formulario.
      * @return RedirectResponse Redirección al portal o al panel.
@@ -70,6 +79,9 @@ class MemberSessionController extends Controller
             // Contraseña.
             'password' => ['required', 'string', 'max:255'],
         ], attributes: ['usuario' => 'DNI o email', 'password' => 'contraseña']);
+
+        // Tope por IP: frena a quien prueba muchos usuarios distintos desde el mismo lugar.
+        $this->ensureIpIsNotFlooding($request);
 
         // Clave del contador de intentos: usuario escrito + IP.
         $throttleKey = Str::transliterate(Str::lower(trim($data['usuario'])).'|'.$request->ip());
@@ -113,6 +125,47 @@ class MemberSessionController extends Controller
         throw ValidationException::withMessages([
             'usuario' => 'El DNI o la contraseña no son correctos.',
         ]);
+    }
+
+    /**
+     * Cuenta el intento de ingreso de esta IP y lo rechaza si ya hizo demasiados.
+     *
+     * Precondiciones:
+     * - $request es el envío del formulario de ingreso.
+     *
+     * Postcondiciones:
+     * - Si la IP ya llegó al tope del minuto o al de la hora, lanza el error y no cuenta nada más.
+     * - Si no, suma un intento a los dos contadores (se cuentan todos, también los correctos:
+     *   entrar con el DNI como contraseña es un acierto para quien prueba DNI ajenos).
+     *
+     * @param  Request  $request  Pedido actual.
+     *
+     * @throws ValidationException Si la IP superó alguno de los dos topes.
+     */
+    private function ensureIpIsNotFlooding(Request $request): void
+    {
+        // Contadores de esta IP: clave => [tope, segundos que dura la cuenta].
+        $limits = [
+            'login-ip-minute|'.$request->ip() => [self::MAX_ATTEMPTS_PER_IP_PER_MINUTE, 60],
+            'login-ip-hour|'.$request->ip() => [self::MAX_ATTEMPTS_PER_IP_PER_HOUR, 3600],
+        ];
+
+        // Primero revisa los dos topes.
+        foreach ($limits as $key => [$maxAttempts]) {
+            // Con el tope alcanzado, corta antes de mirar las credenciales.
+            if (RateLimiter::tooManyAttempts($key, $maxAttempts)) {
+                // Avisa cuántos segundos faltan para volver a probar.
+                throw ValidationException::withMessages([
+                    'usuario' => trans('auth.throttle', ['seconds' => RateLimiter::availableIn($key)]),
+                ]);
+            }
+        }
+
+        // Después cuenta este intento en los dos.
+        foreach ($limits as $key => [, $decaySeconds]) {
+            // Se olvida solo al pasar el minuto o la hora.
+            RateLimiter::hit($key, $decaySeconds);
+        }
     }
 
     /**

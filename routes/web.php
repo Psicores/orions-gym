@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\MemberSessionController;
+use App\Http\Middleware\EnsureMemberHasOwnPassword;
 use App\Livewire\MemberAccount;
 use App\Livewire\MemberDashboard;
 use App\Livewire\MemberHistory;
@@ -27,12 +28,16 @@ Route::middleware('guest:client,web')->group(function (): void {
 
 // Portal del socio: solo con sesión de socio (guard "client"); sin ella redirige a /ingresar.
 Route::middleware('auth:client')->group(function (): void {
-    // Inicio: estado de la membresía, vencimiento y créditos.
-    Route::livewire('/mi-perfil', MemberDashboard::class)->name('member.dashboard');
-    // Historial: pagos y asistencias.
-    Route::livewire('/mi-perfil/historial', MemberHistory::class)->name('member.history');
-    // Escanear el QR de ingreso (llega con la épica 6).
-    Route::livewire('/mi-perfil/escanear', MemberScan::class)->name('member.scan');
+    // Estas pantallas piden además que el socio ya haya elegido una contraseña propia: mientras
+    // siga siendo su DNI, lo mandan a "Mi cuenta" a cambiarla.
+    Route::middleware(EnsureMemberHasOwnPassword::class)->group(function (): void {
+        // Inicio: estado de la membresía, vencimiento y créditos.
+        Route::livewire('/mi-perfil', MemberDashboard::class)->name('member.dashboard');
+        // Historial: pagos y asistencias.
+        Route::livewire('/mi-perfil/historial', MemberHistory::class)->name('member.history');
+        // Escanear el QR de ingreso.
+        Route::livewire('/mi-perfil/escanear', MemberScan::class)->name('member.scan');
+    });
     // Mi cuenta: datos, cambio de contraseña y salir.
     Route::livewire('/mi-perfil/cuenta', MemberAccount::class)->name('member.account');
     // Cierra la sesión del socio.

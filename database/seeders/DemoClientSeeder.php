@@ -23,6 +23,34 @@ use RuntimeException;
 class DemoClientSeeder extends Seeder
 {
     /**
+     * DNI de los clientes de ejemplo. Los usa "php artisan demo:remove" para borrarlos.
+     *
+     * @var list<string>
+     */
+    public const array DNIS = [
+        '30100001', '30100002', '30100003', '30100004', '30100005', '30100006',
+        '30100007', '30100008', '30100009', '30100010', '30100011',
+    ];
+
+    /**
+     * Email de ejemplo que le corresponde a un DNI, en un dominio reservado para pruebas.
+     *
+     * Precondiciones:
+     * - Ninguna.
+     *
+     * Postcondiciones:
+     * - Devuelve demo<DNI>@example.com. No consulta la base.
+     *
+     * @param  string  $dni  DNI del cliente de ejemplo.
+     * @return string El email de ejemplo.
+     */
+    public static function emailFor(string $dni): string
+    {
+        // Mismo formato para todos los clientes de ejemplo.
+        return "demo{$dni}@example.com";
+    }
+
+    /**
      * Casos de ejemplo. Los días son relativos a hoy (negativo = pasado), así los estados y los
      * avisos de vencimiento tienen sentido sin importar cuándo se cargue.
      *
@@ -141,7 +169,7 @@ class DemoClientSeeder extends Seeder
                     // Celular de ejemplo, distinto por cliente (termina como el DNI).
                     'cel' => '11'.$case['dni'],
                     // Email de ejemplo en un dominio reservado para pruebas.
-                    'email' => "demo{$case['dni']}@example.com",
+                    'email' => self::emailFor($case['dni']),
                     // Estado del cliente según el caso.
                     'estado' => $case['estado'],
                     // Observación de salud, si el caso la trae.

@@ -7,6 +7,14 @@
 <div>
     <h1 class="font-display text-4xl leading-tight uppercase">Mi cuenta</h1>
 
+    {{-- Mientras la contraseña sea el DNI, el resto del portal está cerrado (ver EnsureMemberHasOwnPassword). --}}
+    @unless ($client->hasCustomPassword())
+        <p role="alert" class="mt-4 rounded-2xl border border-oxido/50 bg-oxido/10 px-4 py-3 text-sm text-niebla">
+            <span class="font-semibold">Antes de seguir, elegí una contraseña propia.</span>
+            Tu contraseña todavía es tu DNI y cualquiera que lo conozca podría entrar a tu cuenta.
+        </p>
+    @endunless
+
     <dl class="mt-5 divide-y divide-carbon-700 rounded-2xl border border-carbon-700 bg-carbon-800 px-5">
         <div class="flex items-baseline justify-between gap-4 py-3.5">
             <dt class="text-sm text-ceniza">Nombre</dt>
@@ -45,8 +53,8 @@
 
         <div>
             <label for="password" class="text-sm font-semibold">Contraseña nueva</label>
-            <input id="password" type="password" wire:model="password" required minlength="6" autocomplete="new-password" class="{{ $campo }}">
-            <p class="mt-2 text-sm text-ceniza">Al menos 6 caracteres.</p>
+            <input id="password" type="password" wire:model="password" required minlength="8" autocomplete="new-password" class="{{ $campo }}">
+            <p class="mt-2 text-sm text-ceniza">Al menos 8 caracteres, con letras y números.</p>
             @error('password')
                 <p class="mt-2 text-sm text-oxido-light">{{ $message }}</p>
             @enderror
