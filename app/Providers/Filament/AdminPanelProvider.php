@@ -87,6 +87,16 @@ class AdminPanelProvider extends PanelProvider
                 PanelsRenderHook::STYLES_AFTER,
                 fn (): View => view('filament.admin.styles'),
             )
+            // Firma de la agencia al pie de cada pantalla del panel.
+            ->renderHook(
+                PanelsRenderHook::FOOTER,
+                fn (): View => view('filament.admin.credit'),
+            )
+            // Y debajo del formulario de ingreso del panel.
+            ->renderHook(
+                PanelsRenderHook::AUTH_LOGIN_FORM_AFTER,
+                fn (): View => view('filament.admin.credit'),
+            )
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
             ->pages([

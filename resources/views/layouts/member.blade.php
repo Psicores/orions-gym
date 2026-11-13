@@ -44,6 +44,9 @@
             {{-- El margen inferior deja lugar a la barra fija para que no tape el contenido. --}}
             <main class="flex-1 px-5 pt-4 pb-[calc(env(safe-area-inset-bottom)+7.5rem)]">
                 {{ $slot }}
+
+                {{-- Firma de la agencia: al final de cada pantalla, por encima de la barra de navegación. --}}
+                @include('partials.devkore-credit', ['class' => 'mt-12 text-center'])
             </main>
         </div>
 
