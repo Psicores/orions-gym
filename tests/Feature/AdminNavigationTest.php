@@ -45,6 +45,15 @@ class AdminNavigationTest extends TestCase
             ->assertSee('.fi-sidebar-item.fi-active > .fi-sidebar-item-btn', escape: false);
     }
 
+    public function test_the_admin_titles_use_the_landing_display_font(): void
+    {
+        $this->get(ClientResource::getUrl('index'))
+            ->assertOk()
+            ->assertSee('font-family: "Anton"', escape: false)
+            ->assertSee('.fi-header-heading,', escape: false)
+            ->assertDontSee('font-family: "Instrument Sans"', escape: false);
+    }
+
     #[DataProvider('siteSections')]
     public function test_each_future_site_section_shows_the_coming_soon_screen(SiteSectionEnum $section): void
     {

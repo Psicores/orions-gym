@@ -20,7 +20,7 @@ enum MembershipStatusEnum: string implements HasColor, HasDescription, HasIcon, 
 {
     // Membresía vigente: el cliente entra normalmente.
     case Entrenando = 'entrenando';
-    // Membresía pausada: el cliente no puede entrar hasta reactivarla.
+    // Terminó su ciclo: el cliente no puede entrar hasta renovar (o recibir cortesía).
     case EnPausa = 'en_pausa';
     // Excepción habilitada por el dueño: el cliente entra aunque su situación no sea la normal.
     case ActivoFlex = 'activo_flex';
@@ -43,7 +43,7 @@ enum MembershipStatusEnum: string implements HasColor, HasDescription, HasIcon, 
     {
         // Solo los estados vigentes (normal o con excepción) dejan entrar.
         return match ($this) {
-            // Vigente o con excepción del dueño: puede entrar.
+            // Vigente o con cortesía del dueño: puede entrar.
             self::Entrenando, self::ActivoFlex => true,
             // Pausada o terminada: no puede entrar.
             self::EnPausa, self::Vencida => false,
@@ -145,9 +145,9 @@ enum MembershipStatusEnum: string implements HasColor, HasDescription, HasIcon, 
             // Acceso normal.
             self::Entrenando => 'Puede entrar',
             // Acceso suspendido temporalmente.
-            self::EnPausa => 'No puede entrar hasta reactivarla',
+            self::EnPausa => 'Terminó su ciclo: entra al renovar',
             // Acceso por excepción.
-            self::ActivoFlex => 'Puede entrar por excepción del dueño',
+            self::ActivoFlex => 'Puede entrar por cortesía del dueño',
             // Acceso terminado.
             self::Vencida => 'Terminó, no puede entrar',
         };

@@ -367,8 +367,13 @@ class Client extends Authenticatable
      *   fecha_pago = ahora y registrado_por_user_id = $registradoPor->id.
      * - El cliente queda en estado Entrenando (cuota al día), tanto en la base como en esta
      *   instancia del modelo.
-     * - No cambia la fecha de vencimiento del cliente ni el estado de la membresía.
-     * - El pago y el cambio de estado se guardan juntos: si uno falla, no queda ninguno.
+     * - Si la membresía había terminado su ciclo (En pausa, Activo flex o con la fecha pasada;
+     *   ver Membership::hasCompletedCycle()), el pago inicia el mes nuevo desde hoy: queda
+     *   Entrenando, con un mes de vigencia y los créditos del plan (ver Membership::renewCycle()).
+     *   $membership queda actualizada.
+     * - Si la membresía sigue en su ciclo (Entrenando y sin vencer), el pago no le cambia el
+     *   estado, las fechas ni los créditos.
+     * - El pago, la renovación y el cambio de estado se guardan juntos: si uno falla, no queda ninguno.
      * - Si alguna precondición sobre la membresía o el monto no se cumple, lanza la excepción
      *   y no guarda nada.
      *
@@ -416,8 +421,16 @@ class Client extends Authenticatable
                 'registrado_por_user_id' => $registradoPor->id,
             ]);
 
+            // Si la membresía ya había terminado su mes, este pago arranca el mes nuevo desde hoy.
+            if ($membership->hasCompletedCycle()) {
+                // Entrenando, un mes de vigencia y créditos del plan.
+                $membership->renewCycle(today());
+            }
+
             // Si pagó, la cuota queda al día: pasa el cliente a Entrenando y lo guarda.
             $this->update(['estado' => ClientStatusEnum::Entrenando]);
+            // Relee el cliente: la renovación pudo cambiarle la fecha de vencimiento.
+            $this->refresh();
 
             // Devuelve el pago creado.
             return $payment;

@@ -66,7 +66,7 @@ class DemoClientSeeder extends Seeder
             ['dni' => '30100006', 'nombre' => 'Valentina', 'apellido' => 'Díaz', 'nacimiento' => '1993-09-17', 'estado' => ClientStatusEnum::EnPausa, 'membresias' => [
                 ['plan' => '4 días', 'inicio' => -50, 'vence' => -20, 'estado' => MembershipStatusEnum::EnPausa, 'usados' => 9],
             ]],
-            // Con días de gracia: una membresía vieja paga y la actual en Activo flex sin pagar.
+            // Con cortesía: una membresía vieja paga y la actual en Activo flex sin pagar.
             ['dni' => '30100007', 'nombre' => 'Nicolás', 'apellido' => 'Martínez', 'nacimiento' => '1985-12-05', 'estado' => ClientStatusEnum::ActivoTemporal, 'membresias' => [
                 ['plan' => '3 días', 'inicio' => -62, 'vence' => -32, 'estado' => MembershipStatusEnum::Vencida, 'usados' => 12, 'pagos' => [[62, $transferencia]]],
                 ['plan' => '3 días', 'inicio' => -32, 'vence' => 4, 'estado' => MembershipStatusEnum::ActivoFlex, 'usados' => 11],

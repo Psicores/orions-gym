@@ -17,7 +17,7 @@ enum ClientStatusEnum: string implements HasColor, HasDescription, HasLabel
 {
     // Cuota al día: puede entrenar normalmente.
     case Entrenando = 'entrenando';
-    // Debe abonar la cuota.
+    // Terminó su mes: le toca renovar.
     case EnPausa = 'en_pausa';
     // Tiene un acuerdo de pago atrasado y se le permite seguir entrenando.
     case ActivoTemporal = 'activo_temporal';
@@ -61,7 +61,7 @@ enum ClientStatusEnum: string implements HasColor, HasDescription, HasLabel
      * - Devuelve un texto no vacío que explica el estado.
      * - No modifica nada.
      *
-     * @return string Explicación del estado (por ejemplo "Debe abonar").
+     * @return string Explicación del estado (por ejemplo "Le toca renovar").
      */
     public function getDescription(): string
     {
@@ -70,9 +70,9 @@ enum ClientStatusEnum: string implements HasColor, HasDescription, HasLabel
             // El cliente tiene la cuota paga.
             self::Entrenando => 'Cuota al día',
             // El cliente tiene la cuota impaga.
-            self::EnPausa => 'Debe abonar',
+            self::EnPausa => 'Le toca renovar',
             // El cliente acordó pagar más tarde.
-            self::ActivoTemporal => 'Acuerdo de pago atrasado',
+            self::ActivoTemporal => 'Entra por cortesía hasta renovar',
             // El cliente no está viniendo al gimnasio.
             self::Inactivo => 'Sin actividad en el gimnasio',
         };

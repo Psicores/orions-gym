@@ -3,7 +3,7 @@
 namespace App\Filament\Resources\Clients\RelationManagers;
 
 use App\Enums\MembershipStatusEnum;
-use App\Filament\Resources\Clients\Actions\GrantGraceDaysAction;
+use App\Filament\Resources\Clients\Actions\GrantCourtesyAction;
 use App\Filament\Resources\Clients\Actions\RegisterPaymentAction;
 use App\Models\Membership;
 use Filament\Actions\ActionGroup;
@@ -163,8 +163,8 @@ class MembershipsRelationManager extends RelationManager
      *   ícono y los créditos disponibles.
      * - Cada fila muestra a la vista el botón "Cobrar" (salvo en membresías vencidas) y agrupa
      *   el resto de las acciones en un menú.
-     * - Permite dar días de gracia (Activo flex + vencimiento extendido, cliente en Activo temporal)
-     *   a las membresías no vencidas.
+     * - Permite dar cortesía (Activo flex, cliente en Activo temporal) a las membresías
+     *   Entrenando o En pausa.
      * - Permite crear, editar y borrar membresías. No ofrece asociar ni desasociar
      *   membresías de otros clientes.
      * - No ofrece borrar una membresía que ya tiene pagos (la base lo impide para no perder
@@ -237,8 +237,8 @@ class MembershipsRelationManager extends RelationManager
                     ->hidden(fn (Membership $record): bool => ! $record->estado->acceptsPayments()),
                 // El resto de las acciones va en un menú "⋮" para no llenar la fila de botones.
                 ActionGroup::make([
-                    // Botón para dar días de gracia: pasa la membresía a Activo flex y corre el vencimiento.
-                    GrantGraceDaysAction::make(),
+                    // Botón "Dar cortesía": pasa la membresía a Activo flex para que el socio entre hasta renovar.
+                    GrantCourtesyAction::make(),
                     // Botón para editar la membresía.
                     EditAction::make()
                         // Después de guardarla, avisa a la página para refrescar el vencimiento del cliente.

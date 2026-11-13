@@ -1,6 +1,9 @@
 {{--
     Estilos propios del panel /admin. Se cargan después de los de Filament (ver AdminPanelProvider).
 
+    Títulos: usan Anton, la misma fuente de los títulos de la página pública, en mayúsculas. El
+    resto del panel (menú, formularios y tablas) conserva la fuente normal de Filament.
+
     Menú lateral: el enlace activo se pinta con un tinte del color principal y una barrita a la
     izquierda, y cada grupo con título (por ejemplo "Admin del sitio") arranca con una línea
     separadora y el título en mayúsculas chicas.
@@ -11,7 +14,37 @@
     botones). El cuerpo y el pie conservan el fondo normal del panel. Se activa en una acción con
     ->extraModalWindowAttributes(['class' => 'orions-modal']).
 --}}
+{{-- Carga solo Anton (la fuente de títulos del home) desde los assets compilados. --}}
+@fonts('anton')
+
 <style>
+    /* Títulos con la fuente del home: nombre del panel, título de página, de sección, de modal, del login y de los carteles. */
+    .fi-logo,
+    .fi-header-heading,
+    .fi-simple-header-heading,
+    .fi-section-header-heading,
+    .fi-modal-heading,
+    .fi-empty-state-heading,
+    .orions-qr-marca,
+    .orions-qr-titulo {
+        font-family: 'Anton', 'Bebas Neue', Impact, ui-sans-serif, sans-serif;
+        /* Anton solo tiene un peso: sin esto el navegador la engrosa artificialmente. */
+        font-weight: 400;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+    }
+
+    /* Anton es angosta: los títulos chicos suben un punto para leerse igual de bien. */
+    .fi-section-header-heading {
+        font-size: 1.125rem;
+        line-height: 1.5rem;
+    }
+
+    .fi-logo {
+        font-size: 1.5rem;
+        letter-spacing: 0.06em;
+    }
+
     /* Cartel del QR de ingreso. */
     .orions-qr-cartel {
         display: flex;
@@ -23,10 +56,8 @@
     }
 
     .orions-qr-marca {
-        font-size: 1.5rem;
-        font-weight: 800;
-        letter-spacing: 0.3em;
-        text-transform: uppercase;
+        font-size: 2.25rem;
+        letter-spacing: 0.2em;
     }
 
     .orions-qr-imagen {
@@ -37,8 +68,7 @@
     }
 
     .orions-qr-titulo {
-        font-size: 1.25rem;
-        font-weight: 700;
+        font-size: 1.5rem;
     }
 
     .orions-qr-ayuda,
@@ -144,8 +174,8 @@
     }
 
     .orions-modal .fi-modal-heading {
-        font-size: 1.125rem;
-        line-height: 1.5rem;
+        font-size: 1.375rem;
+        line-height: 1.75rem;
     }
 
     .orions-modal .fi-modal-description {
