@@ -17,6 +17,8 @@
     Calendario de los campos de fecha (.fi-fo-date-time-picker-panel): cabecera en el color
     principal con el mes en Anton, días redondos, el día elegido relleno en el color principal y
     el día de hoy con un aro naranja. Vale para todos los campos (ver AppServiceProvider).
+    El script del final le agrega a esa cabecera dos flechas (.orions-cal-nav) para pasar al mes
+    anterior o al siguiente sin abrir la lista de meses.
 --}}
 {{-- Carga solo Anton (la fuente de títulos del home) desde los assets compilados. --}}
 @fonts('anton')
@@ -389,4 +391,80 @@
     .dark .fi-fo-date-time-picker .fi-fo-date-time-picker-panel .fi-fo-date-time-picker-time-inputs input {
         background: rgb(255 255 255 / 0.06);
     }
+
+    /* Flechas de mes anterior / siguiente en la cabecera del calendario (las agrega el script de abajo). */
+    .fi-fo-date-time-picker .fi-fo-date-time-picker-panel .orions-cal-nav {
+        display: grid;
+        flex: none;
+        place-items: center;
+        width: 2rem;
+        height: 2rem;
+        border-radius: 999px;
+        color: #fff;
+        background: rgb(255 255 255 / 0.16);
+        cursor: pointer;
+        transition: background-color 120ms;
+    }
+
+    .fi-fo-date-time-picker .fi-fo-date-time-picker-panel .orions-cal-nav:hover,
+    .fi-fo-date-time-picker .fi-fo-date-time-picker-panel .orions-cal-nav:focus-visible {
+        background: rgb(255 255 255 / 0.3);
+        outline: none;
+    }
+
+    .fi-fo-date-time-picker .fi-fo-date-time-picker-panel .orions-cal-nav svg {
+        width: 1.125rem;
+        height: 1.125rem;
+    }
 </style>
+
+<script>
+    /*
+        Flechas del calendario. Filament solo trae la lista de meses y el casillero del año; acá se
+        suman dos botones a la cabecera. Se agregan la primera vez que se usa cada campo de fecha y
+        mueven el mes a través del componente Alpine del propio calendario (focusedDate).
+    */
+    (() => {
+        // Dibujo de la flecha; "d" es el trazo (izquierda o derecha).
+        const icon = (d) => `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${d}"/></svg>`;
+
+        // Crea un botón que suma "step" meses (-1 o 1) al mes que muestra el calendario.
+        const makeButton = (picker, step, label, d) => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'orions-cal-nav';
+            button.setAttribute('aria-label', label);
+            button.innerHTML = icon(d);
+            // Evita que el clic le saque el foco al calendario (se cerraría).
+            button.addEventListener('mousedown', (event) => event.preventDefault());
+            button.addEventListener('click', (event) => {
+                event.stopPropagation();
+                // Estado del calendario de Filament.
+                const data = window.Alpine?.$data(picker);
+                if (data?.focusedDate) {
+                    // Cambia el mes; Filament actualiza solo la lista de meses, el año y los días.
+                    data.focusedDate = data.focusedDate.add(step, 'month');
+                }
+            });
+
+            return button;
+        };
+
+        // Agrega las flechas a la cabecera del calendario de un campo, una sola vez.
+        const addArrows = (target) => {
+            const picker = target instanceof Element ? target.closest('.fi-fo-date-time-picker') : null;
+            const header = picker?.querySelector('.fi-fo-date-time-picker-panel-header');
+            if (! header || header.querySelector('.orions-cal-nav')) {
+                return;
+            }
+            // Componente Alpine del calendario (el elemento que tiene focusedDate).
+            const root = header.closest('[x-data]');
+            header.prepend(makeButton(root, -1, 'Mes anterior', 'M12 5l-5 5 5 5'));
+            header.append(makeButton(root, 1, 'Mes siguiente', 'M8 5l5 5-5 5'));
+        };
+
+        // Cualquier interacción con un campo de fecha (foco o clic) asegura que tenga sus flechas.
+        document.addEventListener('focusin', (event) => addArrows(event.target));
+        document.addEventListener('click', (event) => addArrows(event.target), true);
+    })();
+</script>
