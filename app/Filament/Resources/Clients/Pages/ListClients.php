@@ -18,6 +18,7 @@ use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Tabs\Tab;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Support\Enums\Alignment;
 use Filament\Support\Enums\Width;
@@ -69,7 +70,8 @@ class ListClients extends ListRecords
      *
      * Postcondiciones:
      * - El modal pide el plan, las fechas (por defecto, de hoy a dentro de un mes), el monto
-     *   (al elegir el plan sugiere su precio) y el medio de pago (por defecto, efectivo).
+     *   (sugiere el precio del plan según el medio: en efectivo, su precio en efectivo si lo
+     *   tiene) y el medio de pago (por defecto, efectivo).
      * - "Crear membresía": guarda la membresía en estado Entrenando (ver
      *   Client::startMembership()), registra el pago a nombre del usuario logueado (ver
      *   Client::registerPayment()), deja al cliente en Entrenando, avisa y abre su ficha.
@@ -120,8 +122,8 @@ class ListClients extends ListRecords
                     ->required()
                     // Avisa al servidor apenas cambia, para sugerir el monto.
                     ->live()
-                    // Al elegir un plan, sugiere su precio como monto; el usuario puede cambiarlo.
-                    ->afterStateUpdated(fn (?string $state, Set $set) => $set('monto', Plan::query()->find($state)?->precio)),
+                    // Al elegir un plan, sugiere como monto su precio para el medio de pago elegido; el usuario puede cambiarlo.
+                    ->afterStateUpdated(fn (?string $state, Get $get, Set $set) => $set('monto', Plan::query()->find($state)?->priceFor($get('metodo_pago')))),
                 // Las dos fechas, lado a lado.
                 Grid::make(2)
                     // Campos de la fila.
@@ -172,7 +174,19 @@ class ListClients extends ListRecords
                     // Botones uno al lado del otro.
                     ->inline()
                     // Obligatorio.
-                    ->required(),
+                    ->required()
+                    // Avisa al servidor apenas cambia, para recalcular el monto sugerido.
+                    ->live()
+                    // Al cambiar el medio, sugiere el precio que le corresponde al plan elegido (si ya hay uno).
+                    ->afterStateUpdated(function (PaymentMethodEnum|string|null $state, Get $get, Set $set): void {
+                        // Plan elegido en el modal; null si todavía no se eligió.
+                        $plan = Plan::query()->find($get('plan_id'));
+                        // Sin plan no hay precio que sugerir: deja el monto como está.
+                        if ($plan !== null) {
+                            // En efectivo, el precio en efectivo del plan; si no, el normal.
+                            $set('monto', $plan->priceFor($state));
+                        }
+                    }),
             ])
             // Lógica al confirmar el modal.
             ->action(function (array $data, array $arguments, Action $action): void {

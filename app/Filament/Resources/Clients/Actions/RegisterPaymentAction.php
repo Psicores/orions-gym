@@ -12,6 +12,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\ToggleButtons;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Notifications\Notification;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Database\Eloquent\Model;
@@ -23,7 +24,8 @@ use Livewire\Component;
  * Acción "Registrar pago" (cobro rápido).
  *
  * Abre un modal con la membresía a la que se imputa el pago, el monto (sugiere el precio del
- * plan) y el medio de pago, y guarda el pago a nombre del usuario logueado mediante
+ * plan según el medio: el precio en efectivo si se paga en efectivo, el normal si no) y el
+ * medio de pago, y guarda el pago a nombre del usuario logueado mediante
  * Client::registerPayment().
  *
  * Se puede montar sobre dos tipos de registro:
@@ -126,14 +128,14 @@ class RegisterPaymentAction extends Action
                             ->required()
                             // Avisa al servidor apenas cambia, para recalcular el monto sugerido.
                             ->live()
-                            // Al elegir otra membresía, sugiere el precio de su plan como monto.
-                            ->afterStateUpdated(function (?string $state, Set $set) use ($client): void {
+                            // Al elegir otra membresía, sugiere como monto el precio de su plan para el medio de pago elegido.
+                            ->afterStateUpdated(function (?string $state, Get $get, Set $set) use ($client): void {
                                 // Busca la membresía elegida entre las del cliente, con su plan.
                                 $membership = $client->memberships()->with('plan')->find($state);
                                 // Si existe, copia el precio del plan al campo monto.
                                 if ($membership !== null) {
-                                    // Sugiere el precio; el usuario puede cambiarlo.
-                                    $set('monto', $membership->plan->precio);
+                                    // Sugiere el precio según el medio de pago; el usuario puede cambiarlo.
+                                    $set('monto', $membership->plan->priceFor($get('metodo_pago')));
                                 }
                             }),
                     // Monto cobrado.
@@ -161,7 +163,19 @@ class RegisterPaymentAction extends Action
                         // Botones uno al lado del otro.
                         ->inline()
                         // Obligatorio.
-                        ->required(),
+                        ->required()
+                        // Avisa al servidor apenas cambia, para recalcular el monto sugerido.
+                        ->live()
+                        // Al cambiar el medio, sugiere el precio que le corresponde: en efectivo, el precio en efectivo del plan; si no, el normal.
+                        ->afterStateUpdated(function (PaymentMethodEnum|string|null $state, Get $get, Set $set) use ($client, $fixedMembership): void {
+                            // Membresía a cobrar: la ya decidida o la elegida en el selector, con su plan.
+                            $membership = $fixedMembership ?? $client->memberships()->with('plan')->find($get('membership_id'));
+                            // Si hay membresía, actualiza el monto.
+                            if ($membership !== null) {
+                                // Precio del plan para el medio elegido; el usuario puede cambiarlo.
+                                $set('monto', $membership->plan->priceFor($state));
+                            }
+                        }),
                 ];
             })
             // Lógica al confirmar el modal.
@@ -307,7 +321,8 @@ class RegisterPaymentAction extends Action
      * Postcondiciones:
      * - membership_id es la membresía ya decidida o, si hay varias, la cobrable con fecha de
      *   inicio más reciente (null si no hay ninguna).
-     * - monto es el precio del plan de esa membresía (null si no hay membresía).
+     * - monto es el precio en efectivo del plan de esa membresía, o el precio normal si el plan
+     *   no tiene precio en efectivo (null si no hay membresía).
      * - metodo_pago es efectivo.
      * - No modifica datos.
      *
@@ -323,8 +338,8 @@ class RegisterPaymentAction extends Action
         return [
             // Membresía sugerida.
             'membership_id' => $membership?->id,
-            // Precio del plan como monto sugerido.
-            'monto' => $membership?->plan->precio,
+            // Precio del plan en efectivo (el medio que viene elegido) como monto sugerido.
+            'monto' => $membership?->plan->priceFor(PaymentMethodEnum::Efectivo),
             // Efectivo, el medio más común en el mostrador.
             'metodo_pago' => PaymentMethodEnum::Efectivo->value,
         ];

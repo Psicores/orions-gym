@@ -52,8 +52,8 @@ class PlanResource extends Resource
      * - Existe la tabla plans con las columnas de la migración create_plans_table.
      *
      * Postcondiciones:
-     * - No se puede guardar si falta algún campo.
-     * - El precio queda entre 0 y 99.999.999,99 con hasta 2 decimales (lo que entra en decimal(10,2)).
+     * - No se puede guardar si falta el nombre, el precio o los créditos; el precio en efectivo es opcional.
+     * - El precio y el precio en efectivo quedan entre 0 y 99.999.999,99 con hasta 2 decimales (lo que entra en decimal(10,2)).
      * - Los créditos quedan como entero entre 1 y 999 (999 = plan libre).
      *
      * @param  Schema  $schema  Esquema vacío que entrega Filament.
@@ -63,7 +63,7 @@ class PlanResource extends Resource
     {
         // Devuelve el esquema recibido con los campos del formulario cargados.
         return $schema
-            // Dos columnas: el nombre ocupa el ancho completo y debajo van precio y créditos lado a lado.
+            // Dos columnas: el nombre ocupa el ancho completo, debajo van los dos precios lado a lado y después los créditos.
             ->columns(2)
             // Lista de campos, en el orden en que se muestran.
             ->components([
@@ -95,6 +95,22 @@ class PlanResource extends Resource
                     ->maxValue(99999999.99)
                     // No se puede guardar vacío.
                     ->required(),
+                // Campo numérico para el precio pagando en efectivo (columna precio_efectivo), al lado del precio.
+                TextInput::make('precio_efectivo')
+                    // Texto que ve el usuario sobre el campo.
+                    ->label('Precio en efectivo')
+                    // Aclara que es opcional y qué pasa si queda vacío.
+                    ->helperText('Opcional. Vacío: se cobra el precio normal.')
+                    // Solo acepta números (valida y muestra teclado numérico).
+                    ->numeric()
+                    // Muestra el signo $ antes del valor.
+                    ->prefix('$')
+                    // Permite centavos: avanza de a 0,01.
+                    ->step(0.01)
+                    // No permite precios negativos.
+                    ->minValue(0)
+                    // Tope que entra en la columna decimal(10,2).
+                    ->maxValue(99999999.99),
                 // Campo numérico entero para los créditos (columna creditos_otorgados).
                 TextInput::make('creditos_otorgados')
                     // Texto que ve el usuario sobre el campo.
@@ -154,6 +170,16 @@ class PlanResource extends Resource
                     ->label('Precio')
                     // Lo formatea como pesos argentinos con separadores locales ($ 25.000,50).
                     ->money('ARS', locale: 'es_AR')
+                    // Permite ordenar haciendo clic en el encabezado.
+                    ->sortable(),
+                // Precio del plan pagando en efectivo.
+                TextColumn::make('precio_efectivo')
+                    // Encabezado de la columna.
+                    ->label('En efectivo')
+                    // Lo formatea como pesos argentinos con separadores locales.
+                    ->money('ARS', locale: 'es_AR')
+                    // Si el plan no tiene precio en efectivo, muestra una raya.
+                    ->placeholder('—')
                     // Permite ordenar haciendo clic en el encabezado.
                     ->sortable(),
                 // Créditos que otorga el plan.
