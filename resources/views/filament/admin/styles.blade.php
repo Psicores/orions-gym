@@ -82,11 +82,34 @@
         max-width: 40rem;
     }
 
+    /* Firma de la agencia: chica y apagada, al pie del panel y debajo del ingreso. */
+    .orions-firma {
+        padding: 1rem 1.5rem 1.5rem;
+        font-size: 0.75rem;
+        line-height: 1rem;
+        text-align: center;
+        color: #9ca3a1;
+    }
+
+    .orions-firma a {
+        font-weight: 600;
+        text-underline-offset: 4px;
+        transition: color 150ms;
+    }
+
+    .orions-firma a:hover,
+    .orions-firma a:focus-visible {
+        color: var(--primary-500);
+        text-decoration: underline;
+        outline: none;
+    }
+
     /* Al imprimir: solo el cartel, sin menú, barra superior, título ni botones. */
     @media print {
         .fi-sidebar,
         .fi-topbar,
         .fi-header,
+        .orions-firma,
         .orions-no-print {
             display: none !important;
         }

@@ -237,9 +237,16 @@
 
         <footer class="border-t border-carbon-700">
             <div class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-5 py-8 text-sm text-ceniza sm:px-8">
-                <p>© {{ date('Y') }} Orions</p>
                 <p>Curev Hue · escuela de windsurf · <span class="text-salvia-light">próximamente</span></p>
                 <a href="{{ route('login') }}" class="transition hover:text-niebla">Ingreso de socios</a>
+            </div>
+
+            {{-- Última línea: copyright a la izquierda y firma de la agencia a la derecha (centrados en el celular). --}}
+            <div class="border-t border-carbon-700/60">
+                <div class="mx-auto flex max-w-7xl flex-col items-center gap-2 px-5 py-5 text-xs text-ceniza sm:flex-row sm:justify-between sm:px-8">
+                    <p>© {{ date('Y') }} Orions</p>
+                    @include('partials.devkore-credit')
+                </div>
             </div>
         </footer>
 
