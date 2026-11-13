@@ -65,8 +65,10 @@ class ClientResource extends Resource
      *   se corrió php artisan storage:link.
      *
      * Postcondiciones:
-     * - El formulario tiene dos pestañas: "Datos del cliente", con todos los campos obligatorios,
-     *   y "Opcionales", con la foto, el certificado de salud y las observaciones.
+     * - El formulario tiene dos pestañas: "Datos del cliente", con todos los campos obligatorios
+     *   y, al final, las observaciones (opcionales); y "Foto y certificado", con los dos archivos
+     *   (opcionales).
+     * - En pantallas grandes los datos van de a cuatro por fila, sin campos sueltos.
      * - La fecha de vencimiento (solo lectura) se muestra al editar, no en el alta.
      * - No se puede guardar si falta un campo obligatorio, si el DNI o el email ya existen
      *   en otro cliente (también entre los dados de baja) o si un archivo supera los 2 MB.
@@ -83,7 +85,7 @@ class ClientResource extends Resource
         return $schema
             // Un solo componente: las pestañas del formulario.
             ->components([
-                // Pestañas: lo obligatorio adelante y lo opcional aparte, para que el alta sea corta.
+                // Pestañas: los datos adelante y los archivos (opcionales) aparte, para que el alta sea corta.
                 Tabs::make('Cliente')
                     // Sin recuadro propio: ya están dentro del modal o de la página.
                     ->contained(false)
@@ -91,12 +93,12 @@ class ClientResource extends Resource
                     ->columnSpanFull()
                     // Pestañas, en el orden en que se muestran.
                     ->tabs([
-                        // Pestaña 1: identidad, contacto y estado (todo lo obligatorio).
+                        // Pestaña 1: identidad, contacto, estado y, al final, las observaciones (lo único opcional).
                         Tab::make('Datos del cliente')
                             // Ícono de la pestaña.
                             ->icon(Heroicon::OutlinedUser)
-                            // Muestra los campos en dos columnas.
-                            ->columns(2)
+                            // Cuatro campos por fila en pantallas grandes, dos en medianas y uno en el celular.
+                            ->columns(['default' => 1, 'sm' => 2, 'lg' => 4])
                             // Campos de la pestaña.
                             ->schema([
                                 // Campo de texto para el nombre (columna nombre).
@@ -156,7 +158,10 @@ class ClientResource extends Resource
                                     // Máximo de caracteres, igual al de la columna string.
                                     ->maxLength(255)
                                     // Rechaza un email que ya tenga otro cliente; al editar ignora al propio cliente.
-                                    ->unique(),
+                                    ->unique()
+                                    // En el alta ocupa dos columnas para completar la fila (no está el vencimiento);
+                                    // al editar ocupa una, porque el vencimiento cierra esa fila.
+                                    ->columnSpan(fn (string $operation): array => ['lg' => $operation === 'create' ? 2 : 1]),
                                 // Lista desplegable para el estado (columna estado).
                                 Select::make('estado')
                                     // Texto que ve el usuario sobre el campo.
@@ -166,7 +171,9 @@ class ClientResource extends Resource
                                     // Al dar de alta, viene preseleccionado Inactivo.
                                     ->default(ClientStatusEnum::Inactivo)
                                     // No se puede guardar sin estado.
-                                    ->required(),
+                                    ->required()
+                                    // En el alta, con dos campos por fila quedaría solo: ahí ocupa la fila entera.
+                                    ->columnSpan(fn (string $operation): array => ['sm' => $operation === 'create' ? 2 : 1, 'lg' => 1]),
                                 // Vencimiento de la cuota: se calcula solo a partir de las membresías.
                                 DatePicker::make('fecha_vencimiento')
                                     // Texto que ve el usuario sobre el campo.
@@ -179,9 +186,19 @@ class ClientResource extends Resource
                                     ->dehydrated(false)
                                     // Explica de dónde sale el valor.
                                     ->helperText('Se calcula solo: es el vencimiento más lejano de sus membresías.'),
+                                // Área de texto libre para dolencias u observaciones (opcional), al final de la pestaña.
+                                Textarea::make('observaciones_dolencias')
+                                    // Texto que ve el usuario sobre el campo.
+                                    ->label('Observaciones / dolencias')
+                                    // Aclara que se puede dejar vacío.
+                                    ->placeholder('Opcional: lesiones, dolencias o algo a tener en cuenta.')
+                                    // Alto inicial de 3 renglones.
+                                    ->rows(3)
+                                    // Ocupa el ancho completo de la pestaña.
+                                    ->columnSpanFull(),
                             ]),
-                        // Pestaña 2: foto, certificado y datos de salud (nada de esto es obligatorio).
-                        Tab::make('Opcionales')
+                        // Pestaña 2: foto y certificado de salud (ninguno es obligatorio).
+                        Tab::make('Foto y certificado')
                             // Ícono de la pestaña.
                             ->icon(Heroicon::OutlinedPaperClip)
                             // Muestra los campos en dos columnas.
@@ -222,14 +239,6 @@ class ClientResource extends Resource
                                     ->openable()
                                     // Agrega un botón para descargar el archivo.
                                     ->downloadable(),
-                                // Área de texto libre para dolencias u observaciones (opcional).
-                                Textarea::make('observaciones_dolencias')
-                                    // Texto que ve el usuario sobre el campo.
-                                    ->label('Observaciones / dolencias')
-                                    // Alto inicial de 4 renglones.
-                                    ->rows(4)
-                                    // Ocupa el ancho completo de la pestaña.
-                                    ->columnSpanFull(),
                             ]),
                     ]),
             ]);

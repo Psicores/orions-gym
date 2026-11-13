@@ -178,7 +178,7 @@ class ClientResourceTest extends TestCase
         $this->assertDatabaseCount(Membership::class, 0);
     }
 
-    public function test_the_optional_tab_fields_are_saved_from_the_modal(): void
+    public function test_the_optional_observations_are_saved_from_the_modal(): void
     {
         Livewire::test(ListClients::class)
             ->callAction(CreateAction::class, [
