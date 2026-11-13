@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\SiteSectionEnum;
 use App\Filament\Pages\ComingSoon;
+use App\Filament\Resources\Announcements\AnnouncementResource;
 use App\Filament\Resources\Clients\ClientResource;
 use App\Filament\Resources\Plans\PlanResource;
 use App\Models\User;
@@ -32,6 +33,7 @@ class AdminNavigationTest extends TestCase
                 ClientResource::getUrl('index'),
                 'Admin del sitio',
                 PlanResource::getUrl('index'),
+                AnnouncementResource::getUrl('index'),
                 ComingSoon::getUrl(['section' => 'portada']),
                 ComingSoon::getUrl(['section' => 'horarios']),
                 ComingSoon::getUrl(['section' => 'comunidad']),

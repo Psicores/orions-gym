@@ -5,12 +5,15 @@ namespace Tests\Feature;
 use App\Enums\MembershipStatusEnum;
 use App\Enums\PaymentMethodEnum;
 use App\Livewire\MemberAccount;
+use App\Livewire\MemberDashboard;
+use App\Models\Announcement;
 use App\Models\Client;
 use App\Models\Membership;
 use App\Models\Payment;
 use App\Models\Plan;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -55,7 +58,7 @@ class MemberPortalTest extends TestCase
         $this->actingAs($client, 'client')
             ->get(route('member.dashboard'))
             ->assertSee('Pase libre')
-            ->assertDontSee('999');
+            ->assertDontSeeText('999');
     }
 
     public function test_the_dashboard_says_when_there_is_no_current_membership(): void
@@ -95,6 +98,76 @@ class MemberPortalTest extends TestCase
         $this->actingAs($client, 'client')
             ->get(route('member.dashboard'))
             ->assertDontSee('Tu contraseña todavía es tu DNI.');
+    }
+
+    public function test_the_dashboard_shows_the_active_announcements_with_safe_content(): void
+    {
+        Storage::fake('public');
+        $client = Client::factory()->create();
+        Announcement::factory()->create([
+            'titulo' => 'Feriado del lunes',
+            'contenido' => '<p onclick="robar()">Abrimos <strong>de 9 a 13</strong>.</p><script>alert(1)</script>',
+            'imagen_path' => 'announcements/banner.jpg',
+        ]);
+        Announcement::factory()->create(['titulo' => 'Solo banner', 'contenido' => '<p></p>']);
+        Announcement::factory()->inactive()->create(['titulo' => 'Anuncio apagado']);
+        Announcement::factory()->scheduled()->create(['titulo' => 'Anuncio futuro']);
+        Announcement::factory()->expired()->create(['titulo' => 'Anuncio terminado']);
+
+        $this->actingAs($client, 'client')
+            ->get(route('member.dashboard'))
+            ->assertOk()
+            ->assertSee('Feriado del lunes')
+            ->assertSee('<p>Abrimos <strong>de 9 a 13</strong>.</p>', escape: false)
+            ->assertSee(Storage::disk('public')->url('announcements/banner.jpg'), escape: false)
+            ->assertSee('Solo banner')
+            ->assertDontSee('robar()', escape: false)
+            ->assertDontSee('alert(1)', escape: false)
+            ->assertDontSee('Anuncio apagado')
+            ->assertDontSee('Anuncio futuro')
+            ->assertDontSee('Anuncio terminado');
+    }
+
+    public function test_a_member_can_dismiss_an_announcement_and_only_they_stop_seeing_it(): void
+    {
+        $this->freezeTime();
+        $client = Client::factory()->create();
+        $other = Client::factory()->create();
+        $announcement = Announcement::factory()->create(['titulo' => 'Feriado del lunes']);
+
+        Livewire::actingAs($client, 'client')
+            ->test(MemberDashboard::class)
+            ->assertSee('Feriado del lunes')
+            ->call('dismissAnnouncement', $announcement->id)
+            ->assertDontSee('Feriado del lunes');
+
+        $this->assertDatabaseHas('announcement_client', [
+            'announcement_id' => $announcement->id,
+            'client_id' => $client->id,
+            'read_at' => now(),
+        ]);
+        $this->actingAs($client, 'client')->get(route('member.dashboard'))->assertDontSee('Feriado del lunes');
+        $this->actingAs($other, 'client')->get(route('member.dashboard'))->assertSee('Feriado del lunes');
+    }
+
+    public function test_dismissing_twice_or_dismissing_a_hidden_announcement_changes_nothing(): void
+    {
+        $client = Client::factory()->create();
+        $announcement = Announcement::factory()->create();
+        $hidden = Announcement::factory()->inactive()->create();
+        $component = Livewire::actingAs($client, 'client')->test(MemberDashboard::class);
+
+        $component->call('dismissAnnouncement', $announcement->id);
+        $this->travel(5)->minutes();
+        $firstReadAt = $client->announcements()->first()->pivot->read_at;
+
+        $component->call('dismissAnnouncement', $announcement->id)
+            ->call('dismissAnnouncement', $hidden->id)
+            ->call('dismissAnnouncement', 999999)
+            ->assertOk();
+
+        $this->assertDatabaseCount('announcement_client', 1);
+        $this->assertSame($firstReadAt, $client->announcements()->first()->pivot->read_at);
     }
 
     public function test_the_bottom_navigation_has_the_three_sections_and_marks_the_current_one(): void
