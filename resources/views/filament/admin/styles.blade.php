@@ -110,7 +110,63 @@
         outline: none;
     }
 
-    /* Al imprimir: solo el cartel, sin menú, barra superior, título ni botones. */
+    /* Manual de uso (/admin/manual): texto a un ancho cómodo de lectura. */
+    .orions-manual {
+        max-width: 56rem;
+        margin-inline: auto;
+    }
+
+    /* Los títulos no quedan tapados por la barra superior al saltar desde el índice. */
+    .orions-manual :is(h2, h3) {
+        scroll-margin-top: 5rem;
+    }
+
+    /* Cada sección principal arranca con una línea separadora y el título en la fuente del panel. */
+    .orions-manual h2 {
+        margin-top: 2.5rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--gray-200);
+        font-family: 'Anton', 'Bebas Neue', Impact, ui-sans-serif, sans-serif;
+        font-weight: 400;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+    }
+
+    .dark .orions-manual h2 {
+        border-top-color: rgb(255 255 255 / 0.1);
+    }
+
+    /* Tablas anchas: se desplazan dentro del manual en vez de ensanchar la página en el celular. */
+    .orions-manual table {
+        display: block;
+        overflow-x: auto;
+    }
+
+    /* Índice: en un recuadro suave y, si hay lugar, en dos columnas. */
+    .orions-manual-indice {
+        columns: 18rem 2;
+        column-gap: 2rem;
+        padding: 1rem 1.25rem 1rem 2.25rem;
+        border-radius: 0.75rem;
+        background: var(--gray-50);
+        font-size: 0.875rem;
+    }
+
+    .dark .orions-manual-indice {
+        background: rgb(255 255 255 / 0.04);
+    }
+
+    /* Cada sección del índice se mantiene entera en su columna. */
+    .orions-manual-indice > li {
+        break-inside: avoid;
+        font-weight: 600;
+    }
+
+    .orions-manual-indice ul {
+        font-weight: 400;
+    }
+
+    /* Al imprimir: solo el cartel o el manual, sin menú, barra superior, título ni botones. */
     @media print {
         .fi-sidebar,
         .fi-topbar,

@@ -27,7 +27,8 @@ administrador) y **socios**. No hay roles diferenciados dentro del personal.
 ## Guía de uso para el personal
 
 Se entra en `/ingresar` (o `/admin/login`) con el email y la contraseña de la cuenta. El menú
-tiene **Escritorio**, **Clientes**, **QR de ingreso** y el grupo **Admin del sitio**.
+tiene **Escritorio**, **Clientes**, **QR de ingreso**, **Manual de uso** (solo el administrador) y el
+grupo **Admin del sitio**.
 
 ### Escritorio
 
@@ -115,6 +116,12 @@ desde su portal para registrar el ingreso.
 El QR es el mismo para todos y no cambia solo. Si hubiera que invalidarlo (por ejemplo, porque
 alguien registra ingresos desde su casa con una foto), se cambia `GYM_CHECKIN_TOKEN` en el `.env`
 del servidor, se corre `php artisan config:cache` y se imprime el cartel de nuevo.
+
+### Manual de uso
+
+**Manual de uso** (`/admin/manual`) es la guía paso a paso de todo el sistema. Solo la ve la cuenta
+cuyo email coincide con `ADMIN_EMAIL` del `.env`: al resto del personal no le aparece en el menú y
+la dirección le responde 403. El texto está en `resources/manual/manual-de-usuario.md`.
 
 ### Admin del sitio
 
