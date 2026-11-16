@@ -65,4 +65,30 @@ class User extends Authenticatable implements FilamentUser, HasAppAuthentication
         // Permite el acceso solo si es el panel "admin" Y el usuario verificó su email.
         return $panel->getId() === 'admin' && $this->hasVerifiedEmail();
     }
+
+    /**
+     * Indica si esta cuenta es la del administrador del sitio (la definida en .env).
+     *
+     * Hoy todo el personal tiene los mismos permisos en el panel; esto distingue solo a la cuenta
+     * principal, para lo que es de uso exclusivo suyo (por ejemplo, el manual de uso).
+     *
+     * Precondiciones:
+     * - Ninguna: se puede llamar sobre cualquier usuario.
+     *
+     * Postcondiciones:
+     * - Devuelve true solo si el email del usuario coincide con ADMIN_EMAIL de .env
+     *   (config('app.admin.email')), sin distinguir mayúsculas ni espacios alrededor.
+     * - Devuelve false si ADMIN_EMAIL está vacío: sin administrador definido, nadie lo es.
+     * - No modifica nada: es una consulta pura.
+     *
+     * @return bool true si es la cuenta del administrador.
+     */
+    public function isSiteAdmin(): bool
+    {
+        // Email del administrador según .env, normalizado.
+        $adminEmail = mb_strtolower(trim((string) config('app.admin.email')));
+
+        // Sin administrador configurado nadie pasa; si lo hay, tiene que coincidir con el de esta cuenta.
+        return $adminEmail !== '' && mb_strtolower(trim((string) $this->email)) === $adminEmail;
+    }
 }
