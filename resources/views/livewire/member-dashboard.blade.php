@@ -38,6 +38,18 @@
     <p class="text-sm text-ceniza">Hola,</p>
     <h1 class="font-display text-4xl leading-tight uppercase">{{ $client->nombre }}</h1>
 
+    {{-- Sin un celular válido no le podemos avisar nada: se lo pide, sin bloquear el portal. --}}
+    @unless ($client->hasValidCel())
+        <a href="{{ route('member.account') }}#celular" wire:navigate class="mt-5 flex items-center gap-3 rounded-2xl border border-oxido/50 bg-oxido/10 px-4 py-3 text-sm text-niebla transition hover:bg-oxido/15 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-oxido">
+            <x-heroicon-o-device-phone-mobile class="size-6 shrink-0 text-oxido" />
+            <span class="flex-1">
+                <span class="block font-semibold">Completá tu celular</span>
+                <span class="block text-ceniza">Así te podemos avisar de tu cuota y tus créditos.</span>
+            </span>
+            <x-heroicon-o-chevron-right class="size-5 shrink-0 text-ceniza" />
+        </a>
+    @endunless
+
     {{-- Anuncios del gimnasio: cada socio los puede cerrar y no le vuelven a aparecer. --}}
     @if ($announcements->isNotEmpty())
         <section aria-label="Anuncios" class="mt-6 space-y-4">

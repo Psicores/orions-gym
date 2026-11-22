@@ -10,11 +10,13 @@ use App\Filament\Resources\Clients\Pages\ViewClient;
 use App\Filament\Resources\Clients\RelationManagers\MembershipsRelationManager;
 use App\Filament\Resources\Clients\RelationManagers\PaymentsRelationManager;
 use App\Models\Client;
+use App\Rules\ArgentineMobile;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\RestoreBulkAction;
+use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
@@ -24,6 +26,7 @@ use Filament\Infolists\Components\ImageEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Fieldset;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Tabs\Tab;
@@ -146,8 +149,14 @@ class ClientResource extends Resource
                                     ->label('Celular')
                                     // Lo marca como teléfono (en el celular abre el teclado numérico).
                                     ->tel()
-                                    // No se puede guardar vacío.
-                                    ->required()
+                                    // Ejemplo de cómo escribirlo.
+                                    ->placeholder('280 15 412-3456')
+                                    // Es opcional: el socio lo puede completar después desde su portal.
+                                    ->helperText('Con la característica. Si no lo tenés ahora, el socio lo completa en su portal.')
+                                    // Al editar, lo muestra legible (+54 9 280 412-3456) en lugar de pegado.
+                                    ->formatStateUsing(fn (?string $state): ?string => Client::formatCel($state))
+                                    // Tiene que ser un celular argentino; el modelo lo guarda como +549...
+                                    ->rule(new ArgentineMobile)
                                     // Máximo de caracteres, igual al de la columna string.
                                     ->maxLength(255),
                                 // Campo de texto para el email (columna email).
@@ -189,6 +198,32 @@ class ClientResource extends Resource
                                     ->dehydrated(false)
                                     // Explica de dónde sale el valor.
                                     ->helperText('Se calcula solo: es el vencimiento más lejano de sus membresías.'),
+                                // Permisos de aviso: dos casillas separadas que empiezan destildadas. El socio
+                                // también los cambia desde su portal; la fecha y el origen se anotan solos.
+                                Fieldset::make('Avisos')
+                                    // Una casilla por fila en el celular, las dos juntas en pantallas grandes.
+                                    ->columns(['default' => 1, 'lg' => 2])
+                                    // Ocupa el ancho completo de la pestaña.
+                                    ->columnSpanFull()
+                                    // Las dos casillas.
+                                    ->schema([
+                                        // Avisos de su cuenta.
+                                        Checkbox::make('acepta_avisos_whatsapp')
+                                            // Texto junto a la casilla.
+                                            ->label('Acepta avisos de su cuenta por WhatsApp')
+                                            // Qué avisos son.
+                                            ->helperText('Vencimiento de la cuota, pago recibido y créditos agotados.')
+                                            // Destildada: solo se marca si el socio lo pide.
+                                            ->default(false),
+                                        // Promociones y novedades.
+                                        Checkbox::make('acepta_novedades')
+                                            // Texto junto a la casilla.
+                                            ->label('Acepta recibir novedades')
+                                            // Qué recibe.
+                                            ->helperText('Promociones, eventos y novedades del gimnasio.')
+                                            // Destildada: solo se marca si el socio lo pide.
+                                            ->default(false),
+                                    ]),
                                 // Área de texto libre para dolencias u observaciones (opcional), al final de la pestaña.
                                 Textarea::make('observaciones_dolencias')
                                     // Texto que ve el usuario sobre el campo.
@@ -427,8 +462,18 @@ class ClientResource extends Resource
                             ->label('Celular')
                             // Ícono de teléfono.
                             ->icon(Heroicon::OutlinedPhone)
-                            // Al tocarlo, abre la app de llamadas.
-                            ->url(fn (Client $record): string => "tel:{$record->cel}"),
+                            // Legible: +54 9 280 412-3456.
+                            ->formatStateUsing(fn (?string $state): ?string => Client::formatCel($state))
+                            // Sin celular cargado.
+                            ->placeholder('Sin cargar')
+                            // Un valor viejo que no es un celular válido se marca en ámbar para revisarlo.
+                            ->color(fn (Client $record): ?string => $record->hasValidCel() ? null : 'warning')
+                            // Explica qué revisar.
+                            ->hint(fn (Client $record): ?string => filled($record->cel) && ! $record->hasValidCel() ? 'Revisar: no es un celular válido' : null)
+                            // Color del aviso.
+                            ->hintColor('warning')
+                            // Al tocarlo, abre la app de llamadas (solo si hay celular).
+                            ->url(fn (Client $record): ?string => filled($record->cel) ? "tel:{$record->cel}" : null),
                         // Email, con enlace para escribirle.
                         TextEntry::make('email')
                             // Etiqueta del dato.
@@ -437,6 +482,18 @@ class ClientResource extends Resource
                             ->icon(Heroicon::OutlinedEnvelope)
                             // Al tocarlo, abre el programa de correo.
                             ->url(fn (Client $record): string => "mailto:{$record->email}"),
+                        // Permiso de avisos de la cuenta, con desde cuándo y de dónde.
+                        TextEntry::make('acepta_avisos_whatsapp')
+                            // Etiqueta del dato.
+                            ->label('Avisos por WhatsApp')
+                            // "Sí, desde el 22/11/2026 (lo eligió en el portal)" o "No".
+                            ->state(fn (Client $record): string => $record->consentSummary('acepta_avisos_whatsapp')),
+                        // Permiso de novedades, con desde cuándo y de dónde.
+                        TextEntry::make('acepta_novedades')
+                            // Etiqueta del dato.
+                            ->label('Novedades')
+                            // "Sí, desde el 22/11/2026 (lo cargó el panel)" o "No".
+                            ->state(fn (Client $record): string => $record->consentSummary('acepta_novedades')),
                         // Fecha de nacimiento con la edad.
                         TextEntry::make('fecha_nacimiento')
                             // Etiqueta del dato.

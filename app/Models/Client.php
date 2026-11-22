@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\ClientStatusEnum;
+use App\Enums\ConsentOriginEnum;
 use App\Enums\MembershipStatusEnum;
 use App\Enums\PaymentMethodEnum;
 use Carbon\CarbonInterface;
@@ -10,6 +11,7 @@ use Database\Factories\ClientFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -20,6 +22,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
+use libphonenumber\PhoneNumberUtil;
+use Propaganistas\LaravelPhone\PhoneNumber;
 
 #[Fillable([
     'dni',
@@ -31,6 +35,8 @@ use InvalidArgumentException;
     'foto_path',
     'certificado_salud_path',
     'observaciones_dolencias',
+    'acepta_avisos_whatsapp',
+    'acepta_novedades',
     'estado',
     'fecha_vencimiento',
 ])]
@@ -44,6 +50,54 @@ class Client extends Authenticatable
 
     // Minutos durante los que un segundo escaneo se toma como el mismo ingreso y no descuenta otro crédito.
     public const int ATTENDANCE_REPEAT_MINUTES = 10;
+
+    // País de los celulares (código ISO): define cómo se interpretan la característica, el 0 y el 15.
+    public const string CEL_COUNTRY = 'AR';
+
+    /** Permisos de aviso => columna con la fecha en que se dieron. */
+    public const array CONSENTS = [
+        'acepta_avisos_whatsapp' => 'acepta_avisos_whatsapp_at',
+        'acepta_novedades' => 'acepta_novedades_at',
+    ];
+
+    /**
+     * Registra automáticamente cuándo y desde dónde cambian los permisos de aviso.
+     *
+     * Precondiciones:
+     * - Ninguna: Eloquent lo llama una vez al cargar el modelo.
+     *
+     * Postcondiciones:
+     * - Al guardar un cliente con un permiso que cambió: si quedó en true, su fecha pasa a ser
+     *   ahora; si quedó en false, la fecha queda null.
+     * - Si cambió algún permiso y no se indicó el origen, se anota que vino del panel (es el
+     *   único lugar que los cambia sin indicarlo; el portal pasa el suyo, ver updateConsents()).
+     * - Si ningún permiso cambió, no toca ni las fechas ni el origen.
+     */
+    protected static function booted(): void
+    {
+        // Antes de cada guardado (alta o modificación).
+        static::saving(function (Client $client): void {
+            // Si cambió alguno de los dos permisos.
+            $changed = false;
+
+            // Revisa cada permiso.
+            foreach (self::CONSENTS as $consent => $grantedAt) {
+                // Solo los que cambiaron (en un alta, los que se marcaron).
+                if ($client->isDirty($consent) && ($client->exists || $client->{$consent})) {
+                    // Fecha del permiso, o null si se retiró.
+                    $client->{$grantedAt} = $client->{$consent} ? now() : null;
+                    // Hay que anotar el origen.
+                    $changed = true;
+                }
+            }
+
+            // Sin origen explícito, el cambio vino del panel.
+            if ($changed && ! $client->isDirty('consentimiento_origen')) {
+                // Lo cargó el personal.
+                $client->consentimiento_origen = ConsentOriginEnum::AltaPanel;
+            }
+        });
+    }
 
     /**
      * Define cómo se convierten las columnas al leerlas y escribirlas desde el modelo.
@@ -71,6 +125,13 @@ class Client extends Authenticatable
         return [
             // La fecha de nacimiento se maneja como fecha (Carbon) en lugar de texto.
             'fecha_nacimiento' => 'date',
+            // Permisos de aviso como verdadero o falso, con la fecha en que se dieron.
+            'acepta_avisos_whatsapp' => 'boolean',
+            'acepta_avisos_whatsapp_at' => 'datetime',
+            'acepta_novedades' => 'boolean',
+            'acepta_novedades_at' => 'datetime',
+            // Desde dónde se registró el último cambio de esos permisos.
+            'consentimiento_origen' => ConsentOriginEnum::class,
             // El estado se maneja como el enum ClientStatusEnum en lugar de texto suelto.
             'estado' => ClientStatusEnum::class,
             // La fecha de vencimiento de la cuota se maneja como fecha (Carbon).
@@ -103,6 +164,124 @@ class Client extends Authenticatable
     }
 
     /**
+     * Lleva un celular argentino, escrito como sea, al formato internacional único que usa
+     * WhatsApp (E.164): "280 15 412-3456", "02804123456" y "2804123456" dan "+5492804123456".
+     *
+     * Precondiciones:
+     * - Ninguna: acepta cualquier texto o null.
+     *
+     * Postcondiciones:
+     * - Si es un celular argentino válido, devuelve "+549" seguido de la característica y el
+     *   número, sin el 0 ni el 15.
+     * - Un número de 10 dígitos sin 15 (por ejemplo "1123456789") se toma como celular: el campo
+     *   es "Celular" y así lo escribe mucha gente.
+     * - Si está vacío, no es un número, le faltan o sobran dígitos, no tiene característica o es
+     *   de otro país, devuelve null.
+     * - No modifica nada.
+     *
+     * @param  string|null  $cel  Celular tal como lo escribió alguien.
+     * @return string|null El celular en formato E.164, o null si no es válido.
+     */
+    public static function normalizeCel(?string $cel): ?string
+    {
+        // Sin nada escrito no hay celular.
+        if (blank($cel)) {
+            return null;
+        }
+
+        // Lo interpreta como un número de Argentina (saca el 0 y el 15 de la característica).
+        $number = new PhoneNumber($cel, self::CEL_COUNTRY);
+
+        // Tiene que ser un número posible y de Argentina.
+        if (! $number->isValid() || ! $number->isOfCountry(self::CEL_COUNTRY)) {
+            return null;
+        }
+
+        // Número nacional, sin el +54 (por ejemplo "2804123456" o "92804123456").
+        $national = PhoneNumberUtil::getInstance()->getNationalSignificantNumber($number->toLibPhoneObject());
+
+        // Sin el 9 de celular, la librería lo toma como fijo: se lo agrega.
+        if (! str_starts_with($national, '9')) {
+            // Mismo número, marcado como celular.
+            $number = new PhoneNumber('+549'.$national);
+        }
+
+        // Si con el 9 sigue siendo un celular válido, lo devuelve en formato internacional.
+        return $number->isValid() && $number->isOfType('mobile') ? $number->formatE164() : null;
+    }
+
+    /**
+     * Indica si el celular guardado ya está en el formato único (ver normalizeCel()).
+     *
+     * Precondiciones:
+     * - Ninguna.
+     *
+     * Postcondiciones:
+     * - Devuelve true si cel es un celular argentino en formato E.164.
+     * - Devuelve false si está vacío o si quedó un valor viejo que no se pudo normalizar.
+     * - No modifica nada.
+     *
+     * @return bool true si se le puede escribir por WhatsApp.
+     */
+    public function hasValidCel(): bool
+    {
+        // Es válido si normalizarlo no lo cambia.
+        return filled($this->cel) && self::normalizeCel($this->cel) === $this->cel;
+    }
+
+    /**
+     * Celular para mostrar en pantalla, legible: "+5492804123456" da "+54 9 280 412-3456".
+     *
+     * Precondiciones:
+     * - Ninguna: acepta cualquier texto o null.
+     *
+     * Postcondiciones:
+     * - Si es un celular argentino válido, lo devuelve con espacios y guion.
+     * - Si no se puede interpretar (un valor viejo mal cargado), lo devuelve tal cual.
+     * - Si está vacío, devuelve null. No modifica nada.
+     *
+     * @param  string|null  $cel  Celular guardado o escrito.
+     * @return string|null Celular legible, o null.
+     */
+    public static function formatCel(?string $cel): ?string
+    {
+        // Sin celular no hay nada que mostrar.
+        if (blank($cel)) {
+            return null;
+        }
+
+        // Formato único, si es un celular válido.
+        $normalized = self::normalizeCel($cel);
+
+        // Solo un celular válido se puede formatear; el resto se muestra como está.
+        return $normalized !== null ? (new PhoneNumber($normalized))->formatInternational() : $cel;
+    }
+
+    /**
+     * Normaliza el celular cada vez que se asigna, venga de donde venga (panel, portal,
+     * datos de ejemplo).
+     *
+     * Precondiciones:
+     * - Ninguna.
+     *
+     * Postcondiciones:
+     * - Un celular argentino válido se guarda en formato E.164 (ver normalizeCel()).
+     * - Un texto vacío se guarda como null.
+     * - Un valor que no se puede normalizar se guarda tal cual, sin espacios en las puntas, para
+     *   no perder el dato (los formularios ya lo rechazan con la regla ArgentineMobile).
+     *
+     * @return Attribute<string|null, string|null>
+     */
+    protected function cel(): Attribute
+    {
+        // Solo cambia la escritura; la lectura devuelve lo guardado.
+        return Attribute::make(
+            // Normalizado, o el texto original si no se pudo.
+            set: fn (?string $value): ?string => blank($value) ? null : (self::normalizeCel($value) ?? trim($value)),
+        );
+    }
+
+    /**
      * Busca al cliente que quiere entrar al portal, por DNI o por email.
      *
      * Precondiciones:
@@ -130,6 +309,69 @@ class Client extends Authenticatable
 
         // Sin arroba es un DNI: lo busca tal cual y también solo con sus dígitos.
         return static::query()->whereIn('dni', array_filter([$usuario, static::normalizeDni($usuario)]))->first();
+    }
+
+    /**
+     * Cambia los dos permisos de aviso del cliente y anota desde dónde se cambiaron.
+     *
+     * Precondiciones:
+     * - El cliente existe en la base.
+     *
+     * Postcondiciones:
+     * - acepta_avisos_whatsapp y acepta_novedades quedan con los valores recibidos.
+     * - El permiso que cambió queda con la fecha de ahora (si se dio) o sin fecha (si se retiró);
+     *   el que no cambió conserva la suya (ver booted()).
+     * - Si alguno cambió, consentimiento_origen queda en $origin. Si ninguno cambió, no se
+     *   modifica nada.
+     *
+     * @param  bool  $whatsappNotices  Acepta avisos de su cuenta por WhatsApp.
+     * @param  bool  $news  Acepta promociones, eventos y novedades.
+     * @param  ConsentOriginEnum  $origin  Desde dónde se hace el cambio.
+     */
+    public function updateConsents(bool $whatsappNotices, bool $news, ConsentOriginEnum $origin): void
+    {
+        // Asigna los dos permisos.
+        $this->acepta_avisos_whatsapp = $whatsappNotices;
+        $this->acepta_novedades = $news;
+
+        // Sin cambios no hay nada que guardar ni que registrar.
+        if (! $this->isDirty(array_keys(self::CONSENTS))) {
+            return;
+        }
+
+        // Anota el origen; las fechas las completa booted() al guardar.
+        $this->consentimiento_origen = $origin;
+        $this->save();
+    }
+
+    /**
+     * Resume un permiso de aviso para mostrarlo en la ficha del cliente.
+     *
+     * Precondiciones:
+     * - $consent es una clave de CONSENTS.
+     *
+     * Postcondiciones:
+     * - Si el permiso está dado: "Sí, desde el dd/mm/aaaa", más el origen del último cambio si
+     *   está anotado (por ejemplo "· registrado en el portal").
+     * - Si no: "No". No modifica nada.
+     *
+     * @param  string  $consent  Permiso a resumir.
+     * @return string Texto para la ficha.
+     */
+    public function consentSummary(string $consent): string
+    {
+        // Sin permiso, un "No" alcanza.
+        if (! $this->{$consent}) {
+            return 'No';
+        }
+
+        // Fecha en que se dio (puede faltar en datos viejos).
+        $since = $this->{self::CONSENTS[$consent]}?->format('d/m/Y');
+        // Desde dónde se registró el último cambio.
+        $origin = $this->consentimiento_origen?->getLabel();
+
+        // "Sí, desde el 22/11/2026 · registrado en el portal".
+        return 'Sí'.($since ? ', desde el '.$since : '').($origin ? ' · registrado en '.$origin : '');
     }
 
     /**

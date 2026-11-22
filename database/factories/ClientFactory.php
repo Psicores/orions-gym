@@ -23,7 +23,8 @@ class ClientFactory extends Factory
             'nombre' => fake()->firstName(),
             'apellido' => fake()->lastName(),
             'fecha_nacimiento' => fake()->dateTimeBetween('-70 years', '-14 years')->format('Y-m-d'),
-            'cel' => fake()->numerify('11########'),
+            // Celular de Buenos Aires ya en el formato que guarda el modelo (+54 9 11 ...).
+            'cel' => '+54911'.fake()->numberBetween(20000000, 69999999),
             'email' => fake()->unique()->safeEmail(),
             // Contraseña propia: el socio ya la cambió y puede usar todo el portal.
             'password' => 'clave-propia-1',
