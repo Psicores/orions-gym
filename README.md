@@ -334,6 +334,8 @@ Dos valores son seguros aunque se olviden:
 - **Ingreso.** Tras 5 intentos fallidos con el mismo usuario desde la misma IP, bloquea un
   minuto. Además, una misma IP puede intentar hasta 10 ingresos por minuto y 60 por hora, para
   que nadie pruebe un DNI tras otro.
+  Un intento fallido tarda lo mismo exista o no la cuenta, así que por el tiempo de respuesta
+  no se puede saber si un DNI o un email pertenece a alguien.
 - **Contraseña del socio.** Mientras sea el DNI, solo puede entrar a “Mi cuenta” a cambiarla.
   Si la olvida, el personal la restablece desde la ficha: nadie más que el socio conoce la nueva.
 - **Sesiones del socio.** “Mantener la sesión iniciada” es opcional al ingresar. Al cambiar o
