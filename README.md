@@ -353,6 +353,12 @@ Dos valores son seguros aunque se olviden:
 - **Texto de los anuncios.** Se limpia antes de mostrarse: no puede traer código.
 - **Cabeceras y HTTPS.** Todas las respuestas llevan cabeceras de seguridad y no anuncian la
   versión de PHP; en producción el sitio redirige a HTTPS y le pide al navegador que lo recuerde.
+- **Política de contenido (CSP).** Ya se aplican reglas que bloquean plugins, formularios que
+  envían a otro sitio y que otro sitio muestre este dentro de un marco. La política completa (todo
+  tiene que venir del propio dominio) está en modo aviso: no bloquea nada, y lo que bloquearía lo
+  anota en `storage/logs/laravel.log` como “Aviso de la política de contenido (CSP)”. Para verlos:
+  `grep "política de contenido" storage/logs/laravel.log`. Si tras unas semanas de uso no hay
+  avisos propios del sitio (los de extensiones del navegador se ignoran), se puede activar.
 - **Archivos del proyecto.** El `.htaccess` de la raíz manda todo a `public/` y bloquea los
   archivos ocultos (`.env`, `.git`).
 
