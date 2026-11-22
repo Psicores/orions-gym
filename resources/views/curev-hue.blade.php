@@ -41,7 +41,7 @@
 
                         <a href="{{ route('inicio') }}" aria-label="Orions, inicio" class="justify-self-center">
                             {{-- Mismo tratamiento del logo que en el inicio: el header no debe tener z-index ni opacidad propios. --}}
-                            <img src="{{ asset('images/logo1.jpg') }}" alt="Orions" width="64" height="72" class="h-14 w-auto mix-blend-screen invert sm:h-18">
+                            <img src="{{ asset('images/logo.webp') }}" alt="Orions" width="64" height="72" class="h-14 w-auto mix-blend-screen invert sm:h-18">
                         </a>
                     </nav>
                 </header>

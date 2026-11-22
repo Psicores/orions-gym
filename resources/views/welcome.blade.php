@@ -88,7 +88,7 @@
                         <a href="{{ route('inicio') }}" aria-label="Orions, inicio" class="justify-self-center">
                             {{-- El logo es negro sobre blanco: se invierte y se funde con el video para verse claro y sin recuadro.
                                  Para que la fusión funcione, el header no debe tener z-index ni opacidad propios. --}}
-                            <img src="{{ asset('images/logo1.jpg') }}" alt="Orions" width="64" height="72" class="h-14 w-auto mix-blend-screen invert sm:h-18">
+                            <img src="{{ asset('images/logo.webp') }}" alt="Orions" width="64" height="72" class="h-14 w-auto mix-blend-screen invert sm:h-18">
                         </a>
 
                         <a
@@ -138,8 +138,9 @@
                 </div>
 
                 <div class="relative mt-12 overflow-hidden rounded-3xl border border-carbon-700">
+                    {{-- Sin autoplay: se descarga y reproduce recién cuando entra en pantalla (ver resources/js/app.js). --}}
                     <video
-                        autoplay muted loop playsinline preload="none"
+                        muted loop playsinline preload="none" data-reproducir-al-ver
                         aria-hidden="true"
                         class="h-[55vh] min-h-80 w-full object-cover"
                     >
@@ -153,8 +154,8 @@
 
                 {{-- Grilla asimétrica de instalaciones. --}}
                 <div class="mt-5 grid gap-5 sm:grid-cols-3">
-                    <img src="{{ asset('images/image4.jpg') }}" alt="Barra olímpica cargada sobre el piso del gimnasio" loading="lazy" class="h-72 w-full rounded-3xl object-cover sm:col-span-2 sm:h-96">
-                    <img src="{{ asset('images/image3.jpg') }}" alt="Kettlebell junto a una barra con discos" loading="lazy" class="h-72 w-full rounded-3xl object-cover sm:h-96">
+                    <img src="{{ asset('images/barra-olimpica.webp') }}" alt="Barra olímpica cargada sobre el piso del gimnasio" width="1200" height="931" loading="lazy" decoding="async" class="h-72 w-full rounded-3xl object-cover sm:col-span-2 sm:h-96">
+                    <img src="{{ asset('images/kettlebell.webp') }}" alt="Kettlebell junto a una barra con discos" width="1200" height="800" loading="lazy" decoding="async" class="h-72 w-full rounded-3xl object-cover sm:h-96">
                 </div>
             </section>
 

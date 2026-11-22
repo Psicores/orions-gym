@@ -149,3 +149,44 @@ if (window.Alpine) {
 } else {
     document.addEventListener('alpine:init', registrarEscaner);
 }
+
+/**
+ * Videos que se reproducen recién al verse (atributo data-reproducir-al-ver).
+ *
+ * Con autoplay el navegador descarga el video entero al abrir la página, aunque esté mucho más
+ * abajo. Estos no tienen autoplay ni precarga: arrancan cuando entran en pantalla (o están por
+ * entrar) y se pausan al salir, así no se descargan si nadie llega hasta ahí.
+ */
+const iniciarVideosDiferidos = () => {
+    // Videos marcados en la página.
+    const videos = document.querySelectorAll('video[data-reproducir-al-ver]');
+
+    // Sin videos no hay nada que hacer.
+    if (videos.length === 0) {
+        return;
+    }
+
+    // Navegadores viejos sin IntersectionObserver: se reproducen como antes.
+    if (!('IntersectionObserver' in window)) {
+        videos.forEach((video) => video.play().catch(() => {}));
+
+        return;
+    }
+
+    // Reproduce los que están a la vista (o a 200 px de estarlo) y pausa los demás.
+    const observador = new IntersectionObserver((entradas) => {
+        entradas.forEach((entrada) => {
+            // El navegador puede bloquear la reproducción: no es un error que haya que mostrar.
+            if (entrada.isIntersecting) {
+                entrada.target.play().catch(() => {});
+            } else {
+                entrada.target.pause();
+            }
+        });
+    }, { rootMargin: '200px 0px' });
+
+    // Observa cada video.
+    videos.forEach((video) => observador.observe(video));
+};
+
+iniciarVideosDiferidos();
