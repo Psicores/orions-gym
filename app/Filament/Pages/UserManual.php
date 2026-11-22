@@ -15,7 +15,7 @@ use RuntimeException;
  * Pantalla "Manual de uso" del panel: la guía paso a paso del sistema.
  *
  * El texto vive en resources/manual/manual-de-usuario.md (Markdown) y se convierte a HTML en cada
- * visita. Solo la ve la cuenta del administrador del sitio (ver User::isSiteAdmin()): para el
+ * visita. Solo la ven las cuentas con rol de administrador (ver User::isSiteAdmin()): para el
  * resto del personal el enlace no aparece en el menú y la dirección responde 403.
  */
 class UserManual extends Page
@@ -43,8 +43,8 @@ class UserManual extends Page
      * - Ninguna: se puede llamar con o sin sesión iniciada.
      *
      * Postcondiciones:
-     * - Devuelve true solo si hay una cuenta del personal con sesión y es la del administrador
-     *   del sitio (ver User::isSiteAdmin()).
+     * - Devuelve true solo si hay una cuenta del personal con sesión y tiene el rol de
+     *   administrador (ver User::isSiteAdmin()).
      * - Con false, el enlace no aparece en el menú y abrir /admin/manual responde 403 (Prohibido).
      * - No modifica nada.
      *

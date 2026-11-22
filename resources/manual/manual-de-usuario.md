@@ -632,9 +632,9 @@ Esta sección es solo para quien administra el sistema. Las tareas se hacen en e
 
 ### Quién puede ver este manual
 
-Solo la cuenta cuyo email coincide con `ADMIN_EMAIL` del archivo `.env`. Para el resto del personal, el enlace no aparece en el menú y la dirección responde "Prohibido".
+Solo las cuentas con rol de **Administrador**. Para los profes, el enlace no aparece en el menú y la dirección responde "Prohibido".
 
-> Si cambiás el email de esa cuenta desde **Perfil**, actualizá también `ADMIN_EMAIL` en el `.env` y corré `php artisan config:cache`. Si no, dejás de ver el manual.
+La cuenta de `ADMIN_EMAIL` del archivo `.env` queda como administradora. Las cuentas nuevas del personal se crean como **Profe**. Cambiar el email desde **Perfil** ya no te hace perder el acceso: lo que cuenta es el rol.
 
 ### Cuentas del personal
 

@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Enums\UserRoleEnum;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -105,7 +106,7 @@ class DatabaseSeeder extends Seeder
      *
      * Postcondiciones:
      * - Hay un único usuario con ese email, con el nombre y la contraseña de .env (guardada
-     *   hasheada por el cast del modelo) y el email marcado como verificado.
+     *   hasheada por el cast del modelo), el email marcado como verificado y el rol Admin.
      * - Si falta alguna variable, no toca la base, muestra un aviso y deja seguir el resto de la carga.
      */
     private function seedAdministrator(): void
@@ -133,6 +134,8 @@ class DatabaseSeeder extends Seeder
                 'password' => $admin['password'],
                 // Marca el email como verificado, requisito para entrar al panel (User::canAccessPanel).
                 'email_verified_at' => now(),
+                // Es la cuenta con acceso completo.
+                'role' => UserRoleEnum::Admin,
             ],
         );
     }

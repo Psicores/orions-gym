@@ -119,9 +119,10 @@ del servidor, se corre `php artisan config:cache` y se imprime el cartel de nuev
 
 ### Manual de uso
 
-**Manual de uso** (`/admin/manual`) es la guía paso a paso de todo el sistema. Solo la ve la cuenta
-cuyo email coincide con `ADMIN_EMAIL` del `.env`: al resto del personal no le aparece en el menú y
-la dirección le responde 403. El texto está en `resources/manual/manual-de-usuario.md`.
+**Manual de uso** (`/admin/manual`) es la guía paso a paso de todo el sistema. Solo la ven las cuentas
+con rol de administrador (`users.role = admin`): a los profes no les aparece en el menú y la
+dirección les responde 403. La cuenta de `ADMIN_EMAIL` queda como administradora al migrar y al
+correr el seeder; las cuentas nuevas son de profe. El texto está en `resources/manual/manual-de-usuario.md`.
 
 ### Admin del sitio
 
