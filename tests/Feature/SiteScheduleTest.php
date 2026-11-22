@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Enums\SiteSectionEnum;
-use App\Filament\Pages\ComingSoon;
 use App\Filament\Pages\SiteSchedule;
 use App\Models\Client;
 use App\Models\SiteContent;
@@ -25,15 +24,13 @@ class SiteScheduleTest extends TestCase
         $this->actingAs(User::factory()->create());
     }
 
-    public function test_the_screen_is_in_the_site_menu_where_coming_soon_used_to_be(): void
+    public function test_the_screen_is_in_the_site_menu(): void
     {
         $this->get(SiteSchedule::getUrl())
             ->assertOk()
             ->assertSee('Horarios y ubicación')
             ->assertSee('Agregar franja horaria')
             ->assertDontSee('Próximamente');
-
-        $this->get(ComingSoon::getUrl(['section' => 'horarios']))->assertRedirect(SiteSchedule::getUrl());
     }
 
     public function test_saving_publishes_the_schedule_address_and_map_on_the_landing(): void
@@ -90,7 +87,7 @@ class SiteScheduleTest extends TestCase
             ->call('save')
             ->assertHasFormErrors(['mapa_url']);
 
-        $this->assertSame(0, SiteContent::query()->count());
+        $this->assertSame(0, SiteContent::query()->where('section', SiteSectionEnum::Horarios)->count());
     }
 
     public function test_each_time_slot_needs_days_and_hours(): void
@@ -100,7 +97,7 @@ class SiteScheduleTest extends TestCase
             ->call('save')
             ->assertHasFormErrors();
 
-        $this->assertSame(0, SiteContent::query()->count());
+        $this->assertSame(0, SiteContent::query()->where('section', SiteSectionEnum::Horarios)->count());
     }
 
     public function test_clearing_everything_hides_the_section_on_the_landing(): void

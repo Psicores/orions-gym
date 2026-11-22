@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Enums\SiteSectionEnum;
-use App\Filament\Pages\ComingSoon;
 use App\Filament\Pages\SiteReviews;
 use App\Models\SiteContent;
 use App\Models\User;
@@ -22,15 +21,13 @@ class SiteReviewsTest extends TestCase
         $this->actingAs(User::factory()->create());
     }
 
-    public function test_the_screen_replaces_coming_soon_in_the_site_menu(): void
+    public function test_the_screen_is_in_the_site_menu(): void
     {
         $this->get(SiteReviews::getUrl())
             ->assertOk()
             ->assertSee('Opiniones de socios')
             ->assertSee('Agregar opinión')
             ->assertDontSee('Próximamente');
-
-        $this->get(ComingSoon::getUrl(['section' => 'opiniones']))->assertRedirect(SiteReviews::getUrl());
     }
 
     public function test_saved_reviews_appear_on_the_landing_in_order_with_their_stars(): void
@@ -60,7 +57,7 @@ class SiteReviewsTest extends TestCase
             ->call('save')
             ->assertHasFormErrors();
 
-        $this->assertSame(0, SiteContent::query()->count());
+        $this->assertSame(0, SiteContent::query()->where('section', SiteSectionEnum::Opiniones)->count());
     }
 
     public function test_reviews_cannot_be_too_long(): void
@@ -70,7 +67,7 @@ class SiteReviewsTest extends TestCase
             ->call('save')
             ->assertHasFormErrors();
 
-        $this->assertSame(0, SiteContent::query()->count());
+        $this->assertSame(0, SiteContent::query()->where('section', SiteSectionEnum::Opiniones)->count());
     }
 
     public function test_removing_every_review_hides_the_section_on_the_landing(): void

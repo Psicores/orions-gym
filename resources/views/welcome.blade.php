@@ -1,6 +1,7 @@
 {{--
-    Página pública. Recibe $planes, $anuncios, $ubicacion (horarios, dirección y mapa cargados desde
-    el panel) y $opiniones (reseñas cargadas desde el panel). Lo que no está cargado no se muestra:
+    Página pública. Recibe $planes, $anuncios, $portada (fondo, textos y datos para buscadores),
+    $comunidad (textos, video y fotos), $ubicacion
+    (horarios, dirección y mapa) y $opiniones (reseñas), todo cargado desde el panel. Lo que no está cargado no se muestra:
     nunca se publica un dato inventado (ver App\Models\SiteContent).
 --}}
 @php
@@ -12,6 +13,18 @@
     $direccion = filled($ubicacion['direccion']) ? $ubicacion['direccion'] : null;
     // Mapa: solo uno insertado de Google Maps (lo único que permite la política de contenido).
     $mapaEmbedUrl = SiteContent::isAllowedMapUrl($ubicacion['mapa_url']) ? $ubicacion['mapa_url'] : null;
+    // Fondo de la portada, como direcciones públicas (null si no hay).
+    $videoPortada = SiteContent::mediaUrl($portada['video_path']);
+    $posterPortada = SiteContent::mediaUrl($portada['poster_path']);
+    // Título de la pestaña y descripción para buscadores (el nombre de la aplicación si faltan).
+    $tituloPagina = $portada['titulo_pagina'] ?? config('app.name');
+    $descripcionPagina = $portada['descripcion'] ?? config('app.name');
+    // Video y fotos de Comunidad, como direcciones públicas (null si no hay).
+    $videoComunidad = SiteContent::mediaUrl($comunidad['video_path']);
+    $posterComunidad = SiteContent::mediaUrl($comunidad['poster_path']);
+    $fotosComunidad = $comunidad['fotos'];
+    // La sección Comunidad aparece si tiene algún texto, el video o alguna foto.
+    $hayComunidad = filled($comunidad['titulo']) || filled($comunidad['texto']) || $videoComunidad !== null || filled($fotosComunidad);
     // La sección "Dónde y cuándo" aparece si hay algo de las tres cosas.
     $hayUbicacion = filled($horarios) || $direccion !== null || $mapaEmbedUrl !== null;
     // Demora escalonada con la que entra cada tarjeta de plan (clases completas para que Tailwind las detecte).
@@ -22,10 +35,10 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <meta name="description" content="Orions: gimnasio de fuerza y comunidad. Conocé los planes, los horarios y dónde encontrarnos.">
+        <meta name="description" content="{{ $descripcionPagina }}">
         <meta name="theme-color" content="#161817">
 
-        <title>Orions · Gimnasio</title>
+        <title>{{ $tituloPagina }}</title>
 
         @fonts
         @vite(['resources/css/app.css', 'resources/js/app.js'])
@@ -37,17 +50,22 @@
         class="bg-carbon font-sans text-niebla antialiased selection:bg-oxido selection:text-carbon"
     >
         <main>
-            {{-- ===================== HERO (primer video) ===================== --}}
+            {{-- ===================== HERO (fondo, textos y botones cargados desde el panel) ===================== --}}
             <section class="relative flex h-screen min-h-[36rem] items-center justify-center overflow-hidden">
-                {{-- La imagen fija se ve mientras carga el video (o si el navegador no lo reproduce). --}}
-                <video
-                    autoplay muted loop playsinline preload="metadata"
-                    poster="{{ asset('images/video-portada.webp') }}"
-                    aria-hidden="true"
-                    class="absolute inset-0 size-full object-cover"
-                >
-                    <source src="{{ asset('images/video-portada.mp4') }}" type="video/mp4">
-                </video>
+                @if ($videoPortada !== null)
+                    {{-- La imagen fija se ve mientras carga el video (o si el navegador no lo reproduce). --}}
+                    <video
+                        autoplay muted loop playsinline preload="metadata"
+                        @if ($posterPortada !== null) poster="{{ $posterPortada }}" @endif
+                        aria-hidden="true"
+                        class="absolute inset-0 size-full object-cover"
+                    >
+                        <source src="{{ $videoPortada }}" type="video/mp4">
+                    </video>
+                @elseif ($posterPortada !== null)
+                    {{-- Sin video, la imagen queda de fondo. --}}
+                    <img src="{{ $posterPortada }}" alt="" aria-hidden="true" class="absolute inset-0 size-full object-cover">
+                @endif
                 {{-- Oscurece el video para que el texto se lea y lo funde con el fondo en la parte inferior. --}}
                 <div class="absolute inset-0 bg-carbon/45"></div>
                 <div class="absolute inset-x-0 bottom-0 h-2/5 bg-linear-to-b from-transparent to-carbon"></div>
@@ -103,13 +121,20 @@
                 </header>
 
                 <div class="relative mx-auto max-w-5xl px-5 text-center">
-                    <p class="mb-5 text-xs font-semibold tracking-[0.5em] text-oxido uppercase sm:text-sm">Gimnasio · Fuerza · Comunidad</p>
-                    <h1 class="font-display text-6xl leading-[0.9] text-balance uppercase sm:text-8xl lg:text-9xl">
-                        Fierros <span class="text-salvia-light">y constancia</span>
-                    </h1>
-                    <p class="mx-auto mt-6 max-w-xl text-base text-pretty text-niebla/80 sm:text-lg">
-                        Entrenamiento serio, sin vueltas. Vení a levantar pesado con gente que empuja para el mismo lado.
-                    </p>
+                    @if (filled($portada['etiqueta']))
+                        <p class="mb-5 text-xs font-semibold tracking-[0.5em] text-oxido uppercase sm:text-sm">{{ $portada['etiqueta'] }}</p>
+                    @endif
+                    {{-- Sin título cargado, el nombre del sitio queda como título para buscadores y lectores de pantalla. --}}
+                    @if (filled($portada['titulo']) || filled($portada['titulo_destacado']))
+                        <h1 class="font-display text-6xl leading-[0.9] text-balance uppercase sm:text-8xl lg:text-9xl">
+                            {{ $portada['titulo'] }} <span class="text-salvia-light">{{ $portada['titulo_destacado'] }}</span>
+                        </h1>
+                    @else
+                        <h1 class="sr-only">{{ $tituloPagina }}</h1>
+                    @endif
+                    @if (filled($portada['texto']))
+                        <p class="mx-auto mt-6 max-w-xl text-base text-pretty text-niebla/80 sm:text-lg">{{ $portada['texto'] }}</p>
+                    @endif
                     <div class="mt-9 flex flex-wrap items-center justify-center gap-4">
                         <button
                             type="button"
@@ -119,48 +144,74 @@
                         >
                             Ver planes
                         </button>
-                        <a href="#comunidad" class="rounded-full px-6 py-3.5 text-sm font-semibold tracking-widest text-niebla uppercase transition hover:text-salvia-light">
-                            Conocé el lugar ↓
-                        </a>
+                        @if ($hayComunidad)
+                            <a href="#comunidad" class="rounded-full px-6 py-3.5 text-sm font-semibold tracking-widest text-niebla uppercase transition hover:text-salvia-light">
+                                Conocé el lugar ↓
+                            </a>
+                        @endif
                     </div>
                 </div>
             </section>
 
-            {{-- ===================== COMUNIDAD (segundo video como separador) ===================== --}}
+            {{-- ===================== COMUNIDAD (segundo video como separador): contenido del panel ===================== --}}
+            @if ($hayComunidad)
             <section id="comunidad" class="mx-auto max-w-7xl scroll-mt-10 px-5 py-20 sm:px-8 sm:py-28">
-                <div class="grid items-end gap-10 lg:grid-cols-2">
-                    <div>
-                        <p class="text-xs font-semibold tracking-[0.4em] text-oxido uppercase">La comunidad</p>
-                        <h2 class="mt-4 font-display text-5xl leading-none uppercase sm:text-7xl">Nadie entrena solo</h2>
+                @if (filled($comunidad['etiqueta']) || filled($comunidad['titulo']) || filled($comunidad['texto']))
+                    <div class="grid items-end gap-10 lg:grid-cols-2">
+                        <div>
+                            @if (filled($comunidad['etiqueta']))
+                                <p class="text-xs font-semibold tracking-[0.4em] text-oxido uppercase">{{ $comunidad['etiqueta'] }}</p>
+                            @endif
+                            @if (filled($comunidad['titulo']))
+                                <h2 class="mt-4 font-display text-5xl leading-none uppercase sm:text-7xl">{{ $comunidad['titulo'] }}</h2>
+                            @endif
+                        </div>
+                        @if (filled($comunidad['texto']))
+                            <p class="max-w-lg text-pretty whitespace-pre-line text-ceniza lg:justify-self-end">{{ $comunidad['texto'] }}</p>
+                        @endif
                     </div>
-                    <p class="max-w-lg text-pretty text-ceniza lg:justify-self-end">
-                        Orions es un lugar para venir a trabajar: barras, discos, kettlebells y profes que corrigen.
-                        Cada uno a su ritmo y con su objetivo, pero nunca solo. Lo que se construye acá, se construye entre todos.
-                    </p>
-                </div>
+                @endif
 
-                <div class="relative mt-12 overflow-hidden rounded-3xl border border-carbon-700">
-                    {{-- Sin autoplay: se descarga y reproduce recién cuando entra en pantalla (ver resources/js/app.js). --}}
-                    <video
-                        muted loop playsinline preload="none" data-reproducir-al-ver
-                        poster="{{ asset('images/video-comunidad.webp') }}"
-                        aria-hidden="true"
-                        class="h-[55vh] min-h-80 w-full object-cover"
-                    >
-                        <source src="{{ asset('images/video-comunidad.mp4') }}" type="video/mp4">
-                    </video>
-                    <div class="absolute inset-0 bg-linear-to-t from-carbon via-carbon/20 to-transparent"></div>
-                    <p class="absolute inset-x-0 bottom-0 p-6 font-display text-3xl uppercase sm:p-10 sm:text-5xl">
-                        Venís por el físico. <span class="text-salvia-light">Te quedás por la gente.</span>
-                    </p>
-                </div>
+                @if ($videoComunidad !== null)
+                    <div class="relative mt-12 overflow-hidden rounded-3xl border border-carbon-700">
+                        {{-- Sin autoplay: se descarga y reproduce recién cuando entra en pantalla (ver resources/js/app.js). --}}
+                        <video
+                            muted loop playsinline preload="none" data-reproducir-al-ver
+                            @if ($posterComunidad !== null) poster="{{ $posterComunidad }}" @endif
+                            aria-hidden="true"
+                            class="h-[55vh] min-h-80 w-full object-cover"
+                        >
+                            <source src="{{ $videoComunidad }}" type="video/mp4">
+                        </video>
+                        <div class="absolute inset-0 bg-linear-to-t from-carbon via-carbon/20 to-transparent"></div>
+                        @if (filled($comunidad['frase']) || filled($comunidad['frase_destacada']))
+                            <p class="absolute inset-x-0 bottom-0 p-6 font-display text-3xl uppercase sm:p-10 sm:text-5xl">
+                                {{ $comunidad['frase'] }} <span class="text-salvia-light">{{ $comunidad['frase_destacada'] }}</span>
+                            </p>
+                        @endif
+                    </div>
+                @endif
 
-                {{-- Grilla asimétrica de instalaciones. --}}
-                <div class="mt-5 grid gap-5 sm:grid-cols-3">
-                    <img src="{{ asset('images/barra-olimpica.webp') }}" alt="Barra olímpica cargada sobre el piso del gimnasio" width="1200" height="931" loading="lazy" decoding="async" class="h-72 w-full rounded-3xl object-cover sm:col-span-2 sm:h-96">
-                    <img src="{{ asset('images/kettlebell.webp') }}" alt="Kettlebell junto a una barra con discos" width="1200" height="800" loading="lazy" decoding="async" class="h-72 w-full rounded-3xl object-cover sm:h-96">
-                </div>
+                {{-- Grilla asimétrica de instalaciones: con dos fotos, la primera ocupa el doble; con una, todo el ancho. --}}
+                @if (filled($fotosComunidad))
+                    <div class="mt-5 grid gap-5 sm:grid-cols-3">
+                        @foreach ($fotosComunidad as $foto)
+                            <img
+                                src="{{ SiteContent::mediaUrl($foto['path']) }}"
+                                alt="{{ $foto['alt'] }}"
+                                loading="lazy"
+                                decoding="async"
+                                @class([
+                                    'h-72 w-full rounded-3xl object-cover sm:h-96',
+                                    'sm:col-span-3' => count($fotosComunidad) === 1,
+                                    'sm:col-span-2' => count($fotosComunidad) > 1 && $loop->first,
+                                ])
+                            >
+                        @endforeach
+                    </div>
+                @endif
             </section>
+            @endif
 
             {{-- ===================== OPINIONES (cinta infinita): solo si hay reseñas cargadas ===================== --}}
             @if (filled($opiniones))

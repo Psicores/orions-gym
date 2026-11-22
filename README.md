@@ -141,7 +141,23 @@ PNG o WebP, hasta 2 MB) o las dos cosas. Opciones:
 
 Cada socio puede cerrar un anuncio en su portal y no le vuelve a aparecer; a los demás sí.
 
-**Portada, Horarios, Comunidad y Opiniones.** Todavía no están: muestran “Próximamente”.
+**Portada, Horarios y ubicación, Comunidad y Opiniones.** Cada una tiene su pantalla y lo que se
+guarda se ve en el sitio al recargar. Lo que se deja vacío no se muestra: el sitio nunca publica un
+dato inventado.
+
+- **Portada:** rótulo, título (con una parte resaltada), texto de bienvenida, video de fondo con su
+  imagen fija (sin video, la imagen queda de fondo), y el título de la pestaña y la descripción que
+  muestra Google.
+- **Horarios y ubicación:** franjas de días y horas, dirección y mapa. Para el mapa: en Google Maps,
+  Compartir → Insertar un mapa → Copiar HTML, y pegar el código entero.
+- **Comunidad:** rótulo, título, texto, video con su imagen fija y la frase que va encima, y hasta dos
+  fotos con su descripción.
+- **Opiniones:** hasta 20 reseñas de socios con nombre, estrellas y texto.
+
+Los videos son MP4 de hasta 12 MB (conviene comprimirlos a 1280 px de ancho y sin sonido) y las
+imágenes JPG, PNG o WebP, que se achican antes de subir. Se guardan en el disco público, así que
+el servidor necesita el enlace `public/storage` (`php artisan storage:link`). Al reemplazar un
+archivo, el anterior queda guardado en el servidor.
 
 ## Guía de uso para el socio
 

@@ -2,6 +2,8 @@
 
 namespace App\Enums;
 
+use App\Filament\Pages\SiteCommunity;
+use App\Filament\Pages\SiteHero;
 use App\Filament\Pages\SiteReviews;
 use App\Filament\Pages\SiteSchedule;
 use App\Filament\Pages\SiteSectionPage;
@@ -13,9 +15,9 @@ use Filament\Support\Icons\Heroicon;
 /**
  * Secciones de la página pública (el home) que se van a poder administrar desde el panel.
  *
- * Las que ya tienen pantalla propia la devuelven en editPage(); las demás son un enlace del menú
- * "Admin del sitio" que abre la pantalla "Próximamente" (ver App\Filament\Pages\ComingSoon). El
- * valor de texto de cada caso es el tramo de la URL de esa pantalla: /admin/sitio/{valor}.
+ * Cada una se edita en su pantalla del menú "Admin del sitio" (ver editPage()) y su contenido se
+ * guarda en site_contents (ver App\Models\SiteContent). El valor de texto de cada caso es la clave
+ * de la sección en esa tabla y el nombre de su carpeta de archivos (site/{valor}).
  *
  * Los casos están en orden de importancia, que es el orden en que aparecen en el menú. Los planes
  * también son parte de ese menú, pero ya tienen su pantalla propia (ver PlanResource) y por eso no
@@ -63,7 +65,7 @@ enum SiteSectionEnum: string implements HasDescription, HasIcon, HasLabel
     }
 
     /**
-     * Devuelve qué se va a poder cambiar de la sección cuando su pantalla esté lista.
+     * Devuelve qué se cambia en la sección; es el subtítulo de su pantalla.
      *
      * Precondiciones:
      * - Ninguna: se llama sobre cualquier caso del enum.
@@ -72,20 +74,20 @@ enum SiteSectionEnum: string implements HasDescription, HasIcon, HasLabel
      * - Devuelve una oración no vacía, distinta para cada sección.
      * - No modifica nada.
      *
-     * @return string Explicación corta para la pantalla "Próximamente".
+     * @return string Explicación corta.
      */
     public function getDescription(): string
     {
         // Elige el texto según el caso actual; match exige cubrir todos los casos.
         return match ($this) {
-            // Qué se va a administrar de la portada.
-            self::Portada => 'Desde acá vas a poder cambiar el video de fondo, el título y el texto de bienvenida del inicio.',
-            // Qué se va a administrar de horarios y ubicación.
-            self::Horarios => 'Desde acá vas a poder cambiar los días y horarios de apertura, la dirección y el mapa.',
-            // Qué se va a administrar de Comunidad.
-            self::Comunidad => 'Desde acá vas a poder cambiar el título, el texto y el video de la sección Comunidad.',
-            // Qué se va a administrar de las reseñas.
-            self::Opiniones => 'Desde acá vas a poder elegir qué opiniones de socios se muestran en el inicio.',
+            // Portada.
+            self::Portada => 'Lo primero que se ve al entrar: video de fondo, título, texto de bienvenida y cómo aparece el sitio en Google.',
+            // Horarios y ubicación.
+            self::Horarios => 'Los días y horarios de apertura, la dirección y el mapa.',
+            // Comunidad.
+            self::Comunidad => 'El título, el texto, el video y las fotos de la sección Comunidad.',
+            // Opiniones.
+            self::Opiniones => 'Las opiniones de socios que se muestran en el inicio.',
         };
     }
 
@@ -130,7 +132,11 @@ enum SiteSectionEnum: string implements HasDescription, HasIcon, HasLabel
      * - Horarios: "horarios" (lista de ['dias' => texto, 'horas' => texto]), "direccion" y
      *   "mapa_url" (texto o null).
      * - Opiniones: "opiniones" (lista de ['autor' => texto, 'texto' => texto, 'estrellas' => 1 a 5]).
-     * - Portada y Comunidad: todavía sin claves (sus textos siguen en la vista hasta que tengan pantalla).
+     * - Comunidad: "etiqueta", "titulo", "texto", "frase", "frase_destacada" (texto o null),
+     *   "video_path" y "poster_path" (ruta en el disco "public" o null) y "fotos" (lista de
+     *   ['path' => ruta, 'alt' => descripción], hasta dos).
+     * - Portada: "etiqueta", "titulo", "titulo_destacado", "texto", "titulo_pagina" y
+     *   "descripcion" (texto o null), "video_path" y "poster_path" (ruta en el disco "public" o null).
      * - No modifica nada.
      *
      * @return array<string, mixed> Contenido vacío de la sección.
@@ -143,34 +149,44 @@ enum SiteSectionEnum: string implements HasDescription, HasIcon, HasLabel
             self::Horarios => ['horarios' => [], 'direccion' => null, 'mapa_url' => null],
             // Reseñas.
             self::Opiniones => ['opiniones' => []],
-            // Sin contenido editable todavía.
-            self::Portada, self::Comunidad => [],
+            // Textos, video y fotos.
+            self::Comunidad => [
+                'etiqueta' => null, 'titulo' => null, 'texto' => null,
+                'video_path' => null, 'poster_path' => null, 'frase' => null, 'frase_destacada' => null,
+                'fotos' => [],
+            ],
+            // Textos, fondo y datos para buscadores.
+            self::Portada => [
+                'etiqueta' => null, 'titulo' => null, 'titulo_destacado' => null, 'texto' => null,
+                'video_path' => null, 'poster_path' => null, 'titulo_pagina' => null, 'descripcion' => null,
+            ],
         };
     }
 
     /**
-     * Devuelve la pantalla del panel que edita esta sección, si ya la tiene.
+     * Devuelve la pantalla del panel que edita esta sección.
      *
      * Precondiciones:
      * - Ninguna: se llama sobre cualquier caso del enum.
      *
      * Postcondiciones:
-     * - Devuelve la clase de la pantalla (una SiteSectionPage) o null si la sección todavía se
-     *   muestra como "Próximamente" (ver App\Filament\Pages\ComingSoon).
+     * - Devuelve la clase de la pantalla (una SiteSectionPage).
      * - No modifica nada.
      *
-     * @return class-string<SiteSectionPage>|null Clase de la pantalla, o null.
+     * @return class-string<SiteSectionPage> Clase de la pantalla.
      */
-    public function editPage(): ?string
+    public function editPage(): string
     {
-        // Secciones que ya tienen pantalla propia; las demás siguen en "Próximamente".
+        // Una pantalla por sección.
         return match ($this) {
             // Horarios, dirección y mapa.
             self::Horarios => SiteSchedule::class,
             // Reseñas de socios.
             self::Opiniones => SiteReviews::class,
-            // Todavía sin pantalla.
-            self::Portada, self::Comunidad => null,
+            // Textos, video y fotos de Comunidad.
+            self::Comunidad => SiteCommunity::class,
+            // Video de fondo, textos y datos para buscadores.
+            self::Portada => SiteHero::class,
         };
     }
 
@@ -182,7 +198,7 @@ enum SiteSectionEnum: string implements HasDescription, HasIcon, HasLabel
      *
      * Postcondiciones:
      * - Devuelve el orden de la sección entre los casos del enum, empezando en 3 (Planes es el 1 y
-     *   Anuncios el 2). Es el mismo tenga o no pantalla propia.
+     *   Anuncios el 2).
      * - No modifica nada.
      *
      * @return int Orden en el menú.

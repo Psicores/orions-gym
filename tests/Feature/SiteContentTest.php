@@ -116,7 +116,7 @@ class SiteContentTest extends TestCase
         config(['app.admin' => ['name' => 'Dueño', 'email' => 'dueno@example.com', 'password' => 'secreto-123']]);
 
         $this->seed();
-        $this->assertSame(0, SiteContent::query()->count());
+        $this->assertSame(0, SiteContent::query()->whereIn('section', [SiteSectionEnum::Horarios, SiteSectionEnum::Opiniones])->count());
 
         SiteContent::query()->create(['section' => SiteSectionEnum::Horarios, 'data' => ['direccion' => 'La real 10']]);
         config(['gym.seed_demo_data' => true]);
@@ -136,6 +136,7 @@ class SiteContentTest extends TestCase
 
         $this->artisan('demo:remove', ['--force' => true])->assertSuccessful();
 
-        $this->assertSame([SiteSectionEnum::Horarios], SiteContent::query()->pluck('section')->all());
+        $this->assertTrue(SiteContent::query()->where('section', SiteSectionEnum::Horarios)->exists());
+        $this->assertFalse(SiteContent::query()->where('section', SiteSectionEnum::Opiniones)->exists());
     }
 }
