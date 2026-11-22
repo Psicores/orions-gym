@@ -40,7 +40,7 @@ class AnnouncementResource extends Resource
     // Va en el grupo "Admin del sitio" del menú, junto a lo demás que ven los socios y el público.
     protected static string|UnitEnum|null $navigationGroup = SiteSectionEnum::NAVIGATION_GROUP;
 
-    // Segundo dentro del grupo, después de Planes (1); las secciones del sitio siguen desde 3 (ver ComingSoon).
+    // Segundo dentro del grupo, después de Planes (1); las secciones del sitio siguen desde 3 (ver SiteSectionEnum::navigationSort()).
     protected static ?int $navigationSort = 2;
 
     protected static ?string $modelLabel = 'anuncio';

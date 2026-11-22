@@ -26,7 +26,7 @@ El menú del panel tiene estas secciones:
 | **Manual de uso** | Esta guía (solo la ve la cuenta del administrador) |
 | **Admin del sitio → Planes** | El catálogo de planes y sus precios |
 | **Admin del sitio → Anuncios** | Las novedades que ven los socios y el público |
-| **Admin del sitio → Portada, Horarios y ubicación, Comunidad, Opiniones** | Todavía no están disponibles: muestran "Próximamente" |
+| **Admin del sitio → Portada, Horarios y ubicación, Comunidad, Opiniones** | Lo que muestra cada parte de la página pública |
 
 ## Conceptos que conviene tener claros
 
@@ -499,6 +499,39 @@ Mirá la columna **Situación**.
 - **Borrar:** hacé clic en **Borrar** y confirmá. A diferencia de clientes y planes, el borrado de un anuncio es **definitivo**.
 
 > Cada socio puede cerrar un anuncio en su portal. A ese socio no le vuelve a aparecer; los demás lo siguen viendo.
+
+## Secciones del sitio
+
+En **Admin del sitio** hay una pantalla por cada parte de la página pública: **Portada**, **Horarios y ubicación**, **Comunidad** y **Opiniones**. Todas funcionan igual:
+
+1. Cambiá lo que necesites.
+2. Tocá **Guardar** (o Ctrl+S). Aparece el aviso "Cambios guardados".
+3. Tocá **Ver en el sitio** para ver cómo quedó.
+
+Lo que dejás vacío no se muestra en el sitio. Si vaciás una sección entera, desaparece de la página.
+
+### Portada
+
+Lo primero que se ve al entrar: el rótulo chico, el título (la segunda parte sale en verde), el texto de bienvenida y el fondo. El fondo puede ser un video, con una imagen que se ve mientras carga; si no subís video, la imagen queda de fondo. Abajo están el **título de la página** (el que aparece en la pestaña del navegador y en Google) y la **descripción** que muestra Google debajo del título.
+
+### Horarios y ubicación
+
+- **Horarios:** tocá **Agregar franja horaria** y escribí los días ("Lunes a viernes") y el horario ("07:00 a 22:00" o "Cerrado"). Las franjas se reordenan arrastrándolas.
+- **Dirección:** tal como querés que se lea.
+- **Mapa:** en Google Maps buscá el gimnasio, tocá **Compartir → Insertar un mapa → Copiar HTML** y pegá el código entero en el campo. Si pegás otra cosa, el sistema lo rechaza.
+
+### Comunidad
+
+Rótulo, título y texto; un video con su imagen fija y la frase que aparece encima (con una parte en verde); y hasta dos fotos. Cada foto necesita una descripción corta de lo que se ve. Con dos fotos, la primera sale más ancha.
+
+### Opiniones
+
+Tocá **Agregar opinión** y cargá el nombre, las estrellas (de 1 a 5) y el texto. Se muestran en el orden de la lista; arrastralas para cambiarlo.
+
+### Videos e imágenes
+
+- **Videos:** MP4 de hasta 12 MB. Para que la página cargue rápido, conviene comprimirlos antes (1280 px de ancho, sin sonido).
+- **Imágenes:** JPG, PNG o WebP. Se achican solas antes de subir.
 
 ## Portal del socio
 

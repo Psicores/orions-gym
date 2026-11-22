@@ -3,8 +3,8 @@
 namespace Tests\Feature;
 
 use App\Enums\SiteSectionEnum;
-use App\Filament\Pages\ComingSoon;
 use App\Filament\Pages\SiteCommunity;
+use App\Filament\Pages\SiteHero;
 use App\Filament\Pages\SiteReviews;
 use App\Filament\Pages\SiteSchedule;
 use App\Filament\Resources\Announcements\AnnouncementResource;
@@ -37,7 +37,7 @@ class AdminNavigationTest extends TestCase
                 'Admin del sitio',
                 PlanResource::getUrl('index'),
                 AnnouncementResource::getUrl('index'),
-                ComingSoon::getUrl(['section' => 'portada']),
+                SiteHero::getUrl(),
                 SiteSchedule::getUrl(),
                 SiteCommunity::getUrl(),
                 SiteReviews::getUrl(),
@@ -60,34 +60,34 @@ class AdminNavigationTest extends TestCase
     }
 
     #[DataProvider('siteSections')]
-    public function test_each_future_site_section_shows_the_coming_soon_screen(SiteSectionEnum $section): void
+    public function test_each_site_section_has_its_own_screen_with_what_it_changes(SiteSectionEnum $section): void
     {
-        $this->get(ComingSoon::getUrl(['section' => $section->value]))
+        $this->get($section->editPage()::getUrl())
             ->assertOk()
-            ->assertSee('Próximamente')
             ->assertSee($section->getLabel())
             ->assertSee($section->getDescription())
-            ->assertSee(route('inicio'), escape: false);
+            ->assertSee('Ver en el sitio')
+            ->assertDontSee('Próximamente');
     }
 
     public function test_only_the_section_being_viewed_is_marked_as_active_in_the_sidebar(): void
     {
-        $html = $this->get(ComingSoon::getUrl(['section' => 'portada']))->assertOk()->getContent();
+        $html = $this->get(SiteSchedule::getUrl())->assertOk()->getContent();
 
         $this->assertSame(1, preg_match_all('/<li[^>]*class="[^"]*fi-sidebar-item fi-active[^"]*"[^>]*>\s*<a[^>]*href="([^"]+)"/', $html, $matches));
-        $this->assertSame(ComingSoon::getUrl(['section' => 'portada']), $matches[1][0]);
+        $this->assertSame(SiteSchedule::getUrl(), $matches[1][0]);
     }
 
-    public function test_an_unknown_site_section_is_not_found(): void
+    public function test_the_old_coming_soon_addresses_no_longer_exist(): void
     {
-        $this->get(ComingSoon::getUrl(['section' => 'no-existe']))->assertNotFound();
+        $this->get('/admin/sitio/portada')->assertNotFound();
     }
 
-    public function test_the_coming_soon_screen_requires_login(): void
+    public function test_the_site_section_screens_require_login(): void
     {
         auth()->logout();
 
-        $this->get(ComingSoon::getUrl(['section' => 'portada']))->assertRedirect(route('login'));
+        $this->get(SiteHero::getUrl())->assertRedirect(route('login'));
     }
 
     /**
@@ -96,7 +96,6 @@ class AdminNavigationTest extends TestCase
     public static function siteSections(): array
     {
         return collect(SiteSectionEnum::cases())
-            ->filter(fn (SiteSectionEnum $section): bool => $section->editPage() === null)
             ->mapWithKeys(fn (SiteSectionEnum $section): array => [$section->value => [$section]])
             ->all();
     }

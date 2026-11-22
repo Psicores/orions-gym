@@ -3,7 +3,6 @@
 namespace App\Filament\Pages;
 
 use App\Enums\SiteSectionEnum;
-use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -18,12 +17,6 @@ class SiteCommunity extends SiteSectionPage
 {
     // URL en castellano: /admin/comunidad.
     protected static ?string $slug = 'comunidad';
-
-    /** Carpeta del disco "public" donde se guardan los archivos de la sección. */
-    public const string DIRECTORY = 'site/comunidad';
-
-    /** Peso máximo del video en KB: el tope de subida de Livewire (12 MB). */
-    public const int MAX_VIDEO_KB = 12288;
 
     /**
      * Sección que edita: comunidad.
@@ -75,13 +68,10 @@ class SiteCommunity extends SiteSectionPage
                 ])
                 ->columns(2),
             Section::make('Video')
-                ->description('Se reproduce sin sonido y en bucle. Conviene que pese poco: un MP4 comprimido de 1280 px de ancho.')
+                ->description('Se reproduce sin sonido y en bucle, recién cuando el visitante llega a la sección.')
                 ->schema([
                     // El video.
-                    $this->mediaUpload('video_path', 'Video (MP4)')
-                        ->acceptedFileTypes(['video/mp4'])
-                        ->maxSize(self::MAX_VIDEO_KB)
-                        ->helperText('Hasta 12 MB.'),
+                    $this->videoUpload('video_path', 'Video (MP4)'),
                     // Imagen fija mientras carga el video.
                     $this->imageUpload('poster_path', 'Imagen mientras carga')
                         ->helperText('Opcional. Un cuadro del video, para que no se vea negro mientras carga.'),
@@ -123,40 +113,6 @@ class SiteCommunity extends SiteSectionPage
     }
 
     /**
-     * Campo de subida de un archivo de la sección (video o imagen).
-     *
-     * @param  string  $name  Clave del contenido donde se guarda la ruta.
-     * @param  string  $label  Texto sobre el campo.
-     * @return FileUpload El campo, en el disco "public", carpeta DIRECTORY.
-     */
-    private function mediaUpload(string $name, string $label): FileUpload
-    {
-        // Archivo público: lo ve cualquiera que abra el sitio.
-        return FileUpload::make($name)
-            ->label($label)
-            ->disk('public')
-            ->directory(self::DIRECTORY)
-            ->visibility('public');
-    }
-
-    /**
-     * Campo de subida de una imagen de la sección.
-     *
-     * @param  string  $name  Clave del contenido donde se guarda la ruta.
-     * @param  string  $label  Texto sobre el campo.
-     * @return FileUpload El campo: JPG, PNG o WebP, achicado a 1600 px de ancho, hasta 2 MB.
-     */
-    private function imageUpload(string $name, string $label): FileUpload
-    {
-        // Imagen común (sin SVG), achicada en el navegador antes de subir.
-        return $this->mediaUpload($name, $label)
-            ->image()
-            ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
-            ->automaticallyResizeImagesToWidth('1600')
-            ->maxSize(2048);
-    }
-
-    /**
      * Limpia el contenido antes de guardarlo.
      *
      * Precondiciones:
@@ -171,18 +127,15 @@ class SiteCommunity extends SiteSectionPage
      */
     protected function prepareForSaving(array $data): array
     {
-        // Texto recortado o null.
-        $text = fn (mixed $value): ?string => filled($value) ? trim((string) $value) : null;
-
         // Contenido listo para guardar.
         return [
-            'etiqueta' => $text($data['etiqueta'] ?? null),
-            'titulo' => $text($data['titulo'] ?? null),
-            'texto' => $text($data['texto'] ?? null),
-            'video_path' => $text($data['video_path'] ?? null),
-            'poster_path' => $text($data['poster_path'] ?? null),
-            'frase' => $text($data['frase'] ?? null),
-            'frase_destacada' => $text($data['frase_destacada'] ?? null),
+            'etiqueta' => static::cleanText($data['etiqueta'] ?? null),
+            'titulo' => static::cleanText($data['titulo'] ?? null),
+            'texto' => static::cleanText($data['texto'] ?? null),
+            'video_path' => static::cleanText($data['video_path'] ?? null),
+            'poster_path' => static::cleanText($data['poster_path'] ?? null),
+            'frase' => static::cleanText($data['frase'] ?? null),
+            'frase_destacada' => static::cleanText($data['frase_destacada'] ?? null),
             'fotos' => array_values(array_map(fn (array $foto): array => [
                 'path' => (string) $foto['path'],
                 'alt' => trim((string) $foto['alt']),

@@ -6,6 +6,7 @@ use App\Enums\SiteSectionEnum;
 use App\Models\SiteContent;
 use BackedEnum;
 use Filament\Actions\Action;
+use Filament\Forms\Components\FileUpload;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Schemas\Components\Actions;
@@ -29,6 +30,9 @@ abstract class SiteSectionPage extends Page
     protected string $view = 'filament.pages.site-section';
 
     protected static string|UnitEnum|null $navigationGroup = SiteSectionEnum::NAVIGATION_GROUP;
+
+    /** Peso máximo de un video, en KB: el tope de subida de Livewire (12 MB). */
+    public const int MAX_VIDEO_KB = 12288;
 
     /**
      * Contenido del formulario mientras se edita.
@@ -76,7 +80,7 @@ abstract class SiteSectionPage extends Page
      */
     public static function getNavigationLabel(): string
     {
-        // El mismo que usaba la pantalla "Próximamente".
+        // Por ejemplo "Horarios y ubicación".
         return static::section()->getLabel();
     }
 
@@ -87,7 +91,7 @@ abstract class SiteSectionPage extends Page
      */
     public static function getNavigationIcon(): string|BackedEnum|null
     {
-        // El mismo que usaba la pantalla "Próximamente".
+        // Uno distinto por sección.
         return static::section()->getIcon();
     }
 
@@ -98,7 +102,7 @@ abstract class SiteSectionPage extends Page
      */
     public static function getNavigationSort(): ?int
     {
-        // Mismo orden que las secciones que siguen en "Próximamente".
+        // Orden de la sección dentro del grupo.
         return static::section()->navigationSort();
     }
 
@@ -111,6 +115,17 @@ abstract class SiteSectionPage extends Page
     {
         // Por ejemplo "Horarios y ubicación".
         return static::section()->getLabel();
+    }
+
+    /**
+     * Subtítulo de la pantalla: qué se cambia en esta sección.
+     *
+     * @return string Explicación corta.
+     */
+    public function getSubheading(): string
+    {
+        // Una oración por sección.
+        return static::section()->getDescription();
     }
 
     /**
@@ -162,6 +177,88 @@ abstract class SiteSectionPage extends Page
             ])
             // El estado del formulario vive en $data.
             ->statePath('data');
+    }
+
+    /**
+     * Campo de subida de un archivo público de la sección (video o imagen).
+     *
+     * Precondiciones:
+     * - El disco "public" está configurado y enlazado (php artisan storage:link).
+     *
+     * Postcondiciones:
+     * - Devuelve el campo, que guarda en el disco "public", carpeta site/{sección}.
+     *
+     * @param  string  $name  Clave del contenido donde se guarda la ruta.
+     * @param  string  $label  Texto sobre el campo.
+     * @return FileUpload El campo.
+     */
+    protected function mediaUpload(string $name, string $label): FileUpload
+    {
+        // Archivo público: lo ve cualquiera que abra el sitio.
+        return FileUpload::make($name)
+            ->label($label)
+            ->disk('public')
+            ->directory('site/'.static::section()->value)
+            ->visibility('public');
+    }
+
+    /**
+     * Campo de subida de una imagen pública de la sección.
+     *
+     * Precondiciones:
+     * - Las mismas que mediaUpload().
+     *
+     * Postcondiciones:
+     * - Acepta JPG, PNG o WebP (nunca SVG, que puede traer código) de hasta 2 MB, achicados en
+     *   el navegador a $width píxeles de ancho antes de subir.
+     *
+     * @param  string  $name  Clave del contenido donde se guarda la ruta.
+     * @param  string  $label  Texto sobre el campo.
+     * @param  int  $width  Ancho máximo, en píxeles.
+     * @return FileUpload El campo.
+     */
+    protected function imageUpload(string $name, string $label, int $width = 1600): FileUpload
+    {
+        // Imagen común, achicada antes de subir.
+        return $this->mediaUpload($name, $label)
+            ->image()
+            ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
+            ->automaticallyResizeImagesToWidth((string) $width)
+            ->maxSize(2048);
+    }
+
+    /**
+     * Campo de subida de un video de fondo de la sección.
+     *
+     * Precondiciones:
+     * - Las mismas que mediaUpload().
+     *
+     * Postcondiciones:
+     * - Acepta solo MP4 de hasta MAX_VIDEO_KB (el tope de subida de Livewire).
+     *
+     * @param  string  $name  Clave del contenido donde se guarda la ruta.
+     * @param  string  $label  Texto sobre el campo.
+     * @return FileUpload El campo.
+     */
+    protected function videoUpload(string $name, string $label): FileUpload
+    {
+        // MP4 liviano.
+        return $this->mediaUpload($name, $label)
+            ->acceptedFileTypes(['video/mp4'])
+            ->maxSize(self::MAX_VIDEO_KB)
+            ->helperText('MP4 de hasta 12 MB. Conviene comprimirlo a 1280 px de ancho y sin sonido.');
+    }
+
+    /**
+     * Texto sin espacios en las puntas, o null si quedó vacío.
+     *
+     * @param  mixed  $value  Valor del formulario.
+     * @return string|null Texto limpio, o null.
+     */
+    protected static function cleanText(mixed $value): ?string
+    {
+        // Vacío pasa a null; si no, se recorta.
+        return filled($value) ? trim((string) $value) : null;
     }
 
     /**

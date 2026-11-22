@@ -1,5 +1,6 @@
 {{--
-    Página pública. Recibe $planes, $anuncios, $comunidad (textos, video y fotos), $ubicacion
+    Página pública. Recibe $planes, $anuncios, $portada (fondo, textos y datos para buscadores),
+    $comunidad (textos, video y fotos), $ubicacion
     (horarios, dirección y mapa) y $opiniones (reseñas), todo cargado desde el panel. Lo que no está cargado no se muestra:
     nunca se publica un dato inventado (ver App\Models\SiteContent).
 --}}
@@ -12,6 +13,12 @@
     $direccion = filled($ubicacion['direccion']) ? $ubicacion['direccion'] : null;
     // Mapa: solo uno insertado de Google Maps (lo único que permite la política de contenido).
     $mapaEmbedUrl = SiteContent::isAllowedMapUrl($ubicacion['mapa_url']) ? $ubicacion['mapa_url'] : null;
+    // Fondo de la portada, como direcciones públicas (null si no hay).
+    $videoPortada = SiteContent::mediaUrl($portada['video_path']);
+    $posterPortada = SiteContent::mediaUrl($portada['poster_path']);
+    // Título de la pestaña y descripción para buscadores (el nombre de la aplicación si faltan).
+    $tituloPagina = $portada['titulo_pagina'] ?? config('app.name');
+    $descripcionPagina = $portada['descripcion'] ?? config('app.name');
     // Video y fotos de Comunidad, como direcciones públicas (null si no hay).
     $videoComunidad = SiteContent::mediaUrl($comunidad['video_path']);
     $posterComunidad = SiteContent::mediaUrl($comunidad['poster_path']);
@@ -28,10 +35,10 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <meta name="description" content="Orions: gimnasio de fuerza y comunidad. Conocé los planes, los horarios y dónde encontrarnos.">
+        <meta name="description" content="{{ $descripcionPagina }}">
         <meta name="theme-color" content="#161817">
 
-        <title>Orions · Gimnasio</title>
+        <title>{{ $tituloPagina }}</title>
 
         @fonts
         @vite(['resources/css/app.css', 'resources/js/app.js'])
@@ -43,17 +50,22 @@
         class="bg-carbon font-sans text-niebla antialiased selection:bg-oxido selection:text-carbon"
     >
         <main>
-            {{-- ===================== HERO (primer video) ===================== --}}
+            {{-- ===================== HERO (fondo, textos y botones cargados desde el panel) ===================== --}}
             <section class="relative flex h-screen min-h-[36rem] items-center justify-center overflow-hidden">
-                {{-- La imagen fija se ve mientras carga el video (o si el navegador no lo reproduce). --}}
-                <video
-                    autoplay muted loop playsinline preload="metadata"
-                    poster="{{ asset('images/video-portada.webp') }}"
-                    aria-hidden="true"
-                    class="absolute inset-0 size-full object-cover"
-                >
-                    <source src="{{ asset('images/video-portada.mp4') }}" type="video/mp4">
-                </video>
+                @if ($videoPortada !== null)
+                    {{-- La imagen fija se ve mientras carga el video (o si el navegador no lo reproduce). --}}
+                    <video
+                        autoplay muted loop playsinline preload="metadata"
+                        @if ($posterPortada !== null) poster="{{ $posterPortada }}" @endif
+                        aria-hidden="true"
+                        class="absolute inset-0 size-full object-cover"
+                    >
+                        <source src="{{ $videoPortada }}" type="video/mp4">
+                    </video>
+                @elseif ($posterPortada !== null)
+                    {{-- Sin video, la imagen queda de fondo. --}}
+                    <img src="{{ $posterPortada }}" alt="" aria-hidden="true" class="absolute inset-0 size-full object-cover">
+                @endif
                 {{-- Oscurece el video para que el texto se lea y lo funde con el fondo en la parte inferior. --}}
                 <div class="absolute inset-0 bg-carbon/45"></div>
                 <div class="absolute inset-x-0 bottom-0 h-2/5 bg-linear-to-b from-transparent to-carbon"></div>
@@ -109,13 +121,20 @@
                 </header>
 
                 <div class="relative mx-auto max-w-5xl px-5 text-center">
-                    <p class="mb-5 text-xs font-semibold tracking-[0.5em] text-oxido uppercase sm:text-sm">Gimnasio · Fuerza · Comunidad</p>
-                    <h1 class="font-display text-6xl leading-[0.9] text-balance uppercase sm:text-8xl lg:text-9xl">
-                        Fierros <span class="text-salvia-light">y constancia</span>
-                    </h1>
-                    <p class="mx-auto mt-6 max-w-xl text-base text-pretty text-niebla/80 sm:text-lg">
-                        Entrenamiento serio, sin vueltas. Vení a levantar pesado con gente que empuja para el mismo lado.
-                    </p>
+                    @if (filled($portada['etiqueta']))
+                        <p class="mb-5 text-xs font-semibold tracking-[0.5em] text-oxido uppercase sm:text-sm">{{ $portada['etiqueta'] }}</p>
+                    @endif
+                    {{-- Sin título cargado, el nombre del sitio queda como título para buscadores y lectores de pantalla. --}}
+                    @if (filled($portada['titulo']) || filled($portada['titulo_destacado']))
+                        <h1 class="font-display text-6xl leading-[0.9] text-balance uppercase sm:text-8xl lg:text-9xl">
+                            {{ $portada['titulo'] }} <span class="text-salvia-light">{{ $portada['titulo_destacado'] }}</span>
+                        </h1>
+                    @else
+                        <h1 class="sr-only">{{ $tituloPagina }}</h1>
+                    @endif
+                    @if (filled($portada['texto']))
+                        <p class="mx-auto mt-6 max-w-xl text-base text-pretty text-niebla/80 sm:text-lg">{{ $portada['texto'] }}</p>
+                    @endif
                     <div class="mt-9 flex flex-wrap items-center justify-center gap-4">
                         <button
                             type="button"

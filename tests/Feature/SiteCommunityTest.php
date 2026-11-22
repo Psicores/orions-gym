@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Enums\SiteSectionEnum;
-use App\Filament\Pages\ComingSoon;
 use App\Filament\Pages\SiteCommunity;
 use App\Models\SiteContent;
 use App\Models\User;
@@ -58,14 +57,12 @@ class SiteCommunityTest extends TestCase
         $this->assertSame(1, SiteContent::query()->where('section', SiteSectionEnum::Comunidad)->count());
     }
 
-    public function test_the_screen_replaces_coming_soon_in_the_site_menu(): void
+    public function test_the_screen_is_in_the_site_menu(): void
     {
         $this->get(SiteCommunity::getUrl())
             ->assertOk()
             ->assertSee('Video (MP4)')
             ->assertDontSee('Próximamente');
-
-        $this->get(ComingSoon::getUrl(['section' => 'comunidad']))->assertRedirect(SiteCommunity::getUrl());
     }
 
     public function test_saving_without_touching_anything_keeps_the_texts_and_files(): void
