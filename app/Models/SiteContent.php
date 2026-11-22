@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\SiteSectionEnum;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * Contenido editable de una sección de la página pública (horarios, opiniones, etc.).
@@ -78,6 +79,25 @@ class SiteContent extends Model
     {
         // Tiene que ser texto y empezar exactamente como un mapa insertado de Google.
         return is_string($url) && str_starts_with($url, self::MAP_EMBED_PREFIX);
+    }
+
+    /**
+     * Devuelve la dirección pública de un archivo subido para una sección (video, foto...).
+     *
+     * Precondiciones:
+     * - $path es una ruta dentro del disco "public" (como las guarda el panel) o null.
+     *
+     * Postcondiciones:
+     * - Devuelve la URL del archivo en el disco "public" (/storage/...), o null si $path está vacío.
+     * - No verifica que el archivo exista. No modifica nada.
+     *
+     * @param  string|null  $path  Ruta guardada.
+     * @return string|null URL para usar en src, o null.
+     */
+    public static function mediaUrl(?string $path): ?string
+    {
+        // Sin archivo, sin dirección; si no, la del disco público.
+        return filled($path) ? Storage::disk('public')->url($path) : null;
     }
 
     /**

@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\SiteSectionEnum;
 use App\Filament\Pages\ComingSoon;
+use App\Filament\Pages\SiteCommunity;
 use App\Filament\Pages\SiteReviews;
 use App\Filament\Pages\SiteSchedule;
 use App\Filament\Resources\Announcements\AnnouncementResource;
@@ -38,7 +39,7 @@ class AdminNavigationTest extends TestCase
                 AnnouncementResource::getUrl('index'),
                 ComingSoon::getUrl(['section' => 'portada']),
                 SiteSchedule::getUrl(),
-                ComingSoon::getUrl(['section' => 'comunidad']),
+                SiteCommunity::getUrl(),
                 SiteReviews::getUrl(),
             ], escape: false);
     }
@@ -71,10 +72,10 @@ class AdminNavigationTest extends TestCase
 
     public function test_only_the_section_being_viewed_is_marked_as_active_in_the_sidebar(): void
     {
-        $html = $this->get(ComingSoon::getUrl(['section' => 'comunidad']))->assertOk()->getContent();
+        $html = $this->get(ComingSoon::getUrl(['section' => 'portada']))->assertOk()->getContent();
 
         $this->assertSame(1, preg_match_all('/<li[^>]*class="[^"]*fi-sidebar-item fi-active[^"]*"[^>]*>\s*<a[^>]*href="([^"]+)"/', $html, $matches));
-        $this->assertSame(ComingSoon::getUrl(['section' => 'comunidad']), $matches[1][0]);
+        $this->assertSame(ComingSoon::getUrl(['section' => 'portada']), $matches[1][0]);
     }
 
     public function test_an_unknown_site_section_is_not_found(): void

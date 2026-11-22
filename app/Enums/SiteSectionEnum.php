@@ -2,6 +2,7 @@
 
 namespace App\Enums;
 
+use App\Filament\Pages\SiteCommunity;
 use App\Filament\Pages\SiteReviews;
 use App\Filament\Pages\SiteSchedule;
 use App\Filament\Pages\SiteSectionPage;
@@ -130,7 +131,10 @@ enum SiteSectionEnum: string implements HasDescription, HasIcon, HasLabel
      * - Horarios: "horarios" (lista de ['dias' => texto, 'horas' => texto]), "direccion" y
      *   "mapa_url" (texto o null).
      * - Opiniones: "opiniones" (lista de ['autor' => texto, 'texto' => texto, 'estrellas' => 1 a 5]).
-     * - Portada y Comunidad: todavía sin claves (sus textos siguen en la vista hasta que tengan pantalla).
+     * - Comunidad: "etiqueta", "titulo", "texto", "frase", "frase_destacada" (texto o null),
+     *   "video_path" y "poster_path" (ruta en el disco "public" o null) y "fotos" (lista de
+     *   ['path' => ruta, 'alt' => descripción], hasta dos).
+     * - Portada: todavía sin claves (sus textos siguen en la vista hasta que tenga pantalla).
      * - No modifica nada.
      *
      * @return array<string, mixed> Contenido vacío de la sección.
@@ -143,8 +147,14 @@ enum SiteSectionEnum: string implements HasDescription, HasIcon, HasLabel
             self::Horarios => ['horarios' => [], 'direccion' => null, 'mapa_url' => null],
             // Reseñas.
             self::Opiniones => ['opiniones' => []],
+            // Textos, video y fotos.
+            self::Comunidad => [
+                'etiqueta' => null, 'titulo' => null, 'texto' => null,
+                'video_path' => null, 'poster_path' => null, 'frase' => null, 'frase_destacada' => null,
+                'fotos' => [],
+            ],
             // Sin contenido editable todavía.
-            self::Portada, self::Comunidad => [],
+            self::Portada => [],
         };
     }
 
@@ -169,8 +179,10 @@ enum SiteSectionEnum: string implements HasDescription, HasIcon, HasLabel
             self::Horarios => SiteSchedule::class,
             // Reseñas de socios.
             self::Opiniones => SiteReviews::class,
+            // Textos, video y fotos de Comunidad.
+            self::Comunidad => SiteCommunity::class,
             // Todavía sin pantalla.
-            self::Portada, self::Comunidad => null,
+            self::Portada => null,
         };
     }
 

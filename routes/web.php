@@ -22,6 +22,8 @@ Route::get('/', fn () => view('welcome', [
     'anuncios' => Announcement::query()->active()->latest()->latest('id')->get(),
     // Horarios, dirección y mapa cargados desde el panel (vacíos si no hay nada).
     'ubicacion' => SiteContent::dataFor(SiteSectionEnum::Horarios),
+    // Textos, video y fotos de Comunidad cargados desde el panel.
+    'comunidad' => SiteContent::dataFor(SiteSectionEnum::Comunidad),
     // Reseñas cargadas desde el panel (lista vacía si no hay).
     'opiniones' => SiteContent::dataFor(SiteSectionEnum::Opiniones)['opiniones'],
 ]))->name('inicio');

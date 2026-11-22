@@ -90,7 +90,7 @@ class SiteScheduleTest extends TestCase
             ->call('save')
             ->assertHasFormErrors(['mapa_url']);
 
-        $this->assertSame(0, SiteContent::query()->count());
+        $this->assertSame(0, SiteContent::query()->where('section', SiteSectionEnum::Horarios)->count());
     }
 
     public function test_each_time_slot_needs_days_and_hours(): void
@@ -100,7 +100,7 @@ class SiteScheduleTest extends TestCase
             ->call('save')
             ->assertHasFormErrors();
 
-        $this->assertSame(0, SiteContent::query()->count());
+        $this->assertSame(0, SiteContent::query()->where('section', SiteSectionEnum::Horarios)->count());
     }
 
     public function test_clearing_everything_hides_the_section_on_the_landing(): void

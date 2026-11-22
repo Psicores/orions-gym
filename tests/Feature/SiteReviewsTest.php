@@ -60,7 +60,7 @@ class SiteReviewsTest extends TestCase
             ->call('save')
             ->assertHasFormErrors();
 
-        $this->assertSame(0, SiteContent::query()->count());
+        $this->assertSame(0, SiteContent::query()->where('section', SiteSectionEnum::Opiniones)->count());
     }
 
     public function test_reviews_cannot_be_too_long(): void
@@ -70,7 +70,7 @@ class SiteReviewsTest extends TestCase
             ->call('save')
             ->assertHasFormErrors();
 
-        $this->assertSame(0, SiteContent::query()->count());
+        $this->assertSame(0, SiteContent::query()->where('section', SiteSectionEnum::Opiniones)->count());
     }
 
     public function test_removing_every_review_hides_the_section_on_the_landing(): void
