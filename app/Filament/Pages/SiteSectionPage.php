@@ -209,8 +209,9 @@ abstract class SiteSectionPage extends Page
      * - Las mismas que mediaUpload().
      *
      * Postcondiciones:
-     * - Acepta JPG, PNG o WebP (nunca SVG, que puede traer código) de hasta 2 MB, achicados en
-     *   el navegador a $width píxeles de ancho antes de subir.
+     * - Acepta JPG, PNG o WebP (nunca SVG, que puede traer código) de hasta 10 MB, achicados en
+     *   el navegador a $width píxeles de ancho antes de subir (los 10 MB se miden sobre el
+     *   original, antes de achicarlo, para que entre una foto sacada con el celular).
      *
      * @param  string  $name  Clave del contenido donde se guarda la ruta.
      * @param  string  $label  Texto sobre el campo.
@@ -224,7 +225,10 @@ abstract class SiteSectionPage extends Page
             ->image()
             ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
             ->automaticallyResizeImagesToWidth((string) $width)
-            ->maxSize(2048);
+            // Una imagen más chica no se agranda.
+            ->automaticallyUpscaleImagesWhenResizing(false)
+            // Límite del original, antes de achicarlo.
+            ->maxSize(10240);
     }
 
     /**

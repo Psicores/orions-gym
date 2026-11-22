@@ -114,8 +114,13 @@ class AnnouncementResource extends Resource
                             ->disk('public')
                             // Carpeta dentro del disco.
                             ->directory('announcements')
-                            // Tamaño máximo en KB (2 MB, el límite actual de PHP).
-                            ->maxSize(2048)
+                            // Antes de subirla, el navegador la achica a 1600 píxeles de ancho como máximo.
+                            ->automaticallyResizeImagesToWidth('1600')
+                            // Una imagen más chica no se agranda.
+                            ->automaticallyUpscaleImagesWhenResizing(false)
+                            // Tamaño máximo del original, en KB (10 MB): se mide antes de achicarla,
+                            // así entra una foto sacada con el celular; lo que se sube pesa mucho menos.
+                            ->maxSize(10240)
                             // Aclara que se puede dejar vacío.
                             ->helperText('Opcional. Dejala vacía si el anuncio es solo texto.')
                             // Ocupa las dos columnas.
