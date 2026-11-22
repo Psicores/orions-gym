@@ -148,11 +148,10 @@ return [
     |
     | Con false, cada cuenta del personal decide si la activa desde su perfil.
     | Con true, el panel obliga a activarla en el próximo ingreso.
-    | Sin STAFF_TWO_FACTOR_REQUIRED (o vacía) es obligatoria solo en producción
-    | (ver AdminPanelProvider): para apagarla allí hay que poner false a propósito.
+    | Sin definir es opcional en todos los entornos.
     |
     */
 
-    'staff_two_factor_required' => env('STAFF_TWO_FACTOR_REQUIRED'),
+    'staff_two_factor_required' => (bool) env('STAFF_TWO_FACTOR_REQUIRED', false),
 
 ];

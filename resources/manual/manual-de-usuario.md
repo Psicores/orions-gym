@@ -100,7 +100,7 @@ Cuando el vencimiento está cerca o ya pasó, debajo de la fecha aparece una acl
 
 ### Activar la verificación en dos pasos
 
-Agrega una segunda barrera: además de la contraseña, el panel pide un código que cambia cada 30 segundos.
+Es opcional: la activás si querés, desde tu perfil. Agrega una segunda barrera: además de la contraseña, el panel pide un código que cambia cada 30 segundos.
 
 1. Instalá en el celular una app de autenticación (Google Authenticator, Authy o similar).
 2. En el panel, abrí el **menú de usuario → Perfil**.
@@ -613,7 +613,7 @@ Hoy todas las cuentas del personal tienen los mismos permisos en el panel, y **n
 | --- | --- |
 | Cambiar el código del QR de ingreso | Cambiar `GYM_CHECKIN_TOKEN` en el `.env`, correr `php artisan config:cache` y reimprimir el cartel |
 | Destrabar a alguien del personal que perdió su celular | `php artisan staff:disable-two-factor su@email.com` |
-| Verificación en dos pasos del personal | Ya es obligatoria en producción. Para volverla opcional: `STAFF_TWO_FACTOR_REQUIRED=false` en el `.env` y `php artisan config:cache` |
+| Obligar al personal a usar verificación en dos pasos | Hoy es opcional. Para obligarla: `STAFF_TWO_FACTOR_REQUIRED=true` en el `.env` y `php artisan config:cache` |
 | Borrar los clientes y anuncios de ejemplo | `php artisan demo:remove` |
 | Correr a mano el cierre de meses | `php artisan memberships:update-completed-cycles` |
 | Correr a mano la red de seguridad de renovaciones | `php artisan memberships:renew-credits` |
