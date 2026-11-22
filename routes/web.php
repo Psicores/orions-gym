@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\CspReportController;
 use App\Http\Controllers\MemberSessionController;
 use App\Http\Middleware\EnsureMemberHasOwnPassword;
 use App\Http\Middleware\EnsureMemberSessionIsCurrent;
@@ -9,6 +10,7 @@ use App\Livewire\MemberHistory;
 use App\Livewire\MemberScan;
 use App\Models\Announcement;
 use App\Models\Plan;
+use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Support\Facades\Route;
 
 // Página pública del gimnasio: muestra los planes vigentes (no dados de baja), del más barato al más caro,
@@ -17,6 +19,13 @@ Route::get('/', fn () => view('welcome', [
     'planes' => Plan::query()->orderBy('precio')->get(),
     'anuncios' => Announcement::query()->active()->latest()->latest('id')->get(),
 ]))->name('inicio');
+
+// Avisos del navegador sobre la política de contenido (ver SecurityHeaders). No lleva token CSRF
+// porque el navegador no lo manda; tiene un límite de 20 avisos por minuto por IP.
+Route::post('/csp-reportes', CspReportController::class)
+    ->withoutMiddleware(PreventRequestForgery::class)
+    ->middleware('throttle:20,1')
+    ->name('csp.report');
 
 // Curev Hue (futura escuela de windsurf): por ahora, una pantalla con su video y el aviso "Próximamente".
 Route::view('/curev-hue', 'curev-hue')->name('curev-hue');
