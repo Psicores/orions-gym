@@ -2,6 +2,7 @@
 
 namespace App\Enums;
 
+use App\Filament\Pages\SiteReviews;
 use App\Filament\Pages\SiteSchedule;
 use App\Filament\Pages\SiteSectionPage;
 use Filament\Support\Contracts\HasDescription;
@@ -166,8 +167,10 @@ enum SiteSectionEnum: string implements HasDescription, HasIcon, HasLabel
         return match ($this) {
             // Horarios, dirección y mapa.
             self::Horarios => SiteSchedule::class,
+            // Reseñas de socios.
+            self::Opiniones => SiteReviews::class,
             // Todavía sin pantalla.
-            self::Portada, self::Comunidad, self::Opiniones => null,
+            self::Portada, self::Comunidad => null,
         };
     }
 
