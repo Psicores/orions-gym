@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\ClientStatusEnum;
+use App\Enums\ConsentOriginEnum;
 use App\Enums\MembershipStatusEnum;
 use App\Enums\PaymentMethodEnum;
 use Carbon\CarbonInterface;
@@ -31,6 +32,8 @@ use InvalidArgumentException;
     'foto_path',
     'certificado_salud_path',
     'observaciones_dolencias',
+    'acepta_avisos_whatsapp',
+    'acepta_novedades',
     'estado',
     'fecha_vencimiento',
 ])]
@@ -44,6 +47,51 @@ class Client extends Authenticatable
 
     // Minutos durante los que un segundo escaneo se toma como el mismo ingreso y no descuenta otro crédito.
     public const int ATTENDANCE_REPEAT_MINUTES = 10;
+
+    /** Permisos de aviso => columna con la fecha en que se dieron. */
+    public const array CONSENTS = [
+        'acepta_avisos_whatsapp' => 'acepta_avisos_whatsapp_at',
+        'acepta_novedades' => 'acepta_novedades_at',
+    ];
+
+    /**
+     * Registra automáticamente cuándo y desde dónde cambian los permisos de aviso.
+     *
+     * Precondiciones:
+     * - Ninguna: Eloquent lo llama una vez al cargar el modelo.
+     *
+     * Postcondiciones:
+     * - Al guardar un cliente con un permiso que cambió: si quedó en true, su fecha pasa a ser
+     *   ahora; si quedó en false, la fecha queda null.
+     * - Si cambió algún permiso y no se indicó el origen, se anota que vino del panel (es el
+     *   único lugar que los cambia sin indicarlo; el portal pasa el suyo, ver updateConsents()).
+     * - Si ningún permiso cambió, no toca ni las fechas ni el origen.
+     */
+    protected static function booted(): void
+    {
+        // Antes de cada guardado (alta o modificación).
+        static::saving(function (Client $client): void {
+            // Si cambió alguno de los dos permisos.
+            $changed = false;
+
+            // Revisa cada permiso.
+            foreach (self::CONSENTS as $consent => $grantedAt) {
+                // Solo los que cambiaron (en un alta, los que se marcaron).
+                if ($client->isDirty($consent) && ($client->exists || $client->{$consent})) {
+                    // Fecha del permiso, o null si se retiró.
+                    $client->{$grantedAt} = $client->{$consent} ? now() : null;
+                    // Hay que anotar el origen.
+                    $changed = true;
+                }
+            }
+
+            // Sin origen explícito, el cambio vino del panel.
+            if ($changed && ! $client->isDirty('consentimiento_origen')) {
+                // Lo cargó el personal.
+                $client->consentimiento_origen = ConsentOriginEnum::AltaPanel;
+            }
+        });
+    }
 
     /**
      * Define cómo se convierten las columnas al leerlas y escribirlas desde el modelo.
@@ -71,6 +119,13 @@ class Client extends Authenticatable
         return [
             // La fecha de nacimiento se maneja como fecha (Carbon) en lugar de texto.
             'fecha_nacimiento' => 'date',
+            // Permisos de aviso como verdadero o falso, con la fecha en que se dieron.
+            'acepta_avisos_whatsapp' => 'boolean',
+            'acepta_avisos_whatsapp_at' => 'datetime',
+            'acepta_novedades' => 'boolean',
+            'acepta_novedades_at' => 'datetime',
+            // Desde dónde se registró el último cambio de esos permisos.
+            'consentimiento_origen' => ConsentOriginEnum::class,
             // El estado se maneja como el enum ClientStatusEnum en lugar de texto suelto.
             'estado' => ClientStatusEnum::class,
             // La fecha de vencimiento de la cuota se maneja como fecha (Carbon).
@@ -130,6 +185,69 @@ class Client extends Authenticatable
 
         // Sin arroba es un DNI: lo busca tal cual y también solo con sus dígitos.
         return static::query()->whereIn('dni', array_filter([$usuario, static::normalizeDni($usuario)]))->first();
+    }
+
+    /**
+     * Cambia los dos permisos de aviso del cliente y anota desde dónde se cambiaron.
+     *
+     * Precondiciones:
+     * - El cliente existe en la base.
+     *
+     * Postcondiciones:
+     * - acepta_avisos_whatsapp y acepta_novedades quedan con los valores recibidos.
+     * - El permiso que cambió queda con la fecha de ahora (si se dio) o sin fecha (si se retiró);
+     *   el que no cambió conserva la suya (ver booted()).
+     * - Si alguno cambió, consentimiento_origen queda en $origin. Si ninguno cambió, no se
+     *   modifica nada.
+     *
+     * @param  bool  $whatsappNotices  Acepta avisos de su cuenta por WhatsApp.
+     * @param  bool  $news  Acepta promociones, eventos y novedades.
+     * @param  ConsentOriginEnum  $origin  Desde dónde se hace el cambio.
+     */
+    public function updateConsents(bool $whatsappNotices, bool $news, ConsentOriginEnum $origin): void
+    {
+        // Asigna los dos permisos.
+        $this->acepta_avisos_whatsapp = $whatsappNotices;
+        $this->acepta_novedades = $news;
+
+        // Sin cambios no hay nada que guardar ni que registrar.
+        if (! $this->isDirty(array_keys(self::CONSENTS))) {
+            return;
+        }
+
+        // Anota el origen; las fechas las completa booted() al guardar.
+        $this->consentimiento_origen = $origin;
+        $this->save();
+    }
+
+    /**
+     * Resume un permiso de aviso para mostrarlo en la ficha del cliente.
+     *
+     * Precondiciones:
+     * - $consent es una clave de CONSENTS.
+     *
+     * Postcondiciones:
+     * - Si el permiso está dado: "Sí, desde el dd/mm/aaaa", más el origen del último cambio si
+     *   está anotado (por ejemplo "· registrado en el portal").
+     * - Si no: "No". No modifica nada.
+     *
+     * @param  string  $consent  Permiso a resumir.
+     * @return string Texto para la ficha.
+     */
+    public function consentSummary(string $consent): string
+    {
+        // Sin permiso, un "No" alcanza.
+        if (! $this->{$consent}) {
+            return 'No';
+        }
+
+        // Fecha en que se dio (puede faltar en datos viejos).
+        $since = $this->{self::CONSENTS[$consent]}?->format('d/m/Y');
+        // Desde dónde se registró el último cambio.
+        $origin = $this->consentimiento_origen?->getLabel();
+
+        // "Sí, desde el 22/11/2026 · registrado en el portal".
+        return 'Sí'.($since ? ', desde el '.$since : '').($origin ? ' · registrado en '.$origin : '');
     }
 
     /**

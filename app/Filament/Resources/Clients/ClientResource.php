@@ -15,6 +15,7 @@ use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\RestoreBulkAction;
+use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
@@ -24,6 +25,7 @@ use Filament\Infolists\Components\ImageEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Fieldset;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Tabs\Tab;
@@ -189,6 +191,32 @@ class ClientResource extends Resource
                                     ->dehydrated(false)
                                     // Explica de dónde sale el valor.
                                     ->helperText('Se calcula solo: es el vencimiento más lejano de sus membresías.'),
+                                // Permisos de aviso: dos casillas separadas que empiezan destildadas. El socio
+                                // también los cambia desde su portal; la fecha y el origen se anotan solos.
+                                Fieldset::make('Avisos')
+                                    // Una casilla por fila en el celular, las dos juntas en pantallas grandes.
+                                    ->columns(['default' => 1, 'lg' => 2])
+                                    // Ocupa el ancho completo de la pestaña.
+                                    ->columnSpanFull()
+                                    // Las dos casillas.
+                                    ->schema([
+                                        // Avisos de su cuenta.
+                                        Checkbox::make('acepta_avisos_whatsapp')
+                                            // Texto junto a la casilla.
+                                            ->label('Acepta avisos de su cuenta por WhatsApp')
+                                            // Qué avisos son.
+                                            ->helperText('Vencimiento de la cuota, pago recibido y créditos agotados.')
+                                            // Destildada: solo se marca si el socio lo pide.
+                                            ->default(false),
+                                        // Promociones y novedades.
+                                        Checkbox::make('acepta_novedades')
+                                            // Texto junto a la casilla.
+                                            ->label('Acepta recibir novedades')
+                                            // Qué recibe.
+                                            ->helperText('Promociones, eventos y novedades del gimnasio.')
+                                            // Destildada: solo se marca si el socio lo pide.
+                                            ->default(false),
+                                    ]),
                                 // Área de texto libre para dolencias u observaciones (opcional), al final de la pestaña.
                                 Textarea::make('observaciones_dolencias')
                                     // Texto que ve el usuario sobre el campo.
@@ -437,6 +465,18 @@ class ClientResource extends Resource
                             ->icon(Heroicon::OutlinedEnvelope)
                             // Al tocarlo, abre el programa de correo.
                             ->url(fn (Client $record): string => "mailto:{$record->email}"),
+                        // Permiso de avisos de la cuenta, con desde cuándo y de dónde.
+                        TextEntry::make('acepta_avisos_whatsapp')
+                            // Etiqueta del dato.
+                            ->label('Avisos por WhatsApp')
+                            // "Sí, desde el 22/11/2026 (lo eligió en el portal)" o "No".
+                            ->state(fn (Client $record): string => $record->consentSummary('acepta_avisos_whatsapp')),
+                        // Permiso de novedades, con desde cuándo y de dónde.
+                        TextEntry::make('acepta_novedades')
+                            // Etiqueta del dato.
+                            ->label('Novedades')
+                            // "Sí, desde el 22/11/2026 (lo cargó el panel)" o "No".
+                            ->state(fn (Client $record): string => $record->consentSummary('acepta_novedades')),
                         // Fecha de nacimiento con la edad.
                         TextEntry::make('fecha_nacimiento')
                             // Etiqueta del dato.

@@ -31,6 +31,42 @@
     </dl>
     <p class="mt-2 text-sm text-ceniza">¿Algún dato está mal? Avisá en recepción.</p>
 
+    <h2 class="mt-9 font-display text-2xl uppercase">Avisos</h2>
+    <p class="mt-2 text-sm text-ceniza">Elegí qué querés recibir. Lo podés cambiar cuando quieras.</p>
+
+    @if ($consentsSaved)
+        <p role="status" class="mt-3 rounded-2xl border border-salvia/40 bg-salvia/10 px-4 py-3 text-sm text-niebla">
+            Listo: guardamos tus preferencias.
+        </p>
+    @endif
+
+    <form wire:submit="updateConsents" class="mt-4">
+        <div class="divide-y divide-carbon-700 rounded-2xl border border-carbon-700 bg-carbon-800 px-5">
+            <label class="flex cursor-pointer items-start gap-3 py-4">
+                <input type="checkbox" wire:model="acepta_avisos_whatsapp" class="mt-1 size-5 shrink-0 cursor-pointer rounded border-carbon-700 bg-carbon accent-salvia">
+                <span>
+                    <span class="block font-semibold">Avisos de mi cuenta por WhatsApp</span>
+                    <span class="mt-0.5 block text-sm text-ceniza">Vencimiento de la cuota, pago recibido y créditos agotados.</span>
+                </span>
+            </label>
+            <label class="flex cursor-pointer items-start gap-3 py-4">
+                <input type="checkbox" wire:model="acepta_novedades" class="mt-1 size-5 shrink-0 cursor-pointer rounded border-carbon-700 bg-carbon accent-salvia">
+                <span>
+                    <span class="block font-semibold">Novedades del gimnasio</span>
+                    <span class="mt-0.5 block text-sm text-ceniza">Promociones, eventos y novedades.</span>
+                </span>
+            </label>
+        </div>
+
+        <button
+            type="submit"
+            wire:loading.attr="disabled"
+            class="mt-4 w-full cursor-pointer rounded-full border border-salvia px-8 py-4 text-sm font-bold tracking-widest text-niebla uppercase transition hover:bg-salvia hover:text-carbon focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-salvia-light disabled:opacity-60"
+        >
+            Guardar avisos
+        </button>
+    </form>
+
     <h2 class="mt-9 font-display text-2xl uppercase">Cambiar contraseña</h2>
 
     @if ($saved)

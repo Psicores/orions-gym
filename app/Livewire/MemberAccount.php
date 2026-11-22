@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use App\Enums\ConsentOriginEnum;
 use App\Http\Middleware\EnsureMemberSessionIsCurrent;
 use App\Models\Client;
 use Illuminate\Contracts\View\View;
@@ -14,7 +15,8 @@ use Livewire\Attributes\Title;
 use Livewire\Component;
 
 /**
- * "Mi cuenta" del portal del socio: sus datos, el cambio de contraseña y el botón para salir.
+ * "Mi cuenta" del portal del socio: sus datos, los permisos de aviso, el cambio de contraseña y el
+ * botón para salir.
  */
 #[Layout('layouts::member')]
 #[Title('Mi cuenta')]
@@ -31,6 +33,57 @@ class MemberAccount extends Component
 
     // Se pone en true después de guardar, para mostrar el aviso de éxito.
     public bool $saved = false;
+
+    // Acepta avisos de su cuenta por WhatsApp (casilla del formulario "Avisos").
+    public bool $acepta_avisos_whatsapp = false;
+
+    // Acepta promociones, eventos y novedades (casilla del formulario "Avisos").
+    public bool $acepta_novedades = false;
+
+    // Se pone en true después de guardar los avisos, para mostrar el aviso de éxito.
+    public bool $consentsSaved = false;
+
+    /**
+     * Carga en las casillas los permisos de aviso que el socio tiene hoy.
+     *
+     * Precondiciones:
+     * - Hay un socio con sesión en el guard "client" (lo garantiza la ruta).
+     *
+     * Postcondiciones:
+     * - Las dos casillas muestran lo guardado. No modifica nada.
+     */
+    public function mount(): void
+    {
+        /** @var Client $client Socio con la sesión iniciada. */
+        $client = Auth::guard('client')->user();
+
+        // Lo que tiene guardado.
+        $this->acepta_avisos_whatsapp = (bool) $client->acepta_avisos_whatsapp;
+        $this->acepta_novedades = (bool) $client->acepta_novedades;
+    }
+
+    /**
+     * Guarda los permisos de aviso que eligió el socio.
+     *
+     * Precondiciones:
+     * - Hay un socio con sesión en el guard "client" (lo garantiza la ruta).
+     *
+     * Postcondiciones:
+     * - Los dos permisos quedan como las casillas. El que cambió queda con la fecha de ahora (o
+     *   sin fecha, si lo retiró) y el origen pasa a ser el portal (ver Client::updateConsents()).
+     * - $consentsSaved queda en true para mostrar la confirmación.
+     */
+    public function updateConsents(): void
+    {
+        /** @var Client $client Socio con la sesión iniciada. */
+        $client = Auth::guard('client')->user();
+
+        // Guarda los dos permisos, anotando que los cambió el socio.
+        $client->updateConsents($this->acepta_avisos_whatsapp, $this->acepta_novedades, ConsentOriginEnum::Portal);
+
+        // Muestra la confirmación.
+        $this->consentsSaved = true;
+    }
 
     /**
      * Cambia la contraseña del socio que tiene la sesión iniciada.
