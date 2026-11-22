@@ -18,12 +18,14 @@
     <body class="bg-carbon font-sans text-niebla antialiased selection:bg-oxido selection:text-carbon">
         <main>
             <section class="relative flex h-screen min-h-[36rem] items-center justify-center overflow-hidden">
+                {{-- La imagen fija se ve mientras carga el video (o si el navegador no lo reproduce). --}}
                 <video
                     autoplay muted loop playsinline preload="metadata"
+                    poster="{{ asset('images/video-windsurf.webp') }}"
                     aria-hidden="true"
                     class="absolute inset-0 size-full object-cover"
                 >
-                    <source src="{{ asset('images/windsurf.mp4') }}" type="video/mp4">
+                    <source src="{{ asset('images/video-windsurf.mp4') }}" type="video/mp4">
                 </video>
                 {{-- Oscurece el video para que el texto se lea. --}}
                 <div class="absolute inset-0 bg-carbon/45"></div>
@@ -41,7 +43,7 @@
 
                         <a href="{{ route('inicio') }}" aria-label="Orions, inicio" class="justify-self-center">
                             {{-- Mismo tratamiento del logo que en el inicio: el header no debe tener z-index ni opacidad propios. --}}
-                            <img src="{{ asset('images/logo1.jpg') }}" alt="Orions" width="64" height="72" class="h-14 w-auto mix-blend-screen invert sm:h-18">
+                            <img src="{{ asset('images/logo.webp') }}" alt="Orions" width="64" height="72" class="h-14 w-auto mix-blend-screen invert sm:h-18">
                         </a>
                     </nav>
                 </header>

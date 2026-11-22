@@ -27,6 +27,6 @@ class ExampleTest extends TestCase
         $this->get(route('curev-hue'))
             ->assertOk()
             ->assertSee('Próximamente')
-            ->assertSee('images/windsurf.mp4');
+            ->assertSee('images/video-windsurf.mp4');
     }
 }
