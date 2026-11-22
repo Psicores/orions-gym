@@ -29,9 +29,9 @@ class AgencyCreditTest extends TestCase
             ->assertSeeInOrder([...self::CREDIT, 'aria-label="Portal del socio"'], escape: false);
     }
 
-    public function test_the_admin_panel_shows_the_agency_credit_on_its_pages_and_on_its_login(): void
+    public function test_the_admin_panel_shows_the_agency_credit_on_its_pages_and_on_the_shared_login(): void
     {
-        $this->get(filament()->getPanel('admin')->getLoginUrl())
+        $this->get(route('login'))
             ->assertOk()
             ->assertSeeInOrder(self::CREDIT, escape: false);
 

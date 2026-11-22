@@ -31,7 +31,8 @@ class AdminPanelProvider extends PanelProvider
             ->path('admin')
             // Nombre que muestra el panel (arriba a la izquierda y en el título de la pestaña).
             ->brandName('Orions')
-            ->login()
+            // Sin login propio: todos entran por /ingresar (ver MemberSessionController). Quien abre
+            // el panel sin sesión va ahí, y /admin/login redirige ahí (ver routes/web.php).
             // Perfil del usuario del personal: nombre, email, contraseña y verificación en dos pasos.
             ->profile()
             // Verificación en dos pasos con una app de autenticación, con códigos de recuperación.
@@ -100,11 +101,6 @@ class AdminPanelProvider extends PanelProvider
             // Firma de la agencia al pie de cada pantalla del panel.
             ->renderHook(
                 PanelsRenderHook::FOOTER,
-                fn (): View => view('filament.admin.credit'),
-            )
-            // Y debajo del formulario de ingreso del panel.
-            ->renderHook(
-                PanelsRenderHook::AUTH_LOGIN_FORM_AFTER,
                 fn (): View => view('filament.admin.credit'),
             )
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')

@@ -230,6 +230,6 @@ class CheckInTest extends TestCase
     {
         $this->actingAs(Client::factory()->create(), 'client')
             ->get(CheckInQr::getUrl())
-            ->assertRedirect(filament()->getLoginUrl());
+            ->assertRedirect(route('login'));
     }
 }

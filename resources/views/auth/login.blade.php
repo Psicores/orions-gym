@@ -80,6 +80,9 @@
             </form>
 
             <a href="{{ route('inicio') }}" class="mt-8 text-center text-sm text-ceniza transition hover:text-niebla">← Volver al sitio</a>
+
+            {{-- Firma de la agencia (también es el ingreso del personal al panel). --}}
+            @include('partials.devkore-credit', ['class' => 'mt-6 text-center'])
         </main>
     </body>
 </html>

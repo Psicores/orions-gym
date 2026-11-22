@@ -172,7 +172,7 @@ class MemberLoginTest extends TestCase
     {
         $this->actingAs(Client::factory()->withDniAsPassword()->create(), 'client')
             ->get(Filament::getPanel('admin')->getUrl())
-            ->assertRedirect(Filament::getPanel('admin')->getLoginUrl());
+            ->assertRedirect(route('login'));
     }
 
     public function test_someone_already_logged_in_skips_the_login_screen(): void
