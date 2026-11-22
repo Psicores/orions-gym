@@ -21,8 +21,8 @@ use Illuminate\Validation\ValidationException;
  * Ingreso y salida del sitio: una sola pantalla de login para socios y personal.
  *
  * Los socios son el modelo Client (guard "client") y van a su portal en /mi-perfil; el personal
- * es el modelo User (guard "web") y va al panel /admin. El panel conserva además su login propio
- * en /admin/login.
+ * es el modelo User (guard "web") y va al panel /admin. El panel no tiene login propio: quien lo
+ * abre sin sesión llega acá, y /admin/login redirige acá.
  */
 class MemberSessionController extends Controller
 {
@@ -128,7 +128,7 @@ class MemberSessionController extends Controller
             EnsureMemberSessionIsCurrent::stampSession($client);
 
             // Termina el ingreso y lo lleva a donde iba o a su inicio.
-            return $this->finishLogin($request, $throttleKey, redirect()->intended(route('member.dashboard')));
+            return $this->finishLogin($request, $throttleKey, $this->redirectWithin($request, route('member.dashboard')));
         }
 
         // Después, como personal (entra con su email), si además puede entrar al panel (por
@@ -155,7 +155,7 @@ class MemberSessionController extends Controller
             Auth::guard('web')->login($user);
 
             // Termina el ingreso y lo lleva al panel.
-            return $this->finishLogin($request, $throttleKey, redirect()->to(Filament::getPanel('admin')->getUrl()));
+            return $this->finishLogin($request, $throttleKey, $this->redirectWithin($request, Filament::getPanel('admin')->getUrl()));
         }
 
         // Cuenta el intento fallido (se olvida al minuto).
@@ -375,7 +375,7 @@ class MemberSessionController extends Controller
         Auth::guard('web')->login($user);
 
         // Termina el ingreso y lo lleva al panel.
-        return $this->finishLogin($request, $throttleKey, redirect()->to(Filament::getPanel('admin')->getUrl()));
+        return $this->finishLogin($request, $throttleKey, $this->redirectWithin($request, Filament::getPanel('admin')->getUrl()));
     }
 
     /**
@@ -521,6 +521,34 @@ class MemberSessionController extends Controller
      * @param  RedirectResponse  $redirect  A dónde va la persona.
      * @return RedirectResponse La redirección recibida.
      */
+    /**
+     * Arma la redirección después de ingresar: a la pantalla que quería ver, si es de su lado.
+     *
+     * Precondiciones:
+     * - $home es la dirección de inicio de quien ingresa: /mi-perfil para un socio, /admin para el
+     *   personal (URL completa).
+     *
+     * Postcondiciones:
+     * - Si antes de ingresar intentó abrir una pantalla que empieza con $home (por ejemplo, un
+     *   enlace a la ficha de un cliente), redirige ahí; si no, a $home. Así un socio nunca termina
+     *   en una pantalla del panel ni el personal en una del portal.
+     * - Olvida la pantalla guardada.
+     *
+     * @param  Request  $request  Pedido actual.
+     * @param  string  $home  Inicio de quien ingresa.
+     * @return RedirectResponse La redirección.
+     */
+    private function redirectWithin(Request $request, string $home): RedirectResponse
+    {
+        // Pantalla que quiso abrir sin sesión (la guarda Laravel al mandarlo a /ingresar).
+        $intended = $request->session()->pull('url.intended');
+        // Sirve solo si es de su lado: mismo inicio, seguido de nada, "/" o "?".
+        $isOwn = is_string($intended) && preg_match('#^'.preg_quote(rtrim($home, '/'), '#').'(?:[/?]|$)#', $intended) === 1;
+
+        // A esa pantalla o al inicio.
+        return redirect()->to($isOwn ? $intended : $home);
+    }
+
     private function finishLogin(Request $request, string $throttleKey, RedirectResponse $redirect): RedirectResponse
     {
         // Olvida los intentos fallidos anteriores.

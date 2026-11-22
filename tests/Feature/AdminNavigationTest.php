@@ -84,7 +84,7 @@ class AdminNavigationTest extends TestCase
     {
         auth()->logout();
 
-        $this->get(ComingSoon::getUrl(['section' => 'portada']))->assertRedirect(filament()->getLoginUrl());
+        $this->get(ComingSoon::getUrl(['section' => 'portada']))->assertRedirect(route('login'));
     }
 
     /**

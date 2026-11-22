@@ -2,9 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Models\Client;
 use App\Models\User;
 use Filament\Auth\Pages\EditProfile;
-use Filament\Auth\Pages\Login;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -122,18 +122,64 @@ class StaffTwoFactorTest extends TestCase
         Livewire::test(EditProfile::class)->assertOk();
     }
 
-    public function test_the_panel_login_asks_for_the_code_before_opening_the_session(): void
+    public function test_the_old_panel_login_address_leads_to_the_shared_login(): void
     {
-        $user = User::factory()->create(['email' => 'profe@example.com', 'password' => 'clave-segura-1']);
-        $user->saveAppAuthenticationSecret('JBSWY3DPEHPK3PXP');
+        $this->get('/admin/login')->assertRedirect('/ingresar');
+        $this->assertFalse(Filament::getPanel('admin')->hasLogin());
+    }
 
-        Livewire::test(Login::class)
-            ->fillForm(['email' => 'profe@example.com', 'password' => 'clave-segura-1'])
-            ->call('authenticate')
-            ->assertHasNoFormErrors()
-            ->assertNotSet('userUndertakingMultiFactorAuthentication', null);
+    public function test_the_panel_logout_button_still_closes_the_session_and_leads_to_the_shared_login(): void
+    {
+        $this->actingAs(User::factory()->create());
 
+        $this->post(Filament::getPanel('admin')->getLogoutUrl())->assertRedirect(Filament::getPanel('admin')->getUrl());
         $this->assertGuest('web');
+
+        $this->get(Filament::getPanel('admin')->getUrl())->assertRedirect(route('login'));
+    }
+
+    public function test_after_logging_in_staff_land_on_the_panel_screen_they_wanted(): void
+    {
+        User::factory()->create(['email' => 'profe@example.com', 'password' => 'clave-segura-1']);
+        $wanted = Filament::getPanel('admin')->getUrl().'/clientes';
+
+        $this->get($wanted)->assertRedirect(route('login'));
+
+        $this->post(route('login.store'), ['usuario' => 'profe@example.com', 'password' => 'clave-segura-1'])
+            ->assertRedirect($wanted);
+    }
+
+    public function test_staff_never_land_on_a_member_screen_after_logging_in(): void
+    {
+        User::factory()->create(['email' => 'profe@example.com', 'password' => 'clave-segura-1']);
+
+        $this->get(route('member.history'))->assertRedirect(route('login'));
+
+        $this->post(route('login.store'), ['usuario' => 'profe@example.com', 'password' => 'clave-segura-1'])
+            ->assertRedirect(Filament::getPanel('admin')->getUrl());
+    }
+
+    public function test_staff_with_two_factor_also_land_on_the_screen_they_wanted(): void
+    {
+        $this->staffWithTwoFactor();
+        $wanted = Filament::getPanel('admin')->getUrl().'/planes';
+
+        $this->get($wanted);
+        $this->post(route('login.store'), ['usuario' => 'profe@example.com', 'password' => 'clave-segura-1'])
+            ->assertRedirect(route('login.code'));
+
+        $this->post(route('login.code.store'), ['codigo' => (new Google2FA)->getCurrentOtp(self::SECRET)])
+            ->assertRedirect($wanted);
+    }
+
+    public function test_a_member_never_lands_on_a_panel_screen_after_logging_in(): void
+    {
+        Client::factory()->create(['dni' => '30123456', 'password' => 'clave-propia-1']);
+
+        $this->get(Filament::getPanel('admin')->getUrl().'/clientes')->assertRedirect(route('login'));
+
+        $this->post(route('login.store'), ['usuario' => '30123456', 'password' => 'clave-propia-1'])
+            ->assertRedirect(route('member.dashboard'));
     }
 
     public function test_the_console_command_disables_two_factor_for_a_locked_out_account(): void

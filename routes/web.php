@@ -43,6 +43,9 @@ Route::middleware('guest:client,web')->group(function (): void {
     Route::post('/ingresar/codigo', [MemberSessionController::class, 'storeCode'])->name('login.code.store');
 });
 
+// El panel ya no tiene login propio: la dirección vieja (favoritos, enlaces guardados) lleva al ingreso único.
+Route::redirect('/admin/login', '/ingresar')->name('admin.login');
+
 // Portal del socio: solo con sesión de socio (guard "client"); sin ella redirige a /ingresar.
 // Si la contraseña cambió después de abrir la sesión (desde otro dispositivo o por un
 // restablecimiento del personal), la sesión se cierra y tiene que volver a ingresar.

@@ -26,7 +26,7 @@ administrador) y **socios**. No hay roles diferenciados dentro del personal.
 
 ## Guía de uso para el personal
 
-Se entra en `/ingresar` (o `/admin/login`) con el email y la contraseña de la cuenta. El menú
+Se entra en `/ingresar` con el email y la contraseña de la cuenta (`/admin/login` redirige ahí). El menú
 tiene **Escritorio**, **Clientes**, **QR de ingreso**, **Manual de uso** (solo el administrador) y el
 grupo **Admin del sitio**.
 
@@ -343,7 +343,7 @@ que estar en `false`. Después de cambiar el `.env`, correr `php artisan config:
 - **Verificación en dos pasos del personal.** Cada cuenta la activa desde su **Perfil** (menú de
   usuario del panel) con una app de autenticación, y guarda los códigos de recuperación. Es opcional:
   nadie está obligado (salvo `STAFF_TWO_FACTOR_REQUIRED=true`). Quien la tiene activa ingresa igual por `/ingresar`: después de la contraseña se le pide el código de la app (o
-  un código de recuperación). `/admin/login` también lo pide. Si alguien pierde el celular y los
+  un código de recuperación). Si alguien pierde el celular y los
   códigos: `php artisan staff:disable-two-factor su@email.com` desde el servidor.
 - **Observaciones de salud cifradas.** En la base y en sus backups no se pueden leer: solo el
   sistema las descifra, con la `APP_KEY` del `.env`. **Si esa clave se pierde o se cambia, las
