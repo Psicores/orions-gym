@@ -11,6 +11,7 @@ use Database\Factories\ClientFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -21,6 +22,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
+use libphonenumber\PhoneNumberUtil;
+use Propaganistas\LaravelPhone\PhoneNumber;
 
 #[Fillable([
     'dni',
@@ -47,6 +50,9 @@ class Client extends Authenticatable
 
     // Minutos durante los que un segundo escaneo se toma como el mismo ingreso y no descuenta otro crédito.
     public const int ATTENDANCE_REPEAT_MINUTES = 10;
+
+    // País de los celulares (código ISO): define cómo se interpretan la característica, el 0 y el 15.
+    public const string CEL_COUNTRY = 'AR';
 
     /** Permisos de aviso => columna con la fecha en que se dieron. */
     public const array CONSENTS = [
@@ -155,6 +161,124 @@ class Client extends Authenticatable
     {
         // Borra todo lo que no sea un dígito.
         return preg_replace('/\D+/', '', $dni);
+    }
+
+    /**
+     * Lleva un celular argentino, escrito como sea, al formato internacional único que usa
+     * WhatsApp (E.164): "280 15 412-3456", "02804123456" y "2804123456" dan "+5492804123456".
+     *
+     * Precondiciones:
+     * - Ninguna: acepta cualquier texto o null.
+     *
+     * Postcondiciones:
+     * - Si es un celular argentino válido, devuelve "+549" seguido de la característica y el
+     *   número, sin el 0 ni el 15.
+     * - Un número de 10 dígitos sin 15 (por ejemplo "1123456789") se toma como celular: el campo
+     *   es "Celular" y así lo escribe mucha gente.
+     * - Si está vacío, no es un número, le faltan o sobran dígitos, no tiene característica o es
+     *   de otro país, devuelve null.
+     * - No modifica nada.
+     *
+     * @param  string|null  $cel  Celular tal como lo escribió alguien.
+     * @return string|null El celular en formato E.164, o null si no es válido.
+     */
+    public static function normalizeCel(?string $cel): ?string
+    {
+        // Sin nada escrito no hay celular.
+        if (blank($cel)) {
+            return null;
+        }
+
+        // Lo interpreta como un número de Argentina (saca el 0 y el 15 de la característica).
+        $number = new PhoneNumber($cel, self::CEL_COUNTRY);
+
+        // Tiene que ser un número posible y de Argentina.
+        if (! $number->isValid() || ! $number->isOfCountry(self::CEL_COUNTRY)) {
+            return null;
+        }
+
+        // Número nacional, sin el +54 (por ejemplo "2804123456" o "92804123456").
+        $national = PhoneNumberUtil::getInstance()->getNationalSignificantNumber($number->toLibPhoneObject());
+
+        // Sin el 9 de celular, la librería lo toma como fijo: se lo agrega.
+        if (! str_starts_with($national, '9')) {
+            // Mismo número, marcado como celular.
+            $number = new PhoneNumber('+549'.$national);
+        }
+
+        // Si con el 9 sigue siendo un celular válido, lo devuelve en formato internacional.
+        return $number->isValid() && $number->isOfType('mobile') ? $number->formatE164() : null;
+    }
+
+    /**
+     * Indica si el celular guardado ya está en el formato único (ver normalizeCel()).
+     *
+     * Precondiciones:
+     * - Ninguna.
+     *
+     * Postcondiciones:
+     * - Devuelve true si cel es un celular argentino en formato E.164.
+     * - Devuelve false si está vacío o si quedó un valor viejo que no se pudo normalizar.
+     * - No modifica nada.
+     *
+     * @return bool true si se le puede escribir por WhatsApp.
+     */
+    public function hasValidCel(): bool
+    {
+        // Es válido si normalizarlo no lo cambia.
+        return filled($this->cel) && self::normalizeCel($this->cel) === $this->cel;
+    }
+
+    /**
+     * Celular para mostrar en pantalla, legible: "+5492804123456" da "+54 9 280 412-3456".
+     *
+     * Precondiciones:
+     * - Ninguna: acepta cualquier texto o null.
+     *
+     * Postcondiciones:
+     * - Si es un celular argentino válido, lo devuelve con espacios y guion.
+     * - Si no se puede interpretar (un valor viejo mal cargado), lo devuelve tal cual.
+     * - Si está vacío, devuelve null. No modifica nada.
+     *
+     * @param  string|null  $cel  Celular guardado o escrito.
+     * @return string|null Celular legible, o null.
+     */
+    public static function formatCel(?string $cel): ?string
+    {
+        // Sin celular no hay nada que mostrar.
+        if (blank($cel)) {
+            return null;
+        }
+
+        // Formato único, si es un celular válido.
+        $normalized = self::normalizeCel($cel);
+
+        // Solo un celular válido se puede formatear; el resto se muestra como está.
+        return $normalized !== null ? (new PhoneNumber($normalized))->formatInternational() : $cel;
+    }
+
+    /**
+     * Normaliza el celular cada vez que se asigna, venga de donde venga (panel, portal,
+     * datos de ejemplo).
+     *
+     * Precondiciones:
+     * - Ninguna.
+     *
+     * Postcondiciones:
+     * - Un celular argentino válido se guarda en formato E.164 (ver normalizeCel()).
+     * - Un texto vacío se guarda como null.
+     * - Un valor que no se puede normalizar se guarda tal cual, sin espacios en las puntas, para
+     *   no perder el dato (los formularios ya lo rechazan con la regla ArgentineMobile).
+     *
+     * @return Attribute<string|null, string|null>
+     */
+    protected function cel(): Attribute
+    {
+        // Solo cambia la escritura; la lectura devuelve lo guardado.
+        return Attribute::make(
+            // Normalizado, o el texto original si no se pudo.
+            set: fn (?string $value): ?string => blank($value) ? null : (self::normalizeCel($value) ?? trim($value)),
+        );
     }
 
     /**

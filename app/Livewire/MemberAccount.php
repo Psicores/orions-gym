@@ -5,6 +5,7 @@ namespace App\Livewire;
 use App\Enums\ConsentOriginEnum;
 use App\Http\Middleware\EnsureMemberSessionIsCurrent;
 use App\Models\Client;
+use App\Rules\ArgentineMobile;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
@@ -15,8 +16,8 @@ use Livewire\Attributes\Title;
 use Livewire\Component;
 
 /**
- * "Mi cuenta" del portal del socio: sus datos, los permisos de aviso, el cambio de contraseña y el
- * botón para salir.
+ * "Mi cuenta" del portal del socio: sus datos, su celular, los permisos de aviso, el cambio de
+ * contraseña y el botón para salir.
  */
 #[Layout('layouts::member')]
 #[Title('Mi cuenta')]
@@ -43,6 +44,12 @@ class MemberAccount extends Component
     // Se pone en true después de guardar los avisos, para mostrar el aviso de éxito.
     public bool $consentsSaved = false;
 
+    // Celular del socio (formulario "Tu celular").
+    public string $cel = '';
+
+    // Se pone en true después de guardar el celular, para mostrar el aviso de éxito.
+    public bool $celSaved = false;
+
     /**
      * Carga en las casillas los permisos de aviso que el socio tiene hoy.
      *
@@ -50,7 +57,7 @@ class MemberAccount extends Component
      * - Hay un socio con sesión en el guard "client" (lo garantiza la ruta).
      *
      * Postcondiciones:
-     * - Las dos casillas muestran lo guardado. No modifica nada.
+     * - Las dos casillas y el celular muestran lo guardado (el celular, legible). No modifica nada.
      */
     public function mount(): void
     {
@@ -60,6 +67,44 @@ class MemberAccount extends Component
         // Lo que tiene guardado.
         $this->acepta_avisos_whatsapp = (bool) $client->acepta_avisos_whatsapp;
         $this->acepta_novedades = (bool) $client->acepta_novedades;
+        // Celular legible (+54 9 280 412-3456), o vacío.
+        $this->cel = (string) Client::formatCel($client->cel);
+    }
+
+    /**
+     * Guarda el celular que escribió el socio.
+     *
+     * Precondiciones:
+     * - Hay un socio con sesión en el guard "client" (lo garantiza la ruta).
+     *
+     * Postcondiciones:
+     * - Si es un celular argentino válido, queda guardado en formato +549... (ver
+     *   Client::normalizeCel()), el campo lo muestra legible y $celSaved queda en true.
+     * - Si está vacío o no es válido, muestra el error en el campo y no guarda nada.
+     *
+     * @throws ValidationException Si el celular no pasa la validación.
+     */
+    public function updateCel(): void
+    {
+        // Oculta el aviso de un guardado anterior.
+        $this->celSaved = false;
+
+        // Obligatorio acá (es lo que vino a completar) y tiene que ser un celular argentino.
+        $this->validate(
+            ['cel' => ['required', 'string', 'max:255', new ArgentineMobile]],
+            attributes: ['cel' => 'celular'],
+        );
+
+        /** @var Client $client Socio con la sesión iniciada. */
+        $client = Auth::guard('client')->user();
+
+        // El modelo lo normaliza al asignarlo.
+        $client->update(['cel' => $this->cel]);
+
+        // Lo muestra como quedó guardado.
+        $this->cel = (string) Client::formatCel($client->cel);
+        // Muestra la confirmación.
+        $this->celSaved = true;
     }
 
     /**

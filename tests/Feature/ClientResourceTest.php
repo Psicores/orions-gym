@@ -241,9 +241,10 @@ class ClientResourceTest extends TestCase
                 'apellido' => 'required',
                 'dni' => 'required',
                 'fecha_nacimiento' => 'required',
-                'cel' => 'required',
                 'email' => 'required',
-            ]);
+            ])
+            // El celular es opcional: lo puede completar el socio en su portal.
+            ->assertHasNoFormErrors(['cel']);
 
         $this->assertDatabaseCount(Client::class, 0);
     }

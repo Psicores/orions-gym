@@ -10,6 +10,7 @@ use App\Filament\Resources\Clients\Pages\ViewClient;
 use App\Filament\Resources\Clients\RelationManagers\MembershipsRelationManager;
 use App\Filament\Resources\Clients\RelationManagers\PaymentsRelationManager;
 use App\Models\Client;
+use App\Rules\ArgentineMobile;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -148,8 +149,14 @@ class ClientResource extends Resource
                                     ->label('Celular')
                                     // Lo marca como teléfono (en el celular abre el teclado numérico).
                                     ->tel()
-                                    // No se puede guardar vacío.
-                                    ->required()
+                                    // Ejemplo de cómo escribirlo.
+                                    ->placeholder('280 15 412-3456')
+                                    // Es opcional: el socio lo puede completar después desde su portal.
+                                    ->helperText('Con la característica. Si no lo tenés ahora, el socio lo completa en su portal.')
+                                    // Al editar, lo muestra legible (+54 9 280 412-3456) en lugar de pegado.
+                                    ->formatStateUsing(fn (?string $state): ?string => Client::formatCel($state))
+                                    // Tiene que ser un celular argentino; el modelo lo guarda como +549...
+                                    ->rule(new ArgentineMobile)
                                     // Máximo de caracteres, igual al de la columna string.
                                     ->maxLength(255),
                                 // Campo de texto para el email (columna email).
@@ -455,8 +462,18 @@ class ClientResource extends Resource
                             ->label('Celular')
                             // Ícono de teléfono.
                             ->icon(Heroicon::OutlinedPhone)
-                            // Al tocarlo, abre la app de llamadas.
-                            ->url(fn (Client $record): string => "tel:{$record->cel}"),
+                            // Legible: +54 9 280 412-3456.
+                            ->formatStateUsing(fn (?string $state): ?string => Client::formatCel($state))
+                            // Sin celular cargado.
+                            ->placeholder('Sin cargar')
+                            // Un valor viejo que no es un celular válido se marca en ámbar para revisarlo.
+                            ->color(fn (Client $record): ?string => $record->hasValidCel() ? null : 'warning')
+                            // Explica qué revisar.
+                            ->hint(fn (Client $record): ?string => filled($record->cel) && ! $record->hasValidCel() ? 'Revisar: no es un celular válido' : null)
+                            // Color del aviso.
+                            ->hintColor('warning')
+                            // Al tocarlo, abre la app de llamadas (solo si hay celular).
+                            ->url(fn (Client $record): ?string => filled($record->cel) ? "tel:{$record->cel}" : null),
                         // Email, con enlace para escribirle.
                         TextEntry::make('email')
                             // Etiqueta del dato.

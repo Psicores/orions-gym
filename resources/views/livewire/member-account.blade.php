@@ -31,6 +31,36 @@
     </dl>
     <p class="mt-2 text-sm text-ceniza">¿Algún dato está mal? Avisá en recepción.</p>
 
+    <h2 id="celular" class="mt-9 scroll-mt-6 font-display text-2xl uppercase">Tu celular</h2>
+    <p class="mt-2 text-sm text-ceniza">Lo usamos para avisarte de tu cuenta, solo si lo aceptás abajo.</p>
+
+    @if ($celSaved)
+        <p role="status" class="mt-3 rounded-2xl border border-salvia/40 bg-salvia/10 px-4 py-3 text-sm text-niebla">
+            Listo: guardamos tu celular.
+        </p>
+    @elseif (! $client->hasValidCel())
+        <p class="mt-3 rounded-2xl border border-oxido/50 bg-oxido/10 px-4 py-3 text-sm text-niebla">
+            {{ filled($client->cel) ? 'Revisá tu celular: el que tenemos no parece válido.' : 'Todavía no tenemos tu celular.' }}
+        </p>
+    @endif
+
+    <form wire:submit="updateCel" class="mt-4">
+        <label for="cel" class="text-sm font-semibold">Celular</label>
+        <input id="cel" type="tel" wire:model="cel" required autocomplete="tel" inputmode="tel" placeholder="280 15 412-3456" class="{{ $campo }}">
+        <p class="mt-2 text-sm text-ceniza">Con la característica, como lo marcarías desde otra ciudad.</p>
+        @error('cel')
+            <p class="mt-2 text-sm text-oxido-light">{{ $message }}</p>
+        @enderror
+
+        <button
+            type="submit"
+            wire:loading.attr="disabled"
+            class="mt-4 w-full cursor-pointer rounded-full border border-salvia px-8 py-4 text-sm font-bold tracking-widest text-niebla uppercase transition hover:bg-salvia hover:text-carbon focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-salvia-light disabled:opacity-60"
+        >
+            Guardar celular
+        </button>
+    </form>
+
     <h2 class="mt-9 font-display text-2xl uppercase">Avisos</h2>
     <p class="mt-2 text-sm text-ceniza">Elegí qué querés recibir. Lo podés cambiar cuando quieras.</p>
 
