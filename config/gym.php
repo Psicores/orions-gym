@@ -13,6 +13,11 @@ return [
     | alguien le sacó una foto), se cambia este valor y se imprime uno nuevo
     | desde /admin/qr-de-ingreso.
     |
+    | Sin GYM_CHECKIN_TOKEN se usa un valor de desarrollo que está en el código.
+    | En producción ese valor no sirve: hay que poner una cadena al azar de 16
+    | caracteres o más; hasta entonces el ingreso por QR queda deshabilitado
+    | (ver Attendance::receptionToken()).
+    |
     */
 
     'checkin_token' => env('GYM_CHECKIN_TOKEN', 'orions-ingreso-sede-1'),

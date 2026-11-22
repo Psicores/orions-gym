@@ -613,7 +613,7 @@ Hoy todas las cuentas del personal tienen los mismos permisos en el panel, y **n
 | --- | --- |
 | Cambiar el código del QR de ingreso | Cambiar `GYM_CHECKIN_TOKEN` en el `.env`, correr `php artisan config:cache` y reimprimir el cartel |
 | Destrabar a alguien del personal que perdió su celular | `php artisan staff:disable-two-factor su@email.com` |
-| Obligar al personal a usar verificación en dos pasos | Poner `STAFF_TWO_FACTOR_REQUIRED=true` en el `.env` y correr `php artisan config:cache` |
+| Verificación en dos pasos del personal | Ya es obligatoria en producción. Para volverla opcional: `STAFF_TWO_FACTOR_REQUIRED=false` en el `.env` y `php artisan config:cache` |
 | Borrar los clientes y anuncios de ejemplo | `php artisan demo:remove` |
 | Correr a mano el cierre de meses | `php artisan memberships:update-completed-cycles` |
 | Correr a mano la red de seguridad de renovaciones | `php artisan memberships:renew-credits` |
