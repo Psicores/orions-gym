@@ -261,8 +261,17 @@ class ClientResource extends Resource
                                     ->visibility('private')
                                     // Carpeta dentro del disco donde se guardan las fotos.
                                     ->directory('clients/fotos')
-                                    // Tamaño máximo en KB (2 MB, el límite actual de PHP).
-                                    ->maxSize(2048),
+                                    // Antes de subirla, el navegador la achica para que entre en 800×800 sin recortarla.
+                                    ->automaticallyResizeImagesMode('contain')
+                                    // Ancho máximo, en píxeles.
+                                    ->automaticallyResizeImagesToWidth('800')
+                                    // Alto máximo, en píxeles.
+                                    ->automaticallyResizeImagesToHeight('800')
+                                    // Una foto más chica no se agranda.
+                                    ->automaticallyUpscaleImagesWhenResizing(false)
+                                    // Tamaño máximo del original, en KB (10 MB): se mide antes de achicarla,
+                                    // así entra una foto sacada con el celular; lo que se sube pesa mucho menos.
+                                    ->maxSize(10240),
                                 // Subida del certificado de salud (columna certificado_salud_path, opcional).
                                 FileUpload::make('certificado_salud_path')
                                     // Texto que ve el usuario sobre el campo.
