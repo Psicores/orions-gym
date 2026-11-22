@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\SiteSectionEnum;
 use App\Http\Controllers\CspReportController;
 use App\Http\Controllers\MemberSessionController;
 use App\Http\Middleware\EnsureMemberHasOwnPassword;
@@ -10,6 +11,7 @@ use App\Livewire\MemberHistory;
 use App\Livewire\MemberScan;
 use App\Models\Announcement;
 use App\Models\Plan;
+use App\Models\SiteContent;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Support\Facades\Route;
 
@@ -18,6 +20,10 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', fn () => view('welcome', [
     'planes' => Plan::query()->orderBy('precio')->get(),
     'anuncios' => Announcement::query()->active()->latest()->latest('id')->get(),
+    // Horarios, dirección y mapa cargados desde el panel (vacíos si no hay nada).
+    'ubicacion' => SiteContent::dataFor(SiteSectionEnum::Horarios),
+    // Reseñas cargadas desde el panel (lista vacía si no hay).
+    'opiniones' => SiteContent::dataFor(SiteSectionEnum::Opiniones)['opiniones'],
 ]))->name('inicio');
 
 // Avisos del navegador sobre la política de contenido (ver SecurityHeaders). No lleva token CSRF

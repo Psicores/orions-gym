@@ -31,7 +31,8 @@ class DatabaseSeeder extends Seeder
      * - Existen los tres planes base (ver PlanSeeder).
      * - Si config('gym.seed_demo_data') es true (se enciende con SEED_DEMO_DATA=true en .env;
      *   por defecto está apagado), existen además los clientes de ejemplo (ver DemoClientSeeder)
-     *   y los anuncios de ejemplo (ver DemoAnnouncementSeeder). Se borran con "php artisan demo:remove".
+     *   los anuncios de ejemplo (ver DemoAnnouncementSeeder) y los horarios, dirección y opiniones
+     *   de ejemplo de la página pública (ver DemoSiteContentSeeder). Se borran con "php artisan demo:remove".
      * - Intenta crear el enlace public/storage si falta, para que se vean las imágenes; si el
      *   servidor no lo permite, lo avisa y sigue.
      * - Es seguro correrlo las veces que haga falta: no duplica nada, y los planes, clientes y
@@ -57,6 +58,8 @@ class DatabaseSeeder extends Seeder
             }
             // Anuncios de ejemplo que cubren todas las combinaciones y situaciones.
             $this->call(DemoAnnouncementSeeder::class);
+            // Horarios, dirección y opiniones de ejemplo de la página pública.
+            $this->call(DemoSiteContentSeeder::class);
         }
 
         // Deja a la vista las imágenes subidas (anuncios).

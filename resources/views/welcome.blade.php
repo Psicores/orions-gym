@@ -1,21 +1,19 @@
+{{--
+    Página pública. Recibe $planes, $anuncios, $ubicacion (horarios, dirección y mapa cargados desde
+    el panel) y $opiniones (reseñas cargadas desde el panel). Lo que no está cargado no se muestra:
+    nunca se publica un dato inventado (ver App\Models\SiteContent).
+--}}
 @php
-    // DATOS DE EJEMPLO: reemplazar por los reales del gimnasio antes de publicar.
-    $horarios = [
-        ['dias' => 'Lunes a viernes', 'horas' => '06:00 a 23:00'],
-        ['dias' => 'Sábados', 'horas' => '10:00 a 13:00 · 19:00 a 21:00'],
-        ['dias' => 'Domingos y feriados', 'horas' => 'Cerrado'],
-    ];
-    $direccion = 'Dirección del gimnasio (a completar)';
-    // URL "embed" de Google Maps (Compartir > Insertar un mapa). Con null se muestra el contenedor vacío.
-    $mapaEmbedUrl = null;
-    // OPINIONES SIMULADAS: reemplazar por reseñas reales de Google antes de publicar.
-    $opiniones = [
-        ['autor' => 'Socio de ejemplo 1', 'texto' => 'El mejor ambiente para entrenar. Los profes están siempre encima de la técnica.'],
-        ['autor' => 'Socio de ejemplo 2', 'texto' => 'Buen equipamiento, buena música y cero careta. Vengo hace un año y no lo cambio.'],
-        ['autor' => 'Socio de ejemplo 3', 'texto' => 'Arranqué de cero y me acompañaron en cada paso. Se nota la comunidad.'],
-        ['autor' => 'Socio de ejemplo 4', 'texto' => 'Horarios amplios y planes claros. Entrenar acá es otra cosa.'],
-        ['autor' => 'Socio de ejemplo 5', 'texto' => 'Lugar amplio, limpio y con hierro de verdad. Recomendadísimo.'],
-    ];
+    use App\Models\SiteContent;
+
+    // Franjas horarias cargadas.
+    $horarios = $ubicacion['horarios'];
+    // Dirección cargada (null si no hay).
+    $direccion = filled($ubicacion['direccion']) ? $ubicacion['direccion'] : null;
+    // Mapa: solo uno insertado de Google Maps (lo único que permite la política de contenido).
+    $mapaEmbedUrl = SiteContent::isAllowedMapUrl($ubicacion['mapa_url']) ? $ubicacion['mapa_url'] : null;
+    // La sección "Dónde y cuándo" aparece si hay algo de las tres cosas.
+    $hayUbicacion = filled($horarios) || $direccion !== null || $mapaEmbedUrl !== null;
     // Demora escalonada con la que entra cada tarjeta de plan (clases completas para que Tailwind las detecte).
     $demoras = ['delay-0', 'delay-150', 'delay-300'];
 @endphp
@@ -160,10 +158,11 @@
                 </div>
             </section>
 
-            {{-- ===================== OPINIONES (cinta infinita) ===================== --}}
+            {{-- ===================== OPINIONES (cinta infinita): solo si hay reseñas cargadas ===================== --}}
+            @if (filled($opiniones))
             <section aria-labelledby="titulo-opiniones" class="border-y border-carbon-700 bg-carbon-800/40 py-16">
                 <div class="mx-auto flex max-w-7xl flex-wrap items-end justify-between gap-4 px-5 sm:px-8">
-                    <h2 id="titulo-opiniones" class="font-display text-4xl uppercase sm:text-5xl">Lo que dicen en Google</h2>
+                    <h2 id="titulo-opiniones" class="font-display text-4xl uppercase sm:text-5xl">Lo que dicen los socios</h2>
                     <p class="flex items-center gap-2 text-sm text-ceniza">
                         <span class="text-lg tracking-widest text-oxido" aria-hidden="true">★★★★★</span>
                         Opiniones de socios
@@ -176,8 +175,12 @@
                         @foreach ([false, true] as $esCopia)
                             <ul class="flex gap-5 pr-5" @if ($esCopia) aria-hidden="true" @endif>
                                 @foreach ($opiniones as $opinion)
+                                    @php
+                                        // Estrellas de la reseña, entre 1 y 5 (5 si no se cargaron).
+                                        $estrellas = max(1, min(5, (int) ($opinion['estrellas'] ?? 5)));
+                                    @endphp
                                     <li class="w-80 shrink-0 rounded-2xl border border-carbon-700 bg-carbon p-6">
-                                        <p class="tracking-widest text-oxido" aria-label="5 de 5 estrellas">★★★★★</p>
+                                        <p class="tracking-widest text-oxido" aria-label="{{ $estrellas }} de 5 estrellas">{{ str_repeat('★', $estrellas) }}<span class="text-carbon-700">{{ str_repeat('★', 5 - $estrellas) }}</span></p>
                                         <blockquote class="mt-3 text-sm leading-relaxed text-niebla/90">“{{ $opinion['texto'] }}”</blockquote>
                                         <p class="mt-4 text-xs font-semibold tracking-widest text-ceniza uppercase">{{ $opinion['autor'] }}</p>
                                     </li>
@@ -187,24 +190,34 @@
                     </div>
                 </div>
             </section>
+            @endif
 
-            {{-- ===================== HORARIOS Y UBICACIÓN ===================== --}}
-            <section id="ubicacion" class="mx-auto grid max-w-7xl scroll-mt-10 gap-10 px-5 py-20 sm:px-8 sm:py-28 lg:grid-cols-5">
-                <div class="lg:col-span-2">
+            {{-- ===================== HORARIOS Y UBICACIÓN: solo con algo cargado ===================== --}}
+            @if ($hayUbicacion)
+            <section id="ubicacion" @class([
+                'mx-auto grid max-w-7xl scroll-mt-10 gap-10 px-5 py-20 sm:px-8 sm:py-28',
+                'lg:grid-cols-5' => $mapaEmbedUrl !== null,
+            ])>
+                <div @class(['lg:col-span-2' => $mapaEmbedUrl !== null])>
                     <p class="text-xs font-semibold tracking-[0.4em] text-oxido uppercase">Dónde y cuándo</p>
-                    <h2 class="mt-4 font-display text-5xl leading-none uppercase sm:text-6xl">Horarios</h2>
 
-                    <dl class="mt-8 divide-y divide-carbon-700 border-y border-carbon-700">
-                        @foreach ($horarios as $horario)
-                            <div class="flex items-baseline justify-between gap-4 py-4">
-                                <dt class="text-ceniza">{{ $horario['dias'] }}</dt>
-                                <dd class="font-semibold tabular-nums">{{ $horario['horas'] }}</dd>
-                            </div>
-                        @endforeach
-                    </dl>
+                    @if (filled($horarios))
+                        <h2 class="mt-4 font-display text-5xl leading-none uppercase sm:text-6xl">Horarios</h2>
 
-                    <h3 class="mt-10 font-display text-2xl uppercase">Ubicación</h3>
-                    <address class="mt-2 text-ceniza not-italic">{{ $direccion }}</address>
+                        <dl class="mt-8 divide-y divide-carbon-700 border-y border-carbon-700">
+                            @foreach ($horarios as $horario)
+                                <div class="flex items-baseline justify-between gap-4 py-4">
+                                    <dt class="text-ceniza">{{ $horario['dias'] }}</dt>
+                                    <dd class="font-semibold tabular-nums">{{ $horario['horas'] }}</dd>
+                                </div>
+                            @endforeach
+                        </dl>
+                    @endif
+
+                    @if ($direccion !== null)
+                        <h3 class="mt-10 font-display text-2xl uppercase">Ubicación</h3>
+                        <address class="mt-2 text-ceniza not-italic">{{ $direccion }}</address>
+                    @endif
 
                     <button
                         type="button"
@@ -216,9 +229,9 @@
                     </button>
                 </div>
 
-                {{-- Contenedor del mapa: con la URL cargada muestra Google Maps oscurecido con filtros. --}}
+                {{-- Mapa: solo si hay uno cargado; se muestra oscurecido con filtros. --}}
+                @if ($mapaEmbedUrl !== null)
                 <div class="relative min-h-96 overflow-hidden rounded-3xl border border-carbon-700 bg-carbon-800 lg:col-span-3">
-                    @if ($mapaEmbedUrl)
                         <iframe
                             src="{{ $mapaEmbedUrl }}"
                             title="Mapa de ubicación de Orions"
@@ -226,17 +239,10 @@
                             referrerpolicy="no-referrer-when-downgrade"
                             class="absolute inset-0 size-full border-0 contrast-90 grayscale invert-[.92] hue-rotate-180"
                         ></iframe>
-                    @else
-                        <div class="absolute inset-0 flex flex-col items-center justify-center gap-3 text-ceniza">
-                            <svg class="size-10 text-salvia" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
-                            </svg>
-                            <p class="text-sm tracking-widest uppercase">Mapa próximamente</p>
-                        </div>
-                    @endif
                 </div>
+                @endif
             </section>
+            @endif
         </main>
 
         <footer class="border-t border-carbon-700">
@@ -333,6 +339,7 @@
                                 <span class="text-sm text-ceniza">/ mes</span>
                             </p>
 
+                            @if ($hayUbicacion)
                             <a
                                 href="#ubicacion"
                                 @click="planes = false"
@@ -340,6 +347,7 @@
                             >
                                 Lo quiero
                             </a>
+                            @endif
                         </article>
                     @empty
                         <p class="text-center text-ceniza md:col-span-3">Estamos armando los planes. Pasá por el gimnasio y te contamos.</p>

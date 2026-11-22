@@ -7,8 +7,10 @@ use App\Models\Attendance;
 use App\Models\Client;
 use App\Models\Membership;
 use App\Models\Payment;
+use App\Models\SiteContent;
 use Database\Seeders\DemoAnnouncementSeeder;
 use Database\Seeders\DemoClientSeeder;
+use Database\Seeders\DemoSiteContentSeeder;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
@@ -34,6 +36,9 @@ class RemoveDemoData extends Command
      *   si conserva el DNI y el email de ejemplo (demo<DNI>@example.com): si alguien le cambió el
      *   email desde el panel, se lo considera real y no se toca.
      * - Ya no existen los anuncios de ejemplo (ver DemoAnnouncementSeeder::TITLES) ni sus dos banners.
+     * - Ya no existe el contenido de ejemplo de la página pública (ver DemoSiteContentSeeder):
+     *   solo se borra una sección si sigue exactamente igual al ejemplo; si alguien la editó
+     *   desde el panel, se la considera real y no se toca.
      * - No toca ningún otro cliente, anuncio, plan ni cuenta del personal.
      * - Sin --force pide confirmación; si se responde que no, no borra nada.
      * - Para que un seed posterior no los vuelva a crear, SEED_DEMO_DATA no tiene que estar en
@@ -72,6 +77,11 @@ class RemoveDemoData extends Command
             // Anuncios de ejemplo, por título.
             return Announcement::query()->whereIn('titulo', DemoAnnouncementSeeder::TITLES)->delete();
         });
+
+        // Secciones de la página pública que siguen con el contenido de ejemplo, sin tocar.
+        SiteContent::query()->get()
+            ->filter(fn (SiteContent $content): bool => (DemoSiteContentSeeder::CONTENT[$content->section->value] ?? null) === $content->data)
+            ->each->delete();
 
         // Banners de ejemplo copiados al disco público.
         Storage::disk('public')->delete(array_map(
