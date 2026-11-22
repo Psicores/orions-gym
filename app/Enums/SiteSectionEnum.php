@@ -112,4 +112,36 @@ enum SiteSectionEnum: string implements HasDescription, HasIcon, HasLabel
             self::Opiniones => Heroicon::OutlinedStar,
         };
     }
+
+    /**
+     * Devuelve la forma del contenido de la sección con todo vacío.
+     *
+     * Es lo que se muestra mientras nadie cargó nada: la página pública oculta lo vacío, así que
+     * nunca aparece un dato inventado. También fija qué claves acepta cada sección (ver
+     * SiteContent::dataFor()).
+     *
+     * Precondiciones:
+     * - Ninguna: se llama sobre cualquier caso del enum.
+     *
+     * Postcondiciones:
+     * - Horarios: "horarios" (lista de ['dias' => texto, 'horas' => texto]), "direccion" y
+     *   "mapa_url" (texto o null).
+     * - Opiniones: "opiniones" (lista de ['autor' => texto, 'texto' => texto, 'estrellas' => 1 a 5]).
+     * - Portada y Comunidad: todavía sin claves (sus textos siguen en la vista hasta que tengan pantalla).
+     * - No modifica nada.
+     *
+     * @return array<string, mixed> Contenido vacío de la sección.
+     */
+    public function emptyContent(): array
+    {
+        // Forma de cada sección; match exige cubrir todos los casos.
+        return match ($this) {
+            // Franjas horarias, dirección y mapa.
+            self::Horarios => ['horarios' => [], 'direccion' => null, 'mapa_url' => null],
+            // Reseñas.
+            self::Opiniones => ['opiniones' => []],
+            // Sin contenido editable todavía.
+            self::Portada, self::Comunidad => [],
+        };
+    }
 }
