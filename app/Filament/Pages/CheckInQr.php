@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages;
 
+use App\Models\Attendance;
 use BackedEnum;
 use chillerlan\QRCode\Common\EccLevel;
 use chillerlan\QRCode\Output\QROutputInterface;
@@ -10,6 +11,7 @@ use chillerlan\QRCode\QROptions;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
 use GdImage;
+use Illuminate\Support\Str;
 
 /**
  * Pantalla "QR de ingreso" del panel: muestra el código QR de recepción listo para imprimir.
@@ -43,23 +45,33 @@ class CheckInQr extends Page
      * Datos que recibe la vista: el QR dibujado y el texto que lleva adentro.
      *
      * Precondiciones:
-     * - config('gym.checkin_token') tiene un texto no vacío.
      * - Existe public/images/icons/logo-qr.png (la calavera, negra sobre blanco).
      *
      * Postcondiciones:
-     * - Devuelve "qr": la imagen PNG del código, con la calavera en el centro, como data URI
-     *   lista para un <img>; y "token": el texto que contiene.
+     * - Con un código usable (ver Attendance::receptionToken()): "qr" es la imagen PNG del
+     *   código, con la calavera en el centro, como data URI lista para un <img>, y "token" el
+     *   texto que contiene; "sugerencia" es null.
+     * - Sin código usable: "qr" y "token" son null y "sugerencia" trae un código al azar de
+     *   32 caracteres para copiar al .env (cambia en cada visita y no se guarda).
      * - No guarda nada: el QR se dibuja en cada visita a partir de la configuración.
      *
-     * @return array{qr: string, token: string}
+     * @return array{qr: ?string, token: ?string, sugerencia: ?string}
      */
     protected function getViewData(): array
     {
-        // Texto que va dentro del QR.
-        $token = (string) config('gym.checkin_token');
+        // Texto que va dentro del QR (null si falta configurarlo).
+        $token = Attendance::receptionToken();
+
+        // Sin código usable no hay QR para imprimir: la pantalla explica cómo configurarlo.
+        if ($token === null) {
+            // Propone un código al azar listo para copiar.
+            return ['qr' => null, 'token' => null, 'sugerencia' => Str::random(32)];
+        }
 
         // Devuelve la imagen y el texto.
         return [
+            // No hace falta sugerir nada.
+            'sugerencia' => null,
             // QR con la calavera, como imagen PNG (se ve igual en pantalla y al imprimir).
             'qr' => 'data:image/png;base64,'.base64_encode($this->renderQrWithLogo($token)),
             // Texto del código, para mostrarlo debajo.

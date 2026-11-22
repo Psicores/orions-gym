@@ -38,7 +38,10 @@ class AdminPanelProvider extends PanelProvider
             // Es optativa salvo que STAFF_TWO_FACTOR_REQUIRED=true, que obliga a activarla al ingresar.
             ->multiFactorAuthentication(
                 [AppAuthentication::make()->recoverable()->brandName('Orions')],
-                isRequired: (bool) config('app.staff_two_factor_required'),
+                // Obligatoria según STAFF_TWO_FACTOR_REQUIRED; si no está definida (o está vacía), solo en producción.
+                isRequired: fn (): bool => in_array(config('app.staff_two_factor_required'), [null, ''], true)
+                    ? app()->isProduction()
+                    : (bool) config('app.staff_two_factor_required'),
             )
             // Paleta de Orions.
             ->colors([

@@ -26,6 +26,7 @@ class SecurityHeaders
      *   pagos quedan apagados (Permissions-Policy).
      * - Si el pedido llegó por HTTPS, el navegador recuerda por un año entrar siempre por HTTPS
      *   (Strict-Transport-Security).
+     * - La respuesta no dice qué versión de PHP corre el servidor (se quita X-Powered-By).
      * - No cambia el contenido de la respuesta.
      *
      * @param  Request  $request  Pedido actual.
@@ -45,6 +46,14 @@ class SecurityHeaders
         $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
         // La cámara queda permitida solo para el propio sitio: la usa el escáner de QR.
         $response->headers->set('Permissions-Policy', 'camera=(self), microphone=(), geolocation=(), payment=()');
+
+        // PHP agrega X-Powered-By por su cuenta (fuera de la respuesta de Laravel): se quita ahí.
+        if (! headers_sent()) {
+            // No hace falta anunciar la versión de PHP.
+            header_remove('X-Powered-By');
+        }
+        // Por si viniera también dentro de la respuesta.
+        $response->headers->remove('X-Powered-By');
 
         // HSTS solo tiene sentido (y solo se respeta) sobre HTTPS.
         if ($request->secure()) {

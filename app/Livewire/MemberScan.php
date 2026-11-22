@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use App\Models\Attendance;
 use App\Models\Client;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
@@ -37,8 +38,9 @@ class MemberScan extends Component
      * - $qrString es el texto leído del código QR.
      *
      * Postcondiciones:
-     * - Si $qrString no es el código del gimnasio (config gym.checkin_token): resultado "error",
-     *   no guarda nada.
+     * - Si el gimnasio no tiene configurado un código usable (ver Attendance::receptionToken()):
+     *   resultado "error" avisando que el ingreso por QR no está habilitado, no guarda nada.
+     * - Si $qrString no es el código del gimnasio: resultado "error", no guarda nada.
      * - Si el socio no tiene membresía vigente o está En pausa: resultado "error" con el motivo
      *   ("Cuota vencida. Pasá por recepción." si está en pausa), no guarda nada.
      * - Si está Entrenando o Activo flex: guarda la asistencia y le descuenta un crédito, aunque
@@ -54,8 +56,19 @@ class MemberScan extends Component
         // Borra el resultado del escaneo anterior.
         $this->reset('resultado', 'mensaje', 'creditos');
 
+        // Código que lleva el QR de recepción (null si falta configurarlo).
+        $token = Attendance::receptionToken();
+
+        // Sin código configurado no hay contra qué comparar: el ingreso por QR está apagado.
+        if ($token === null) {
+            // Rechaza sin tocar la base.
+            $this->rechazar('El ingreso por QR todavía no está habilitado. Avisá en recepción.');
+
+            return;
+        }
+
         // El QR tiene que ser el impreso en recepción (comparación en tiempo constante).
-        if (! hash_equals((string) config('gym.checkin_token'), trim($qrString))) {
+        if (! hash_equals($token, trim($qrString))) {
             // Rechaza sin tocar la base.
             $this->rechazar('Ese código no es el del gimnasio. Escaneá el QR de recepción.');
 
