@@ -39,12 +39,14 @@
         <main>
             {{-- ===================== HERO (primer video) ===================== --}}
             <section class="relative flex h-screen min-h-[36rem] items-center justify-center overflow-hidden">
+                {{-- La imagen fija se ve mientras carga el video (o si el navegador no lo reproduce). --}}
                 <video
                     autoplay muted loop playsinline preload="metadata"
+                    poster="{{ asset('images/video-portada.webp') }}"
                     aria-hidden="true"
                     class="absolute inset-0 size-full object-cover"
                 >
-                    <source src="{{ asset('images/Video1.mp4') }}" type="video/mp4">
+                    <source src="{{ asset('images/video-portada.mp4') }}" type="video/mp4">
                 </video>
                 {{-- Oscurece el video para que el texto se lea y lo funde con el fondo en la parte inferior. --}}
                 <div class="absolute inset-0 bg-carbon/45"></div>
@@ -141,10 +143,11 @@
                     {{-- Sin autoplay: se descarga y reproduce recién cuando entra en pantalla (ver resources/js/app.js). --}}
                     <video
                         muted loop playsinline preload="none" data-reproducir-al-ver
+                        poster="{{ asset('images/video-comunidad.webp') }}"
                         aria-hidden="true"
                         class="h-[55vh] min-h-80 w-full object-cover"
                     >
-                        <source src="{{ asset('images/video2.mp4') }}" type="video/mp4">
+                        <source src="{{ asset('images/video-comunidad.mp4') }}" type="video/mp4">
                     </video>
                     <div class="absolute inset-0 bg-linear-to-t from-carbon via-carbon/20 to-transparent"></div>
                     <p class="absolute inset-x-0 bottom-0 p-6 font-display text-3xl uppercase sm:p-10 sm:text-5xl">
