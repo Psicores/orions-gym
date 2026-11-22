@@ -45,6 +45,14 @@ class ComingSoon extends Page
     {
         // Guarda la sección para el título y el cartel.
         $this->section = $section;
+
+        // Si la sección ya tiene pantalla propia, la dirección vieja lleva ahí.
+        if ($section->editPage() !== null) {
+            // Redirige a la pantalla de edición.
+            $this->redirect($section->editPage()::getUrl());
+
+            return;
+        }
     }
 
     /**
@@ -84,7 +92,12 @@ class ComingSoon extends Page
         $items = [];
 
         // Recorre las secciones en orden de importancia.
-        foreach (SiteSectionEnum::cases() as $position => $section) {
+        foreach (SiteSectionEnum::cases() as $section) {
+            // Las secciones con pantalla propia tienen su enlace ahí (ver SiteSectionPage).
+            if ($section->editPage() !== null) {
+                continue;
+            }
+
             // Enlace con el nombre de la sección.
             $items[] = NavigationItem::make($section->getLabel())
                 // Clave única del enlace dentro del menú.
@@ -94,7 +107,7 @@ class ComingSoon extends Page
                 // Ícono de la sección.
                 ->icon($section->getIcon())
                 // Orden: Planes es 1 y Anuncios 2; las secciones siguen desde 3.
-                ->sort($position + 3)
+                ->sort($section->navigationSort())
                 // Activo solo cuando se está mirando esta sección (el tramo de la URL llega ya convertido en la sección).
                 ->isActiveWhen(fn (): bool => original_request()->routeIs(static::getRouteName())
                     && original_request()->route('section') === $section)

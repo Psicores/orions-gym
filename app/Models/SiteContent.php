@@ -79,4 +79,43 @@ class SiteContent extends Model
         // Tiene que ser texto y empezar exactamente como un mapa insertado de Google.
         return is_string($url) && str_starts_with($url, self::MAP_EMBED_PREFIX);
     }
+
+    /**
+     * Saca la dirección del mapa de lo que pegó el usuario.
+     *
+     * Google Maps da, en Compartir > Insertar un mapa, un código <iframe src="..."> entero. Esto
+     * permite pegar ese código o solo la dirección.
+     *
+     * Precondiciones:
+     * - Ninguna.
+     *
+     * Postcondiciones:
+     * - Si $input trae un <iframe> con src, devuelve ese src (con los &amp; convertidos en &).
+     * - Si no, devuelve $input sin espacios en las puntas.
+     * - Si $input está vacío, devuelve null.
+     * - No valida que sea un mapa de Google (ver isAllowedMapUrl()).
+     *
+     * @param  string|null  $input  Código o dirección pegada.
+     * @return string|null La dirección del mapa, o null.
+     */
+    public static function extractMapUrl(?string $input): ?string
+    {
+        // Sin espacios en las puntas.
+        $input = trim((string) $input);
+
+        // Vacío: sin mapa.
+        if ($input === '') {
+            // Nada que guardar.
+            return null;
+        }
+
+        // Con el código entero, toma el src del iframe.
+        if (preg_match('/<iframe[^>]*\ssrc=["\']([^"\']+)["\']/i', $input, $matches) === 1) {
+            // La dirección, con las entidades HTML convertidas.
+            return html_entity_decode($matches[1], ENT_QUOTES | ENT_HTML5);
+        }
+
+        // Ya era la dirección.
+        return $input;
+    }
 }

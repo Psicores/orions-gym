@@ -2,6 +2,8 @@
 
 namespace App\Enums;
 
+use App\Filament\Pages\SiteSchedule;
+use App\Filament\Pages\SiteSectionPage;
 use Filament\Support\Contracts\HasDescription;
 use Filament\Support\Contracts\HasIcon;
 use Filament\Support\Contracts\HasLabel;
@@ -10,9 +12,9 @@ use Filament\Support\Icons\Heroicon;
 /**
  * Secciones de la página pública (el home) que se van a poder administrar desde el panel.
  *
- * Todavía no se administra ninguna: cada caso es un enlace del menú "Admin del sitio" que abre la
- * pantalla "Próximamente" (ver App\Filament\Pages\ComingSoon). El valor de texto de cada caso es el
- * tramo de la URL: /admin/sitio/{valor}.
+ * Las que ya tienen pantalla propia la devuelven en editPage(); las demás son un enlace del menú
+ * "Admin del sitio" que abre la pantalla "Próximamente" (ver App\Filament\Pages\ComingSoon). El
+ * valor de texto de cada caso es el tramo de la URL de esa pantalla: /admin/sitio/{valor}.
  *
  * Los casos están en orden de importancia, que es el orden en que aparecen en el menú. Los planes
  * también son parte de ese menú, pero ya tienen su pantalla propia (ver PlanResource) y por eso no
@@ -143,5 +145,48 @@ enum SiteSectionEnum: string implements HasDescription, HasIcon, HasLabel
             // Sin contenido editable todavía.
             self::Portada, self::Comunidad => [],
         };
+    }
+
+    /**
+     * Devuelve la pantalla del panel que edita esta sección, si ya la tiene.
+     *
+     * Precondiciones:
+     * - Ninguna: se llama sobre cualquier caso del enum.
+     *
+     * Postcondiciones:
+     * - Devuelve la clase de la pantalla (una SiteSectionPage) o null si la sección todavía se
+     *   muestra como "Próximamente" (ver App\Filament\Pages\ComingSoon).
+     * - No modifica nada.
+     *
+     * @return class-string<SiteSectionPage>|null Clase de la pantalla, o null.
+     */
+    public function editPage(): ?string
+    {
+        // Secciones que ya tienen pantalla propia; las demás siguen en "Próximamente".
+        return match ($this) {
+            // Horarios, dirección y mapa.
+            self::Horarios => SiteSchedule::class,
+            // Todavía sin pantalla.
+            self::Portada, self::Comunidad, self::Opiniones => null,
+        };
+    }
+
+    /**
+     * Devuelve el lugar de la sección en el menú "Admin del sitio".
+     *
+     * Precondiciones:
+     * - Ninguna.
+     *
+     * Postcondiciones:
+     * - Devuelve el orden de la sección entre los casos del enum, empezando en 3 (Planes es el 1 y
+     *   Anuncios el 2). Es el mismo tenga o no pantalla propia.
+     * - No modifica nada.
+     *
+     * @return int Orden en el menú.
+     */
+    public function navigationSort(): int
+    {
+        // Posición del caso más 3.
+        return (int) array_search($this, self::cases(), true) + 3;
     }
 }
