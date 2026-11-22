@@ -11,6 +11,8 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -24,6 +26,9 @@ use Illuminate\Validation\ValidationException;
  */
 class MemberSessionController extends Controller
 {
+    // Clave de caché del hash de relleno (ver dummyHash()).
+    private const string DUMMY_HASH_CACHE_KEY = 'login-dummy-password-hash';
+
     // Intentos fallidos permitidos por usuario e IP antes de frenar el ingreso por un minuto.
     private const int MAX_ATTEMPTS = 5;
 
@@ -74,6 +79,10 @@ class MemberSessionController extends Controller
      * - Una misma IP puede intentar hasta 10 ingresos por minuto y 60 por hora, acierte o no y
      *   con el usuario que sea: pasado ese tope rechaza los siguientes. Evita que alguien
      *   pruebe un DNI tras otro.
+     * - Todo intento que pasa los topes hace el mismo trabajo, exista o no la cuenta: dos
+     *   verificaciones de contraseña cifrada (una del lado socio y otra del lado personal, contra
+     *   la contraseña real o contra un hash de relleno). Así, por el tiempo de respuesta no se
+     *   puede saber si un DNI o un email pertenece a alguien.
      *
      * @param  Request  $request  Pedido con los datos del formulario.
      * @return RedirectResponse Redirección al portal o al panel.
@@ -104,11 +113,15 @@ class MemberSessionController extends Controller
             ]);
         }
 
-        // Primero prueba como socio.
-        $client = Client::findForLogin($data['usuario']);
+        // Las dos verificaciones se hacen siempre, aunque la primera acierte, para que el tiempo
+        // de respuesta no dependa de qué cuentas existen.
+        // Socio con ese DNI o email cuya contraseña coincide (null si no).
+        $client = $this->clientWithPassword($data['usuario'], $data['password']);
+        // Cuenta del personal con ese email cuya contraseña coincide (null si no).
+        $user = $this->staffWithPassword($data['usuario'], $data['password']);
 
-        // Socio encontrado y contraseña correcta.
-        if ($client?->passwordMatches($data['password'])) {
+        // Primero, como socio.
+        if ($client !== null) {
             // Inicia la sesión del socio; queda recordada solo si lo pidió (en un celular propio conviene).
             Auth::guard('client')->login($client, remember: $request->boolean('remember'));
             // Anota con qué contraseña se abrió esta sesión, para cerrarla si después cambia.
@@ -118,37 +131,31 @@ class MemberSessionController extends Controller
             return $this->finishLogin($request, $throttleKey, redirect()->intended(route('member.dashboard')));
         }
 
-        // Después prueba como personal, que entra con su email.
-        if (Auth::guard('web')->attempt(['email' => trim($data['usuario']), 'password' => $data['password']])) {
-            // Usuario del personal que acaba de acertar la contraseña.
-            $user = Auth::guard('web')->user();
+        // Después, como personal (entra con su email), si además puede entrar al panel (por
+        // ejemplo, tiene el email verificado).
+        if ($user !== null && $user->canAccessPanel(Filament::getPanel('admin'))) {
+            // Con verificación en dos pasos, la contraseña sola no alcanza: falta el código
+            // (todavía no se inicia ninguna sesión).
+            if ($this->twoFactorProvider($user) !== null) {
+                // El intento fue correcto: no cuenta como fallido.
+                RateLimiter::clear($throttleKey);
+                // Anota quién está a mitad del ingreso y hasta cuándo puede escribir el código.
+                $request->session()->put(self::PENDING_TWO_FACTOR_KEY, [
+                    // Cuenta que ya acertó la contraseña.
+                    'id' => $user->getKey(),
+                    // Pasado este momento tiene que volver a escribir la contraseña.
+                    'expires_at' => now()->addMinutes(self::TWO_FACTOR_MINUTES)->getTimestamp(),
+                ]);
 
-            // Solo sirve si además puede entrar al panel (por ejemplo, tiene el email verificado).
-            if ($user->canAccessPanel(Filament::getPanel('admin'))) {
-                // Con verificación en dos pasos, la contraseña sola no alcanza: falta el código.
-                if ($this->twoFactorProvider($user) !== null) {
-                    // Cierra la sesión recién abierta: todavía no demostró el segundo factor.
-                    Auth::guard('web')->logout();
-                    // El intento fue correcto: no cuenta como fallido.
-                    RateLimiter::clear($throttleKey);
-                    // Anota quién está a mitad del ingreso y hasta cuándo puede escribir el código.
-                    $request->session()->put(self::PENDING_TWO_FACTOR_KEY, [
-                        // Cuenta que ya acertó la contraseña.
-                        'id' => $user->getKey(),
-                        // Pasado este momento tiene que volver a escribir la contraseña.
-                        'expires_at' => now()->addMinutes(self::TWO_FACTOR_MINUTES)->getTimestamp(),
-                    ]);
-
-                    // Lo lleva a la pantalla que pide el código.
-                    return redirect()->route('login.code');
-                }
-
-                // Termina el ingreso y lo lleva al panel.
-                return $this->finishLogin($request, $throttleKey, redirect()->to(Filament::getPanel('admin')->getUrl()));
+                // Lo lleva a la pantalla que pide el código.
+                return redirect()->route('login.code');
             }
 
-            // Sin acceso al panel no tiene a dónde ir: cierra esa sesión.
-            Auth::guard('web')->logout();
+            // Sin segundo factor, inicia la sesión del personal.
+            Auth::guard('web')->login($user);
+
+            // Termina el ingreso y lo lleva al panel.
+            return $this->finishLogin($request, $throttleKey, redirect()->to(Filament::getPanel('admin')->getUrl()));
         }
 
         // Cuenta el intento fallido (se olvida al minuto).
@@ -158,6 +165,114 @@ class MemberSessionController extends Controller
         throw ValidationException::withMessages([
             'usuario' => 'El DNI o la contraseña no son correctos.',
         ]);
+    }
+
+    /**
+     * Busca al socio que corresponde a lo escrito y verifica su contraseña.
+     *
+     * Precondiciones:
+     * - $usuario es lo que escribió en "DNI o email" y $password la contraseña.
+     *
+     * Postcondiciones:
+     * - Devuelve el socio (no dado de baja) si existe y la contraseña es la suya: la propia o,
+     *   si todavía no eligió una, su DNI (ver Client::passwordMatches()).
+     * - Devuelve null en cualquier otro caso.
+     * - Hace siempre exactamente una verificación de contraseña cifrada: contra la del socio si
+     *   tiene una propia, o contra el hash de relleno si no existe o usa el DNI.
+     * - No modifica nada.
+     *
+     * @param  string  $usuario  DNI o email escrito.
+     * @param  string  $password  Contraseña escrita.
+     * @return Client|null El socio, o null si no corresponde a nadie.
+     */
+    private function clientWithPassword(string $usuario, string $password): ?Client
+    {
+        // Socio por DNI o email (null si no hay).
+        $client = Client::findForLogin($usuario);
+        // ¿Tiene una contraseña propia guardada?
+        $hasOwnPassword = $client !== null && $client->hasCustomPassword();
+
+        // Una verificación cifrada siempre: la real o la de relleno.
+        $hashMatches = Hash::check($password, $hasOwnPassword ? $client->password : $this->dummyHash());
+
+        // Con contraseña propia decide el hash; sin ella, el DNI (comparación barata y en tiempo constante).
+        $matches = $hasOwnPassword ? $hashMatches : ($client !== null && $client->passwordMatches($password));
+
+        // El socio solo si acertó.
+        return $matches ? $client : null;
+    }
+
+    /**
+     * Busca la cuenta del personal con ese email y verifica su contraseña.
+     *
+     * Precondiciones:
+     * - $usuario es lo que escribió en "DNI o email" y $password la contraseña.
+     *
+     * Postcondiciones:
+     * - Devuelve la cuenta si existe una con ese email (sin espacios en las puntas) y la
+     *   contraseña es la suya; si no, null. No inicia ninguna sesión.
+     * - Hace siempre exactamente una verificación de contraseña cifrada: contra la de la cuenta,
+     *   o contra el hash de relleno si no existe.
+     * - Si acertó y su contraseña está guardada con un costo de cifrado viejo, la vuelve a
+     *   guardar con el actual (lo mismo que hacía el ingreso estándar de Laravel).
+     *
+     * @param  string  $usuario  DNI o email escrito.
+     * @param  string  $password  Contraseña escrita.
+     * @return User|null La cuenta, o null si no corresponde a nadie.
+     */
+    private function staffWithPassword(string $usuario, string $password): ?User
+    {
+        // Cuenta con ese email (null si no hay).
+        $user = User::query()->where('email', trim($usuario))->first();
+
+        // Una verificación cifrada siempre: la real o la de relleno.
+        $matches = Hash::check($password, $user !== null ? $user->password : $this->dummyHash());
+
+        // Sin cuenta o con la contraseña equivocada, nada.
+        if ($user === null || ! $matches) {
+            // No corresponde a nadie.
+            return null;
+        }
+
+        // Si cambió el costo de cifrado, actualiza el hash guardado.
+        if (Hash::needsRehash($user->password)) {
+            // El cast "hashed" del modelo la guarda cifrada con el costo actual.
+            $user->forceFill(['password' => $password])->save();
+        }
+
+        // La cuenta que acertó.
+        return $user;
+    }
+
+    /**
+     * Hash de una contraseña al azar, para verificar contra algo cuando la cuenta no existe.
+     *
+     * Precondiciones:
+     * - Ninguna.
+     *
+     * Postcondiciones:
+     * - Devuelve un hash con el mismo costo de cifrado que las contraseñas reales, así
+     *   verificarlo tarda lo mismo. Ninguna contraseña escrita puede coincidir con él.
+     * - Lo guarda en la caché para no calcularlo en cada ingreso; si falta o cambió el costo
+     *   configurado, lo calcula de nuevo.
+     *
+     * @return string El hash de relleno.
+     */
+    private function dummyHash(): string
+    {
+        // El guardado de un ingreso anterior.
+        $hash = Cache::get(self::DUMMY_HASH_CACHE_KEY);
+
+        // Si no hay, o tiene otro costo que el configurado, lo rehace.
+        if (! is_string($hash) || Hash::needsRehash($hash)) {
+            // Hash de 40 caracteres al azar que nadie conoce.
+            $hash = Hash::make(Str::random(40));
+            // Queda guardado para los próximos ingresos.
+            Cache::forever(self::DUMMY_HASH_CACHE_KEY, $hash);
+        }
+
+        // Hash listo para verificar.
+        return $hash;
     }
 
     /**
