@@ -320,14 +320,14 @@ GYM_CHECKIN_TOKEN=una-cadena-al-azar-de-16-caracteres-o-mas
 que estar en `false`. Después de cambiar el `.env`, correr `php artisan config:cache`. Cambiar
 `GYM_CHECKIN_TOKEN` obliga a reimprimir el QR de recepción.
 
-Dos valores son seguros aunque se olviden:
+`GYM_CHECKIN_TOKEN` es seguro aunque se olvide, y la verificación en dos pasos es opcional:
 
 - **`GYM_CHECKIN_TOKEN`.** En producción, si falta, es el de prueba o tiene menos de 16
   caracteres, el ingreso por QR queda deshabilitado y **QR de ingreso** muestra cómo configurarlo
   (con un código al azar listo para copiar). En desarrollo, vacío usa un código de prueba.
 - **`STAFF_TWO_FACTOR_REQUIRED`.** Sin definir, la verificación en dos pasos del personal es
-  obligatoria en producción y opcional en desarrollo. Para que sea opcional en producción hay que
-  poner `false` a propósito.
+  opcional: cada uno la activa desde su **Perfil** si quiere. Con `true`, el panel obliga a
+  activarla.
 
 ### Qué protege el sistema
 
@@ -341,10 +341,8 @@ Dos valores son seguros aunque se olviden:
 - **Sesiones del socio.** “Mantener la sesión iniciada” es opcional al ingresar. Al cambiar o
   restablecer la contraseña, se cierran las sesiones abiertas en los demás dispositivos.
 - **Verificación en dos pasos del personal.** Cada cuenta la activa desde su **Perfil** (menú de
-  usuario del panel) con una app de autenticación, y guarda los códigos de recuperación. En
-  producción es obligatoria (salvo `STAFF_TWO_FACTOR_REQUIRED=false`): el panel pide activarla en
-  el próximo ingreso. Quien la tiene
-  activa ingresa igual por `/ingresar`: después de la contraseña se le pide el código de la app (o
+  usuario del panel) con una app de autenticación, y guarda los códigos de recuperación. Es opcional:
+  nadie está obligado (salvo `STAFF_TWO_FACTOR_REQUIRED=true`). Quien la tiene activa ingresa igual por `/ingresar`: después de la contraseña se le pide el código de la app (o
   un código de recuperación). `/admin/login` también lo pide. Si alguien pierde el celular y los
   códigos: `php artisan staff:disable-two-factor su@email.com` desde el servidor.
 - **Observaciones de salud cifradas.** En la base y en sus backups no se pueden leer: solo el

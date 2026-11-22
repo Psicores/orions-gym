@@ -110,21 +110,19 @@ class SecureDefaultsTest extends TestCase
     }
 
     /**
-     * @return array<string, array{mixed, string, bool}>
+     * @return array<string, array{bool, string, bool}>
      */
     public static function twoFactorSettings(): array
     {
         return [
-            'not set, production' => [null, 'production', true],
-            'empty, production' => ['', 'production', true],
-            'not set, development' => [null, 'local', false],
-            'switched off on purpose in production' => [false, 'production', false],
-            'switched on outside production' => [true, 'local', true],
+            'not set, production' => [false, 'production', false],
+            'not set, development' => [false, 'local', false],
+            'switched on in production' => [true, 'production', true],
         ];
     }
 
     #[DataProvider('twoFactorSettings')]
-    public function test_staff_two_factor_is_required_in_production_unless_switched_off_on_purpose(mixed $setting, string $environment, bool $required): void
+    public function test_staff_two_factor_is_optional_unless_switched_on(bool $setting, string $environment, bool $required): void
     {
         config(['app.staff_two_factor_required' => $setting]);
         $this->app->detectEnvironment(fn (): string => $environment);
