@@ -459,6 +459,32 @@ El plan deja de ofrecerse y desaparece del sitio público. Los socios que ya lo 
 1. Abrí el **filtro** del listado y elegí ver los registros eliminados.
 2. Hacé clic en **Restaurar** en la fila del plan.
 
+## Kiosco
+
+Está en el grupo **Kiosco** del menú. Los profes ven los productos con sus precios y su stock. Solo los administradores pueden crearlos, cambiarlos, darlos de baja y manejar las categorías.
+
+### Cargar un producto
+
+1. Entrá a **Kiosco → Productos** y hacé clic en **Crear producto**.
+2. Completá el **nombre** y el **precio**, que son obligatorios.
+3. Si querés, completá también:
+   - La **categoría**. Con el botón **+** creás una nueva sin salir.
+   - El **precio en efectivo** y el **costo**.
+   - El **código de barras**: escaneá el envase con el lector o escribí los números.
+   - El **stock mínimo**: el stock se muestra en ámbar cuando quedan esas unidades o menos.
+   - La **foto**: se guarda achicada y liviana.
+4. Prendé **Destacado** si querés que aparezca primero al vender. Con **Activo** apagado, el producto no se ofrece para vender.
+
+Con **Crear y crear otro** cargás varios seguidos. El stock se carga desde las entradas de mercadería, no desde este formulario.
+
+### Precio para socios
+
+Cuando la venta se hace a un socio, se le descuenta un 15 % del precio de lista. Si además paga en efectivo y el producto tiene precio en efectivo, se cobra el más barato de los dos: los descuentos no se suman.
+
+### Categorías
+
+En **Kiosco → Categorías** se crean los botones para filtrar productos en la pantalla de venta. El **orden** define cuáles aparecen primero. Si borrás una categoría, sus productos quedan sin categoría; no se borran.
+
 ## Anuncios
 
 Están en **Admin del sitio → Anuncios**. Un anuncio se muestra en dos lugares: en el inicio del portal de cada socio y en el botón **Novedades** del sitio público.
