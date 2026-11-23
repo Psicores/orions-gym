@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\SiteSectionEnum;
 use App\Filament\Pages\CheckInQr;
+use App\Filament\Pages\Kiosk;
 use App\Filament\Pages\UserManual;
 use App\Filament\Resources\AccessPoints\AccessPointResource;
 use App\Filament\Resources\Announcements\AnnouncementResource;
@@ -41,6 +42,7 @@ class StaffPermissionsTest extends TestCase
             'imprimir QR' => [fn (): string => CheckInQr::getUrl()],
             'planes' => [fn (): string => PlanResource::getUrl()],
             'anuncios' => [fn (): string => AnnouncementResource::getUrl()],
+            'vender en el kiosco' => [fn (): string => Kiosk::getUrl()],
             'productos del kiosco' => [fn (): string => ProductResource::getUrl()],
             'movimientos de stock' => [fn (): string => StockMovementResource::getUrl()],
         ];

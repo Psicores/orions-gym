@@ -230,6 +230,24 @@ class Client extends Authenticatable
     }
 
     /**
+     * Indica si el cliente tiene el descuento de socios en el kiosco.
+     *
+     * Precondiciones:
+     * - Ninguna.
+     *
+     * Postcondiciones:
+     * - true solo si no está dado de baja y está al día (estado Entrenando). En pausa, activo
+     *   temporal (cortesía hasta renovar) o inactivo no tiene descuento. No modifica nada.
+     *
+     * @return bool true si corresponde el descuento.
+     */
+    public function hasKioskDiscount(): bool
+    {
+        // Al día y vigente.
+        return ! $this->trashed() && $this->estado === ClientStatusEnum::Entrenando;
+    }
+
+    /**
      * Celular para mostrar en pantalla, legible: "+5492804123456" da "+54 9 280 412-3456".
      *
      * Precondiciones:

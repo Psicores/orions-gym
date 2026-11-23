@@ -309,6 +309,17 @@ class Product extends Model
     }
 
     /**
+     * Renglones de venta de este producto.
+     *
+     * @return HasMany<SaleItem, $this>
+     */
+    public function saleItems(): HasMany
+    {
+        // Busca en sale_items las filas con este product_id.
+        return $this->hasMany(SaleItem::class);
+    }
+
+    /**
      * Categoría del producto (puede no tener).
      *
      * @return BelongsTo<ProductCategory, $this>
