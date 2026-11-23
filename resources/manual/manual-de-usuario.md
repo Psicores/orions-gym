@@ -632,13 +632,30 @@ Esta sección es solo para quien administra el sistema. Las tareas se hacen en e
 
 ### Quién puede ver este manual
 
-Solo la cuenta cuyo email coincide con `ADMIN_EMAIL` del archivo `.env`. Para el resto del personal, el enlace no aparece en el menú y la dirección responde "Prohibido".
+Solo las cuentas con rol de **Administrador**. Para los profes, el enlace no aparece en el menú y la dirección responde "Prohibido".
 
-> Si cambiás el email de esa cuenta desde **Perfil**, actualizá también `ADMIN_EMAIL` en el `.env` y corré `php artisan config:cache`. Si no, dejás de ver el manual.
+La cuenta de `ADMIN_EMAIL` del archivo `.env` queda como administradora. Las cuentas nuevas del personal se crean como **Profe**. Cambiar el email desde **Perfil** ya no te hace perder el acceso: lo que cuenta es el rol.
 
 ### Cuentas del personal
 
-Hoy todas las cuentas del personal tienen los mismos permisos en el panel, y **no se pueden crear cuentas nuevas desde el panel**. La cuenta del administrador se crea con los datos `ADMIN_*` del `.env` al correr `php artisan db:seed --force`.
+Las cuentas del personal se manejan desde **Admin del sitio → Personal**, que solo ven los administradores. La primera cuenta del administrador se crea con los datos `ADMIN_*` del `.env` al correr `php artisan db:seed --force`.
+
+- **Crear una cuenta:** tocá **Nueva cuenta del personal**, cargá nombre, email, rol y una contraseña inicial, y pasásela a la persona. Entra enseguida por `/ingresar` con su email y esa contraseña.
+- **Cambiar la contraseña de alguien:** editá su cuenta y escribí una nueva. Si dejás el campo vacío, no cambia.
+- **Dar de baja:** desde ese momento no puede entrar, pero sigue figurando en los pagos que cobró. Con el filtro de bajas la podés ver y restaurar.
+- **Tu propia cuenta:** no podés cambiarte el rol ni darte de baja, así el panel nunca se queda sin administrador.
+
+**Qué ve cada rol:**
+
+| Parte del panel | Profe | Administrador |
+| --- | --- | --- |
+| Inicio, clientes, cobros, membresías y cortesías | Sí | Sí |
+| QR de ingreso | Sí | Sí |
+| Planes y anuncios | Sí | Sí |
+| Secciones de la página pública (Portada, Comunidad, Horarios, Opiniones) | No | Sí |
+| Personal y este manual | No | Sí |
+
+Lo que un profe no puede usar no le aparece en el menú, y si abre la dirección a mano ve "Prohibido".
 
 ### Tareas habituales
 

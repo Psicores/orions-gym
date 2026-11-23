@@ -25,7 +25,7 @@ class ImageUploadResizeTest extends TestCase
     {
         parent::setUp();
 
-        $this->actingAs(User::factory()->create());
+        $this->actingAs(User::factory()->admin()->create());
     }
 
     public function test_the_client_photo_fits_in_800_by_800_without_cropping(): void

@@ -105,14 +105,15 @@ class Payment extends Model
      *
      * Postcondiciones:
      * - Devuelve la relación "el pago fue registrado por un usuario", sin ejecutar la consulta.
-     * - $payment->registradoPor devuelve el User que lo cobró.
+     * - $payment->registradoPor devuelve el User que lo cobró, aunque después lo hayan dado de baja.
      * - No modifica datos.
      *
      * @return BelongsTo<User, $this>
      */
     public function registradoPor(): BelongsTo
     {
-        // Une payments.registrado_por_user_id con users.id (la columna no sigue la convención, por eso se indica).
-        return $this->belongsTo(User::class, 'registrado_por_user_id');
+        // Une payments.registrado_por_user_id con users.id (la columna no sigue la convención, por eso
+        // se indica); incluye las cuentas dadas de baja para no perder quién cobró.
+        return $this->belongsTo(User::class, 'registrado_por_user_id')->withTrashed();
     }
 }
