@@ -638,7 +638,12 @@ La cuenta de `ADMIN_EMAIL` del archivo `.env` queda como administradora. Las cue
 
 ### Cuentas del personal
 
-Hoy todas las cuentas del personal tienen los mismos permisos en el panel, y **no se pueden crear cuentas nuevas desde el panel**. La cuenta del administrador se crea con los datos `ADMIN_*` del `.env` al correr `php artisan db:seed --force`.
+Las cuentas del personal se manejan desde **Admin del sitio → Personal**, que solo ven los administradores. La primera cuenta del administrador se crea con los datos `ADMIN_*` del `.env` al correr `php artisan db:seed --force`.
+
+- **Crear una cuenta:** tocá **Nueva cuenta del personal**, cargá nombre, email, rol y una contraseña inicial, y pasásela a la persona. Entra enseguida por `/ingresar` con su email y esa contraseña.
+- **Cambiar la contraseña de alguien:** editá su cuenta y escribí una nueva. Si dejás el campo vacío, no cambia.
+- **Dar de baja:** desde ese momento no puede entrar, pero sigue figurando en los pagos que cobró. Con el filtro de bajas la podés ver y restaurar.
+- **Tu propia cuenta:** no podés cambiarte el rol ni darte de baja, así el panel nunca se queda sin administrador.
 
 ### Tareas habituales
 
