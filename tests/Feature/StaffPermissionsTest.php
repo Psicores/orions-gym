@@ -12,6 +12,7 @@ use App\Filament\Resources\Clients\ClientResource;
 use App\Filament\Resources\Plans\PlanResource;
 use App\Filament\Resources\ProductCategories\ProductCategoryResource;
 use App\Filament\Resources\Products\ProductResource;
+use App\Filament\Resources\Sales\SaleResource;
 use App\Filament\Resources\StockMovements\StockMovementResource;
 use App\Filament\Resources\Users\UserResource;
 use App\Models\Client;
@@ -43,6 +44,7 @@ class StaffPermissionsTest extends TestCase
             'planes' => [fn (): string => PlanResource::getUrl()],
             'anuncios' => [fn (): string => AnnouncementResource::getUrl()],
             'vender en el kiosco' => [fn (): string => Kiosk::getUrl()],
+            'ventas del kiosco' => [fn (): string => SaleResource::getUrl()],
             'productos del kiosco' => [fn (): string => ProductResource::getUrl()],
             'movimientos de stock' => [fn (): string => StockMovementResource::getUrl()],
         ];

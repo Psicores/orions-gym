@@ -32,7 +32,7 @@ class StockMovementResource extends Resource
     protected static string|UnitEnum|null $navigationGroup = ProductResource::NAVIGATION_GROUP;
 
     // Después de Productos y Categorías.
-    protected static ?int $navigationSort = 3;
+    protected static ?int $navigationSort = 4;
 
     protected static ?string $navigationLabel = 'Movimientos de stock';
 

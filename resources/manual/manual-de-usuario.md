@@ -482,6 +482,20 @@ Abrí la pantalla de venta con el botón **Kiosco** de la barra de arriba, desde
 
 Si un producto no tiene stock suficiente, aparece un aviso en ámbar en la venta. Con la configuración de fábrica se vende igual. Con **Vaciar** se descarta la venta en curso sin guardar nada.
 
+### Consultar las ventas
+
+**Kiosco → Ventas** lista todas las ventas, de la más nueva a la más vieja: socio (o "Mostrador"), productos, total, medio de pago, quién vendió y estado. Podés filtrar por fechas, estado, medio de pago y quién vendió, y buscar por número de venta o por nombre o DNI del socio. Al pie, **Cobrado** suma lo que muestra la lista, sin contar las anuladas. **Detalle** abre la venta completa con sus precios y cobros.
+
+### Anular una venta
+
+Si una venta se cobró mal o el cliente devolvió el producto, un administrador hace clic en **Anular** en la fila de la venta y escribe el motivo. Al anularla:
+
+- Los productos vuelven al stock.
+- Los cobros quedan como **reintegrados**: devolvele la plata al cliente.
+- La venta queda en la lista como **Anulada**, tachada, con quién la anuló y por qué, y no suma en el total.
+
+No se puede deshacer. Si la anulaste por error, volvé a hacer la venta desde **Kiosco**.
+
 ### Cargar un producto
 
 1. Entrá a **Kiosco → Productos** y hacé clic en **Crear producto**.

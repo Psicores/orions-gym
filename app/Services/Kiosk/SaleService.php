@@ -162,6 +162,69 @@ class SaleService
     }
 
     /**
+     * Anula una venta: devuelve el stock y marca los cobros como reintegrados.
+     *
+     * Precondiciones:
+     * - $user es la cuenta que anula (el permiso lo controla quien llama; ver SalePolicy::void()).
+     * - $motivo no está vacío.
+     *
+     * Postcondiciones:
+     * - En una transacción, con la venta bloqueada: la venta queda Anulada con quién, cuándo y el
+     *   motivo; cada renglón de un producto que controla stock suma sus unidades con un movimiento
+     *   de anulación; los cobros aprobados pasan a reintegrados y los pendientes a rechazados.
+     * - La venta anulada no suma en los reportes. No se puede deshacer.
+     *
+     * @param  Sale  $sale  Venta a anular.
+     * @param  User  $user  Quién la anula.
+     * @param  string  $motivo  Por qué.
+     * @return Sale La venta anulada, con renglones y cobros cargados.
+     *
+     * @throws SaleException Si ya estaba anulada o falta el motivo.
+     */
+    public function void(Sale $sale, User $user, string $motivo): Sale
+    {
+        // Sin motivo no se anula.
+        $motivo = trim($motivo);
+        if ($motivo === '') {
+            throw new SaleException('Escribí el motivo de la anulación.');
+        }
+
+        return DB::transaction(function () use ($sale, $user, $motivo): Sale {
+            // Vuelve a leer la venta bloqueándola: dos anulaciones a la vez no devuelven el stock dos veces.
+            $locked = Sale::query()->lockForUpdate()->findOrFail($sale->getKey());
+
+            // Una sola vez.
+            if ($locked->estado === SaleStatusEnum::Anulada) {
+                throw new SaleException("La venta #{$locked->getKey()} ya estaba anulada.");
+            }
+
+            // Marca la venta.
+            $locked->update([
+                'estado' => SaleStatusEnum::Anulada,
+                'anulada_at' => now(),
+                'anulada_por_user_id' => $user->getKey(),
+                'motivo_anulacion' => mb_substr($motivo, 0, 255),
+            ]);
+
+            // Devuelve el stock de cada renglón (también de productos dados de baja).
+            foreach ($locked->items()->with('product')->get() as $item) {
+                if ($item->product?->controla_stock) {
+                    $item->product->moveStock($item->cantidad, StockMovementTypeEnum::Anulacion, $user, "Anulación de la venta #{$locked->getKey()}", $item->getKey());
+                }
+            }
+
+            // Cobros: lo recibido se reintegra; lo que no llegó a acreditarse, se rechaza.
+            $locked->payments()->where('estado', SalePaymentStatusEnum::Aprobado)->update(['estado' => SalePaymentStatusEnum::Reintegrado]);
+            $locked->payments()->where('estado', SalePaymentStatusEnum::Pendiente)->update(['estado' => SalePaymentStatusEnum::Rechazado]);
+
+            // Devuelve la venta actualizada.
+            $sale->setRawAttributes($locked->getAttributes(), true);
+
+            return $sale->load(['items', 'payments']);
+        });
+    }
+
+    /**
      * Medio que define los precios: efectivo solo si todo se paga en efectivo.
      *
      * Precondiciones:
