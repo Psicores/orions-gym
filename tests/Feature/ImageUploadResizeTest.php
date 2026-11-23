@@ -42,7 +42,8 @@ class ImageUploadResizeTest extends TestCase
     {
         Livewire::test(ManageAnnouncements::class)
             ->mountAction(CreateAction::class)
-            ->assertFormFieldExists('imagen_path', fn (FileUpload $field): bool => $field->getImageResizeTargetWidth() === '1600'
+            ->assertFormFieldExists('imagen_path', fn (FileUpload $field): bool => $field->getImageResizeMode() === 'contain'
+                && $field->getImageResizeTargetWidth() === '1600'
                 && $field->getImageResizeTargetHeight() === null
                 && ! $field->getImageResizeUpscale()
                 && $field->getMaxSize() === 10240);

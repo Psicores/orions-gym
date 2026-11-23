@@ -48,8 +48,8 @@ días. Desde cada fila se abre la ficha o se inicia el cobro.
 
 **Dar de alta.** Botón **Crear cliente**. La primera pestaña pide los datos (nombre, apellido,
 DNI, fecha de nacimiento, celular, email) y, al final, las observaciones y dolencias. La segunda
-permite subir la foto (JPG, PNG o WebP) y el certificado de salud (PDF o foto), hasta 2 MB cada
-uno. DNI y email no se pueden repetir, ni siquiera con clientes dados de baja.
+permite subir la foto (JPG, PNG o WebP, hasta 10 MB) y el certificado de salud (PDF o foto,
+hasta 2 MB). La foto se guarda en 800×800 y la del certificado en 2000 px como máximo. DNI y email no se pueden repetir, ni siquiera con clientes dados de baja.
 
 **Buscar.** Por nombre, apellido o DNI. Las pestañas filtran por estado y hay un filtro para ver
 los dados de baja.
@@ -136,7 +136,7 @@ sitio público.
 
 **Anuncios.** Avisos que ven los socios en el inicio de su portal y el público en el botón
 “Novedades” del sitio. Cada anuncio lleva título (obligatorio), texto con formato, imagen (JPG,
-PNG o WebP, hasta 2 MB) o las dos cosas. Opciones:
+PNG o WebP, hasta 10 MB; se guarda en 1600 px de ancho como máximo) o las dos cosas. Opciones:
 
 - **Activo:** el interruptor lo apaga o lo enciende sin borrarlo, también desde el listado.
 - **Mostrar desde / hasta:** fechas opcionales para programarlo y para que se dé de baja solo.
@@ -161,6 +161,11 @@ Los videos son MP4 de hasta 12 MB (conviene comprimirlos a 1280 px de ancho y si
 imágenes JPG, PNG o WebP, que se achican antes de subir. Se guardan en el disco público, así que
 el servidor necesita el enlace `public/storage` (`php artisan storage:link`). Al reemplazar un
 archivo, el anterior queda guardado en el servidor.
+
+**Imágenes livianas.** Toda imagen que se sube desde el panel se achica dos veces: en el navegador,
+antes de subirla, y en el servidor al guardarla (`App\Support\ImageOptimizer`, con GD). Si quedó más
+grande que lo que se muestra o pesa más de 300 KB, el servidor la achica, la pasa a WebP y descarta
+la original. Los PDF no se tocan. Las imágenes subidas antes de este cambio quedan como estaban.
 
 ## Guía de uso para el socio
 

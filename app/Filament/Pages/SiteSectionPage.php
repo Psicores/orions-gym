@@ -5,6 +5,7 @@ namespace App\Filament\Pages;
 use App\Enums\SiteSectionEnum;
 use App\Filament\Concerns\AdminOnly;
 use App\Models\SiteContent;
+use App\Support\ImageOptimizer;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Forms\Components\FileUpload;
@@ -229,11 +230,10 @@ abstract class SiteSectionPage extends Page
         return $this->mediaUpload($name, $label)
             ->image()
             ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
-            ->automaticallyResizeImagesToWidth((string) $width)
-            // Una imagen más chica no se agranda.
-            ->automaticallyUpscaleImagesWhenResizing(false)
             // Límite del original, antes de achicarlo.
-            ->maxSize(10240);
+            ->maxSize(10240)
+            // Achicada en el navegador y liviana en el servidor (ver ImageOptimizer).
+            ->when(true, fn (FileUpload $field) => ImageOptimizer::configure($field, $width));
     }
 
     /**

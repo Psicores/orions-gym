@@ -11,6 +11,7 @@ use App\Filament\Resources\Clients\RelationManagers\MembershipsRelationManager;
 use App\Filament\Resources\Clients\RelationManagers\PaymentsRelationManager;
 use App\Models\Client;
 use App\Rules\ArgentineMobile;
+use App\Support\ImageOptimizer;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -261,17 +262,11 @@ class ClientResource extends Resource
                                     ->visibility('private')
                                     // Carpeta dentro del disco donde se guardan las fotos.
                                     ->directory('clients/fotos')
-                                    // Antes de subirla, el navegador la achica para que entre en 800×800 sin recortarla.
-                                    ->automaticallyResizeImagesMode('contain')
-                                    // Ancho máximo, en píxeles.
-                                    ->automaticallyResizeImagesToWidth('800')
-                                    // Alto máximo, en píxeles.
-                                    ->automaticallyResizeImagesToHeight('800')
-                                    // Una foto más chica no se agranda.
-                                    ->automaticallyUpscaleImagesWhenResizing(false)
                                     // Tamaño máximo del original, en KB (10 MB): se mide antes de achicarla,
-                                    // así entra una foto sacada con el celular; lo que se sube pesa mucho menos.
-                                    ->maxSize(10240),
+                                    // así entra una foto sacada con el celular; lo que se guarda pesa mucho menos.
+                                    ->maxSize(10240)
+                                    // Entra en 800×800 sin recortarse; liviana en el servidor (ver ImageOptimizer).
+                                    ->when(true, fn (FileUpload $field) => ImageOptimizer::configure($field, 800, 800)),
                                 // Subida del certificado de salud (columna certificado_salud_path, opcional).
                                 FileUpload::make('certificado_salud_path')
                                     // Texto que ve el usuario sobre el campo.
@@ -286,6 +281,8 @@ class ClientResource extends Resource
                                     ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png', 'image/webp'])
                                     // Tamaño máximo en KB (2 MB, el límite actual de PHP).
                                     ->maxSize(2048)
+                                    // Si es una foto, queda legible pero liviana (2000 px); un PDF se guarda tal cual.
+                                    ->when(true, fn (FileUpload $field) => ImageOptimizer::configure($field, 2000, 2000))
                                     // Agrega un botón para abrir el archivo en otra pestaña.
                                     ->openable()
                                     // Agrega un botón para descargar el archivo.
