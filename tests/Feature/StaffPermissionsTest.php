@@ -9,6 +9,8 @@ use App\Filament\Resources\AccessPoints\AccessPointResource;
 use App\Filament\Resources\Announcements\AnnouncementResource;
 use App\Filament\Resources\Clients\ClientResource;
 use App\Filament\Resources\Plans\PlanResource;
+use App\Filament\Resources\ProductCategories\ProductCategoryResource;
+use App\Filament\Resources\Products\ProductResource;
 use App\Filament\Resources\Users\UserResource;
 use App\Models\Client;
 use App\Models\User;
@@ -38,6 +40,7 @@ class StaffPermissionsTest extends TestCase
             'imprimir QR' => [fn (): string => CheckInQr::getUrl()],
             'planes' => [fn (): string => PlanResource::getUrl()],
             'anuncios' => [fn (): string => AnnouncementResource::getUrl()],
+            'productos del kiosco' => [fn (): string => ProductResource::getUrl()],
         ];
     }
 
@@ -57,6 +60,7 @@ class StaffPermissionsTest extends TestCase
         $screens = [
             'personal' => [fn (): string => UserResource::getUrl()],
             'manual' => [fn (): string => UserManual::getUrl()],
+            'categorías del kiosco' => [fn (): string => ProductCategoryResource::getUrl()],
         ];
 
         foreach (SiteSectionEnum::cases() as $section) {
@@ -90,6 +94,8 @@ class StaffPermissionsTest extends TestCase
             ->assertSee(PlanResource::getUrl(), escape: false)
             ->assertSee(AnnouncementResource::getUrl(), escape: false)
             ->assertSee(AccessPointResource::getUrl(), escape: false)
+            ->assertSee(ProductResource::getUrl(), escape: false)
+            ->assertDontSee(ProductCategoryResource::getUrl(), escape: false)
             ->assertDontSee(UserResource::getUrl(), escape: false)
             ->assertDontSee(UserManual::getUrl(), escape: false)
             ->assertDontSee(SiteSectionEnum::Portada->editPage()::getUrl(), escape: false);

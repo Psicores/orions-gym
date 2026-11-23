@@ -32,4 +32,19 @@ return [
 
     'seed_demo_data' => (bool) env('SEED_DEMO_DATA', false),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Kiosco
+    |--------------------------------------------------------------------------
+    |
+    | member_discount_percent: descuento (en %) sobre el precio de lista cuando la
+    | venta se vincula a un socio. No se suma al precio en efectivo: se cobra el
+    | más barato de los dos (ver Product::priceFor()). 0 = sin descuento.
+    |
+    */
+
+    'kiosk' => [
+        'member_discount_percent' => (int) env('KIOSK_MEMBER_DISCOUNT_PERCENT', 15),
+    ],
+
 ];
