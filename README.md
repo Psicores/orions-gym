@@ -111,13 +111,17 @@ dura hasta que el socio paga o hasta que se le cambia el estado a mano.
 
 ### QR de ingreso
 
-**QR de ingreso** muestra el cartel con el código QR del gimnasio (con la calavera en el centro)
-y un botón para imprimirlo. Se imprime una vez y se pega en recepción: los socios lo escanean
-desde su portal para registrar el ingreso.
+**QR de ingreso** lista los puntos de acceso (Recepción, otro salón...). Cada uno tiene su QR,
+con la calavera en el centro, para imprimir. El QR lleva la dirección `/ingreso/{código}`: el socio
+la abre con la cámara del celular, ve "Hola, {nombre}" y confirma con **Registrar ingreso**. Abrir
+el enlace nunca descuenta nada (una vista previa de WhatsApp tampoco); confirmar dos veces dentro
+de 10 minutos descuenta un solo crédito, y hay un límite de 10 confirmaciones por minuto por socio.
+El resultado se ve a pantalla completa: verde si entró al día, ámbar si quedó debiendo o no pudo
+entrar. "Escanear QR" del portal sigue funcionando como alternativa.
 
-El QR es el mismo para todos y no cambia solo. Si hubiera que invalidarlo (por ejemplo, porque
-alguien registra ingresos desde su casa con una foto), se cambia `GYM_CHECKIN_TOKEN` en el `.env`
-del servidor, se corre `php artisan config:cache` y se imprime el cartel de nuevo.
+Apagar un punto o tocar **Cambiar código** invalida su QR impreso al instante (por ejemplo, si
+alguien registra ingresos desde su casa con una foto); después se imprime el nuevo. El QR depende
+de `APP_URL`: **al pasar al dominio definitivo hay que reimprimir todos los carteles**.
 
 ### Manual de uso
 
@@ -337,18 +341,15 @@ LOG_LEVEL=warning
 SESSION_SECURE_COOKIE=true
 SESSION_ENCRYPT=true
 SEED_DEMO_DATA=false
-GYM_CHECKIN_TOKEN=una-cadena-al-azar-de-16-caracteres-o-mas
 ```
 
 `APP_DEBUG=true` en producción muestra contraseñas y datos internos ante cualquier error: tiene
-que estar en `false`. Después de cambiar el `.env`, correr `php artisan config:cache`. Cambiar
-`GYM_CHECKIN_TOKEN` obliga a reimprimir el QR de recepción.
+que estar en `false`. Después de cambiar el `.env`, correr `php artisan config:cache`.
 
-`GYM_CHECKIN_TOKEN` es seguro aunque se olvide, y la verificación en dos pasos es opcional:
+`GYM_CHECKIN_TOKEN` ya no se usa: la migración de puntos de acceso lo importa una sola vez como
+código del punto "Recepción" (solo si era seguro), y después se puede borrar del `.env`. La
+verificación en dos pasos es opcional:
 
-- **`GYM_CHECKIN_TOKEN`.** En producción, si falta, es el de prueba o tiene menos de 16
-  caracteres, el ingreso por QR queda deshabilitado y **QR de ingreso** muestra cómo configurarlo
-  (con un código al azar listo para copiar). En desarrollo, vacío usa un código de prueba.
 - **`STAFF_TWO_FACTOR_REQUIRED`.** Sin definir, la verificación en dos pasos del personal es
   opcional: cada uno la activa desde su **Perfil** si quiere. Con `true`, el panel obliga a
   activarla.

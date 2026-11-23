@@ -4,7 +4,9 @@ namespace Tests\Feature;
 
 use App\Enums\MembershipStatusEnum;
 use App\Filament\Pages\CheckInQr;
+use App\Filament\Resources\AccessPoints\AccessPointResource;
 use App\Livewire\MemberScan;
+use App\Models\AccessPoint;
 use App\Models\Attendance;
 use App\Models\Client;
 use App\Models\Membership;
@@ -19,7 +21,16 @@ class CheckInTest extends TestCase
 {
     use RefreshDatabase;
 
-    private const string TOKEN = 'orions-ingreso-sede-1';
+    private const string TOKEN = 'codigo-del-qr-de-prueba-1234567890';
+
+    private AccessPoint $accessPoint;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->accessPoint = AccessPoint::factory()->create(['nombre' => 'Mostrador', 'token' => self::TOKEN]);
+    }
 
     public function test_the_scan_screen_loads_the_camera_scanner(): void
     {
@@ -125,25 +136,29 @@ class CheckInTest extends TestCase
             ->test(MemberScan::class)
             ->call('procesarIngreso', 'https://otro-sitio.example/qr')
             ->assertSet('resultado', 'error')
-            ->assertSee('Ese código no es el del gimnasio.')
+            ->assertSee('Ese código no es un QR de ingreso del gimnasio.')
             ->assertDispatched('ingreso-rechazado');
 
         $this->assertDatabaseCount(Attendance::class, 0);
         $this->assertSame(12, $membership->refresh()->creditos_disponibles);
     }
 
-    public function test_the_qr_must_match_the_configured_token(): void
+    public function test_the_scanner_reads_the_new_url_qr_and_rejects_a_turned_off_point(): void
     {
-        config(['gym.checkin_token' => 'otro-codigo']);
         $client = Client::factory()->create();
         Membership::factory()->for($client)->create();
+        $this->accessPoint->update(['activo' => false]);
 
-        Livewire::actingAs($client, 'client')
+        $component = Livewire::actingAs($client, 'client')
             ->test(MemberScan::class)
             ->call('procesarIngreso', self::TOKEN)
-            ->assertSet('resultado', 'error')
-            ->call('procesarIngreso', 'otro-codigo')
+            ->assertSet('resultado', 'error');
+
+        $this->accessPoint->update(['activo' => true]);
+        $component->call('procesarIngreso', $this->accessPoint->checkInUrl())
             ->assertSet('resultado', 'ok');
+
+        $this->assertSame($this->accessPoint->id, Attendance::query()->sole()->access_point_id);
     }
 
     public function test_scanning_again_within_minutes_does_not_discount_a_second_credit(): void
@@ -205,16 +220,22 @@ class CheckInTest extends TestCase
     public function test_staff_can_open_the_printable_reception_qr_from_the_sidebar(): void
     {
         $this->actingAs(User::factory()->create())
-            ->get(CheckInQr::getUrl())
+            ->get(AccessPointResource::getUrl())
             ->assertOk()
             ->assertSee('QR de ingreso')
+            ->assertSee('Mostrador')
+            ->assertSee(CheckInQr::getUrl(['punto' => $this->accessPoint->id]), escape: false);
+
+        $this->get(CheckInQr::getUrl(['punto' => $this->accessPoint->id]))
+            ->assertOk()
             ->assertSee('src="data:image/png;base64,', escape: false)
+            ->assertSee('Mostrador')
             ->assertSee('Imprimir');
     }
 
-    public function test_the_printable_qr_still_reads_as_the_gym_token_with_the_logo_on_top(): void
+    public function test_the_printable_qr_reads_as_the_check_in_url_with_the_logo_on_top(): void
     {
-        $html = $this->actingAs(User::factory()->create())->get(CheckInQr::getUrl())->getContent();
+        $html = $this->actingAs(User::factory()->create())->get(CheckInQr::getUrl(['punto' => $this->accessPoint->id]))->getContent();
 
         $this->assertSame(1, preg_match('/src="data:image\/png;base64,([^"]+)"/', $html, $matches));
 
@@ -223,7 +244,7 @@ class CheckInTest extends TestCase
         ob_start();
         imagepng($small);
 
-        $this->assertSame(self::TOKEN, (new QRCode)->readFromBlob((string) ob_get_clean())->data);
+        $this->assertSame(route('check-in.show', self::TOKEN), (new QRCode)->readFromBlob((string) ob_get_clean())->data);
     }
 
     public function test_members_cannot_open_the_reception_qr_page(): void

@@ -7,16 +7,11 @@ return [
     | Código del QR de ingreso
     |--------------------------------------------------------------------------
     |
-    | Texto que lleva el código QR impreso en el mostrador de recepción. El socio
-    | lo escanea desde su portal para registrar su ingreso. Es el mismo para
-    | todos y no cambia solo: para invalidar el QR impreso (por ejemplo, si
-    | alguien le sacó una foto), se cambia este valor y se imprime uno nuevo
-    | desde /admin/qr-de-ingreso.
-    |
-    | Sin GYM_CHECKIN_TOKEN se usa un valor de desarrollo que está en el código.
-    | En producción ese valor no sirve: hay que poner una cadena al azar de 16
-    | caracteres o más; hasta entonces el ingreso por QR queda deshabilitado
-    | (ver Attendance::receptionToken()).
+    | Ya no se usa para el ingreso: cada punto de acceso tiene su propio código y
+    | se maneja desde el panel (QR de ingreso). Solo lo lee una vez la migración
+    | create_access_points_table, para que el primer punto ("Recepción") conserve
+    | el código del QR ya impreso si era seguro (16 caracteres o más y no el de
+    | desarrollo). Después de migrar se puede borrar del .env.
     |
     */
 

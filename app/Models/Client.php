@@ -572,7 +572,8 @@ class Client extends Authenticatable
     /**
      * Registra un ingreso del cliente al gimnasio y le descuenta un crédito.
      *
-     * Lo usa el portal del socio cuando escanea el QR de recepción (ver App\Livewire\MemberScan).
+     * Lo usan la confirmación de ingreso al abrir el QR con la cámara (ver
+     * App\Http\Controllers\CheckInController) y el escáner del portal (App\Livewire\MemberScan).
      *
      * Precondiciones:
      * - El cliente existe en la base.
@@ -582,20 +583,22 @@ class Client extends Authenticatable
      * Postcondiciones:
      * - Si en los últimos ATTENDANCE_REPEAT_MINUTES minutos ya registró un ingreso, devuelve ese
      *   mismo y no descuenta nada: escanear dos veces seguidas no cuesta dos créditos.
-     * - Si no, crea y devuelve una Attendance de ahora, con la membresía vigente, y le resta 1 a
-     *   sus creditos_disponibles. El resultado puede ser negativo: entra igual y queda debiendo.
+     * - Si no, crea y devuelve una Attendance de ahora, con la membresía vigente y el punto de
+     *   acceso recibido, y le resta 1 a sus creditos_disponibles. El resultado puede ser negativo:
+     *   entra igual y queda debiendo.
      * - La asistencia y el descuento se guardan juntos: si uno falla, no queda ninguno.
      * - Si alguna precondición no se cumple, lanza la excepción y no guarda nada.
      * - Para saber si el ingreso es nuevo o repetido: $attendance->wasRecentlyCreated.
      *
+     * @param  AccessPoint|null  $accessPoint  Punto por el que entra (null si no se sabe).
      * @return Attendance La asistencia registrada (o la reciente, si era un ingreso repetido).
      *
      * @throws InvalidArgumentException Si no tiene membresía vigente o su estado no permite entrar.
      */
-    public function registerAttendance(): Attendance
+    public function registerAttendance(?AccessPoint $accessPoint = null): Attendance
     {
         // Todo en una transacción: o quedan la asistencia y el descuento, o nada.
-        return DB::transaction(function (): Attendance {
+        return DB::transaction(function () use ($accessPoint): Attendance {
             // Membresía vigente, bloqueada hasta terminar para que dos escaneos a la vez no se pisen.
             $membership = Membership::query()
                 ->whereKey($this->currentMembership()->value('memberships.id'))
@@ -633,6 +636,8 @@ class Client extends Authenticatable
             return $this->attendances()->create([
                 // Membresía usada.
                 'membership_id' => $membership->id,
+                // Punto de acceso usado.
+                'access_point_id' => $accessPoint?->id,
                 // Momento del ingreso.
                 'fecha_hora' => now(),
             ]);

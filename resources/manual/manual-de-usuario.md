@@ -401,29 +401,32 @@ Resultado: la membresía pasa a **Activo flex** y el cliente a **Activo temporal
 
 ## QR de ingreso
 
-### Imprimir el cartel de recepción
+**QR de ingreso** lista los **puntos de acceso** del gimnasio (por ejemplo Recepción). Cada punto tiene su propio QR. Podés crear más con **Nuevo punto de acceso**, cambiarles el nombre, apagarlos (el QR deja de servir) y ver cuántos ingresos hubo hoy por cada uno.
+
+### Imprimir el cartel
 
 1. Entrá a **QR de ingreso**.
-2. Hacé clic en **Imprimir**. Sale solo el cartel, sin el menú ni los botones.
+2. En el punto que quieras, tocá **Imprimir QR** y después **Imprimir**. Sale solo el cartel, sin el menú ni los botones.
 3. Pegalo en el mostrador, a la altura de la vista.
 
-El código es **el mismo para todos los socios** y no cambia: se imprime una sola vez.
+El código no cambia solo: se imprime una sola vez. **Hay que reimprimirlo cuando el sitio pase al dominio definitivo.**
 
 ### Qué pasa cuando un socio lo escanea
 
-El socio lo escanea desde su portal, con la opción **Escanear QR**.
+El socio apunta la **cámara del celular** al cartel y toca el enlace (también puede usar **Escanear QR** desde su portal). Si no tenía la sesión abierta, ingresa y vuelve solo a la pantalla de ingreso. Ahí ve "Hola, {nombre}" y toca **Registrar ingreso**: abrir el enlace solo no descuenta nada.
 
 | Situación del socio | Resultado en su celular |
 | --- | --- |
-| Membresía Entrenando o Activo flex | Pantalla verde y sonido. Se registra el ingreso y se descuenta un crédito |
-| Volvió a escanear dentro de los 10 minutos | Avisa que ya estaba registrado. No descuenta otro crédito |
-| Membresía En pausa | "Cuota vencida. Pasá por recepción." No registra el ingreso |
-| Sin membresía vigente | Avisa el motivo. No registra el ingreso |
-| Escaneó otro código QR | Error. No registra nada |
+| Membresía Entrenando o Activo flex | Pantalla verde, grande, con su nombre, la hora y los créditos. Se registra el ingreso y se descuenta un crédito |
+| Quedó con créditos en negativo | Igual entra, pero la pantalla sale en ámbar: "Quedaste debiendo créditos" |
+| Volvió a confirmar dentro de los 10 minutos | Avisa que ya estaba adentro. No descuenta otro crédito |
+| Membresía En pausa | En ámbar: "Cuota vencida. Pasá por recepción." No registra el ingreso |
+| Sin membresía vigente | En ámbar, con el motivo. No registra el ingreso |
+| QR de un punto apagado, viejo o de otro lado | "Este QR no está habilitado". No registra nada |
 
-### Invalidar el código
+### Invalidar un QR
 
-Si sospechás que alguien registra ingresos desde su casa con una foto del cartel, hay que cambiar el código. Es una tarea del administrador del sistema (ver [Mantenimiento](#mantenimiento)). Después hay que imprimir el cartel de nuevo.
+Si sospechás que alguien registra ingresos desde su casa con una foto del cartel, tocá **Cambiar código** en ese punto. El QR impreso deja de servir al instante; imprimí el nuevo.
 
 ## Planes
 
@@ -662,7 +665,8 @@ Lo que un profe no puede usar no le aparece en el menú, y si abre la dirección
 
 | Necesito… | Qué hacer |
 | --- | --- |
-| Cambiar el código del QR de ingreso | Cambiar `GYM_CHECKIN_TOKEN` en el `.env`, correr `php artisan config:cache` y reimprimir el cartel |
+| Cambiar el código de un QR de ingreso | En **QR de ingreso**, tocar **Cambiar código** en ese punto y reimprimir el cartel |
+| Pasar al dominio definitivo | Cambiar `APP_URL` en el `.env`, correr `php artisan config:cache` y reimprimir todos los QR de ingreso |
 | Destrabar a alguien del personal que perdió su celular | `php artisan staff:disable-two-factor su@email.com` |
 | Obligar al personal a usar verificación en dos pasos | Hoy es opcional. Para obligarla: `STAFF_TWO_FACTOR_REQUIRED=true` en el `.env` y `php artisan config:cache` |
 | Borrar los clientes y anuncios de ejemplo | `php artisan demo:remove` |

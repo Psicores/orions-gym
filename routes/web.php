@@ -6,6 +6,7 @@ use App\Http\Controllers\MemberSessionController;
 use App\Http\Middleware\EnsureMemberHasOwnPassword;
 use App\Http\Middleware\EnsureMemberSessionIsCurrent;
 use App\Livewire\MemberAccount;
+use App\Livewire\MemberCheckIn;
 use App\Livewire\MemberDashboard;
 use App\Livewire\MemberHistory;
 use App\Livewire\MemberScan;
@@ -69,6 +70,8 @@ Route::middleware(['auth:client', EnsureMemberSessionIsCurrent::class])->group(f
         Route::livewire('/mi-perfil/historial', MemberHistory::class)->name('member.history');
         // Escanear el QR de ingreso.
         Route::livewire('/mi-perfil/escanear', MemberScan::class)->name('member.scan');
+        // Lo que abre el QR de un punto de acceso con la cámara del celular: confirma el ingreso.
+        Route::livewire('/ingreso/{token}', MemberCheckIn::class)->name('check-in.show');
     });
     // Mi cuenta: datos, cambio de contraseña y salir.
     Route::livewire('/mi-perfil/cuenta', MemberAccount::class)->name('member.account');
