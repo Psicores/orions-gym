@@ -10,8 +10,10 @@ Sistema de gestión del gimnasio Orions. Tiene tres partes:
 
 Todos entran por la misma pantalla, `/ingresar`: el socio va a su portal y el personal al panel.
 
-Hoy hay dos tipos de cuenta: **personal** (dueños y profes, todos con los mismos permisos de
-administrador) y **socios**. No hay roles diferenciados dentro del personal.
+Hay dos tipos de cuenta: **personal** y **socios**. El personal tiene dos roles: **Administrador**
+(todo el panel, incluidas la página pública, las cuentas del personal y el manual) y **Profe**
+(clientes, cobros, membresías, cortesías, QR de ingreso, planes y anuncios). Las cuentas del
+personal se crean desde el panel, en Admin del sitio → Personal.
 
 ## Índice
 
