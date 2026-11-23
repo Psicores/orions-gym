@@ -377,6 +377,19 @@ Para evitarlo, después de cobrar:
 
 Los pagos **no se pueden editar ni borrar** desde el panel: es intencional, para que el historial de cobros sea confiable. Si te equivocaste de monto o de cliente, anotalo y avisale al administrador del sistema para que lo corrija.
 
+## Ingresos
+
+**Ingresos**, en el menú, junta todo lo cobrado: cuotas y kiosco. Sirve para rendir la caja al final del turno o del día.
+
+- **Período:** arranca en hoy. Usá **Hoy**, **Ayer**, **Esta semana** o **Este mes**, o elegí las fechas a mano.
+- **Totales:** el total del período y cuánto entró en efectivo y cuánto por transferencia.
+- **Cuotas y kiosco:** los mismos totales separados por origen.
+- **Por persona:** lo que cobró cada uno, para saber cuánto efectivo tiene que entregar. Solo la ven los administradores.
+- **Por día:** aparece cuando elegís más de un día.
+- **Detalle:** cada cobro con su hora, a quién (socio o número de venta), el medio y quién cobró.
+
+Un administrador ve lo de todos y puede elegir una persona. Un profe ve solo lo que cobró él. Las ventas anuladas no suman.
+
 ## Cortesía
 
 ### Dar cortesía a un socio
