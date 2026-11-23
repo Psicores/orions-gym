@@ -3,10 +3,12 @@
 namespace App\Filament\Resources\Products;
 
 use App\Filament\Resources\ProductCategories\ProductCategoryResource;
+use App\Filament\Resources\Products\Actions\StockActions;
 use App\Filament\Resources\Products\Pages\ManageProducts;
 use App\Models\Product;
 use App\Support\ImageOptimizer;
 use BackedEnum;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -36,8 +38,9 @@ use UnitEnum;
  * Productos del kiosco.
  *
  * Todo el personal ve el listado (precios y stock); solo los administradores dan de alta, editan
- * o dan de baja (ver App\Policies\ProductPolicy). El stock no se edita acá: se mueve con cargas de
- * mercadería, ajustes y ventas.
+ * o dan de baja (ver App\Policies\ProductPolicy). El stock no se edita en el formulario: se mueve
+ * con "Cargar mercadería" (todo el personal), "Ajustar stock" (administradores) y las ventas, y
+ * cada cambio queda en Movimientos de stock (ver Actions\StockActions).
  */
 class ProductResource extends Resource
 {
@@ -301,6 +304,8 @@ class ProductResource extends Resource
                 TrashedFilter::make(),
             ])
             ->recordActions([
+                // Sumar unidades que llegaron (todo el personal).
+                StockActions::receive(),
                 // Editar en una ventana modal (solo administradores, ver ProductPolicy).
                 EditAction::make()
                     ->modalIcon(Heroicon::OutlinedPencilSquare)
@@ -308,10 +313,17 @@ class ProductResource extends Resource
                     ->modalWidth(Width::TwoExtraLarge)
                     ->modalFooterActionsAlignment(Alignment::End)
                     ->extraModalWindowAttributes(['class' => 'orions-modal']),
-                // Dar de baja (baja lógica).
-                DeleteAction::make(),
-                // Restaurar uno dado de baja.
-                RestoreAction::make(),
+                // El resto, en el menú de tres puntos.
+                ActionGroup::make([
+                    // Corregir después de contar (solo administradores).
+                    StockActions::adjust(),
+                    // Historial del stock.
+                    StockActions::history(),
+                    // Dar de baja (baja lógica).
+                    DeleteAction::make(),
+                    // Restaurar uno dado de baja.
+                    RestoreAction::make(),
+                ]),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

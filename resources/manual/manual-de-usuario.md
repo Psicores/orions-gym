@@ -475,7 +475,25 @@ Está en el grupo **Kiosco** del menú. Los profes ven los productos con sus pre
    - La **foto**: se guarda achicada y liviana.
 4. Prendé **Destacado** si querés que aparezca primero al vender. Con **Activo** apagado, el producto no se ofrece para vender.
 
-Con **Crear y crear otro** cargás varios seguidos. El stock se carga desde las entradas de mercadería, no desde este formulario.
+Con **Crear y crear otro** cargás varios seguidos. El stock no se carga en este formulario, sino con los botones de stock.
+
+### Cargar mercadería que llegó
+
+En la fila del producto, hacé clic en **Cargar mercadería**, escribí cuántas unidades llegaron y, si querés, una nota (el proveedor o el remito). Lo puede hacer cualquiera del personal, y queda registrado quién fue.
+
+También se puede hacer desde la lista **Para reponer** del escritorio. Esa lista aparece sola cuando hay productos sin stock o en su stock mínimo.
+
+### Ajustar el stock después de contar
+
+Si contaste y no coincide (algo se rompió, venció o se perdió), abrí el menú **⋮** de la fila y elegí **Ajustar stock**. Escribí cuántas unidades contaste y el motivo: el sistema registra la diferencia. Solo lo pueden hacer los administradores.
+
+### Ver los movimientos
+
+**Kiosco → Movimientos de stock** muestra cada entrada, venta, ajuste y anulación, con quién la hizo y cuánto quedó. Desde el menú **⋮** de un producto, **Movimientos** abre la lista filtrada por ese producto. Los movimientos no se pueden editar ni borrar.
+
+### Vender sin stock
+
+De fábrica, el kiosco vende igual aunque el sistema diga que no hay stock: avisa en ámbar y el stock queda en negativo hasta la próxima carga. Si preferís que no deje vender, hay que cambiar `KIOSK_STOCK_MODE=strict` en la configuración del servidor.
 
 ### Precio para socios
 

@@ -41,10 +41,15 @@ return [
     | venta se vincula a un socio. No se suma al precio en efectivo: se cobra el
     | más barato de los dos (ver Product::priceFor()). 0 = sin descuento.
     |
+    | stock_mode: qué pasa al vender un producto sin stock suficiente.
+    | "warn" (de fábrica): se vende igual, con un aviso en ámbar, y el stock queda
+    | en negativo hasta la próxima entrada. "strict": no deja vender.
+    |
     */
 
     'kiosk' => [
         'member_discount_percent' => (int) env('KIOSK_MEMBER_DISCOUNT_PERCENT', 15),
+        'stock_mode' => env('KIOSK_STOCK_MODE', 'warn'),
     ],
 
 ];
