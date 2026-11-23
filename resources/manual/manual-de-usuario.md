@@ -153,11 +153,12 @@ Es el caso más común en recepción. Se hace en dos pasos seguidos.
 
 1. Entrá a **Clientes**.
 2. Hacé clic en **Crear cliente**.
-3. En la pestaña **Datos del cliente**, completá nombre, apellido, DNI, fecha de nacimiento, celular y email. Todos son obligatorios.
-4. Dejá el **Estado** como viene (Inactivo): cambia solo cuando registres el pago.
-5. Si corresponde, anotá lesiones o dolencias en **Observaciones / dolencias** (opcional).
-6. Si ya tenés la foto o el certificado, cargalos en la pestaña **Foto y certificado** (opcional: se pueden subir después).
-7. Hacé clic en **Crear**.
+3. En la pestaña **Datos del cliente**, completá nombre, apellido, DNI, fecha de nacimiento y email, que son obligatorios. El **celular** es opcional: escribilo como venga ("280 15 412-3456", "02804123456"…) y el sistema lo guarda en el formato de WhatsApp. Si no lo tenés, el socio lo completa desde su portal.
+4. En **Avisos**, marcá solo lo que el socio aceptó: avisos de su cuenta por WhatsApp y novedades del gimnasio. Después lo puede cambiar desde su portal.
+5. Dejá el **Estado** como viene (Inactivo): cambia solo cuando registres el pago.
+6. Si corresponde, anotá lesiones o dolencias en **Observaciones / dolencias** (opcional).
+7. Si ya tenés la foto o el certificado, cargalos en la pestaña **Foto y certificado** (opcional: se pueden subir después; las fotos sacadas con el celular se achican solas).
+8. Hacé clic en **Crear**.
 
 **Paso 2: la membresía y el cobro**
 
@@ -681,10 +682,9 @@ Las tareas automáticas de la madrugada solo corren si el servidor tiene activad
 ### Lo que el sistema todavía no hace
 
 - Editar o anular un pago desde el panel.
-- Crear cuentas del personal o darles permisos distintos.
 - Cobrar en línea con una pasarela de pago.
 - Reservar turnos o clases.
 - Registrar la salida del gimnasio.
-- Administrar desde el panel la portada, los horarios, la comunidad y las opiniones del sitio.
+- Mandar los avisos por WhatsApp: ya se guardan el celular y los permisos de cada socio, pero el envío todavía no existe.
 
 El detalle técnico (instalación, despliegue y seguridad) está en el archivo `README.md` del proyecto.
