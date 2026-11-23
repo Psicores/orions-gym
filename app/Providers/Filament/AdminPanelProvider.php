@@ -98,6 +98,11 @@ class AdminPanelProvider extends PanelProvider
                 PanelsRenderHook::STYLES_AFTER,
                 fn (): View => view('filament.admin.styles'),
             )
+            // Botón "Kiosco" en la barra superior, a la izquierda del buscador: vender desde cualquier pantalla.
+            ->renderHook(
+                PanelsRenderHook::GLOBAL_SEARCH_BEFORE,
+                fn (): View => view('filament.admin.kiosk-button'),
+            )
             // Firma de la agencia al pie de cada pantalla del panel.
             ->renderHook(
                 PanelsRenderHook::FOOTER,

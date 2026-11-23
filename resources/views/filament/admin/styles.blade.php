@@ -51,6 +51,11 @@
         letter-spacing: 0.06em;
     }
 
+    /* Botón "Kiosco" de la barra superior: separado del buscador. */
+    .orions-kiosk-btn {
+        margin-inline-end: 0.75rem;
+    }
+
     /* Cartel del QR de ingreso. */
     .orions-qr-cartel {
         display: flex;

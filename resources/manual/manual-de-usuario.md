@@ -463,6 +463,25 @@ El plan deja de ofrecerse y desaparece del sitio público. Los socios que ya lo 
 
 Está en el grupo **Kiosco** del menú. Los profes ven los productos con sus precios y su stock. Solo los administradores pueden crearlos, cambiarlos, darlos de baja y manejar las categorías.
 
+### Vender
+
+Abrí la pantalla de venta con el botón **Kiosco** de la barra de arriba, desde cualquier pantalla, o desde **Kiosco → Vender**. Funciona en la PC y en una tablet.
+
+1. **Agregá los productos.** Tocá cada producto en la grilla: cada toque suma una unidad.
+   - Los destacados aparecen primero, y después los más vendidos del último mes.
+   - Los botones de arriba filtran por categoría.
+   - En el buscador podés escribir el nombre. Si queda un solo producto, Enter lo agrega.
+   - Con un lector de códigos USB, escaneá el envase y el producto se suma solo: el buscador siempre está listo para recibir el código.
+2. **Ajustá las cantidades** con **−** y **+** en la venta de la derecha. En la tablet, si la venta queda abajo, usá la barra **Ver venta**.
+3. **Socio (opcional).** Escribí el DNI o el apellido y elegilo de la lista. Si está al día, se le aplica el descuento y los precios se actualizan solos. Si no, la venta queda a su nombre pero a precio normal.
+4. **Cómo paga:**
+   - **Efectivo:** se usa el precio en efectivo si el producto lo tiene. Si cargás **Paga con**, el sistema te muestra el vuelto.
+   - **Transferencia:** precio normal.
+   - **Mixto:** cargás cuánto paga en efectivo y el resto va por transferencia. Se cobra el precio normal.
+5. Tocá **Cobrar**. La venta se guarda, se descuenta el stock y la pantalla queda lista para la siguiente.
+
+Si un producto no tiene stock suficiente, aparece un aviso en ámbar en la venta. Con la configuración de fábrica se vende igual. Con **Vaciar** se descarta la venta en curso sin guardar nada.
+
 ### Cargar un producto
 
 1. Entrá a **Kiosco → Productos** y hacé clic en **Crear producto**.
@@ -497,7 +516,7 @@ De fábrica, el kiosco vende igual aunque el sistema diga que no hay stock: avis
 
 ### Precio para socios
 
-Cuando la venta se hace a un socio, se le descuenta un 15 % del precio de lista. Si además paga en efectivo y el producto tiene precio en efectivo, se cobra el más barato de los dos: los descuentos no se suman.
+Cuando la venta se hace a un socio al día (en estado **Entrenando**), se le descuenta un 15 % del precio de lista. A un socio en pausa, activo temporal o inactivo se le puede vincular la venta igual, pero paga el precio normal. Si además paga en efectivo y el producto tiene precio en efectivo, se cobra el más barato de los dos: los descuentos no se suman.
 
 ### Categorías
 
