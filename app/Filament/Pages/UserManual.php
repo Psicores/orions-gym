@@ -2,7 +2,7 @@
 
 namespace App\Filament\Pages;
 
-use App\Models\User;
+use App\Filament\Concerns\AdminOnly;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Pages\Page;
@@ -20,6 +20,9 @@ use RuntimeException;
  */
 class UserManual extends Page
 {
+    // Solo para administradores.
+    use AdminOnly;
+
     protected string $view = 'filament.pages.user-manual';
 
     // URL en castellano: /admin/manual.
@@ -33,31 +36,6 @@ class UserManual extends Page
 
     // En el menú va después del QR de ingreso (que usa el orden 2) y antes del grupo "Admin del sitio".
     protected static ?int $navigationSort = 3;
-
-    /**
-     * Decide quién puede ver el manual.
-     *
-     * Filament la consulta para armar el menú lateral y antes de abrir la pantalla.
-     *
-     * Precondiciones:
-     * - Ninguna: se puede llamar con o sin sesión iniciada.
-     *
-     * Postcondiciones:
-     * - Devuelve true solo si hay una cuenta del personal con sesión y tiene el rol de
-     *   administrador (ver User::isSiteAdmin()).
-     * - Con false, el enlace no aparece en el menú y abrir /admin/manual responde 403 (Prohibido).
-     * - No modifica nada.
-     *
-     * @return bool true si la cuenta con sesión puede ver el manual.
-     */
-    public static function canAccess(): bool
-    {
-        // Cuenta con sesión en el panel (null si no hay).
-        $user = auth()->user();
-
-        // Solo el administrador del sitio.
-        return $user instanceof User && $user->isSiteAdmin();
-    }
 
     /**
      * Botones del encabezado de la pantalla.

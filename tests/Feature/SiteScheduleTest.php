@@ -21,7 +21,7 @@ class SiteScheduleTest extends TestCase
     {
         parent::setUp();
 
-        $this->actingAs(User::factory()->create());
+        $this->actingAs(User::factory()->admin()->create());
     }
 
     public function test_the_screen_is_in_the_site_menu(): void

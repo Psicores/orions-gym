@@ -24,7 +24,7 @@ class AdminNavigationTest extends TestCase
     {
         parent::setUp();
 
-        $this->actingAs(User::factory()->create());
+        $this->actingAs(User::factory()->admin()->create());
     }
 
     public function test_the_sidebar_lists_the_site_group_after_the_dashboard_and_clients_with_plans_first(): void

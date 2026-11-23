@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Users;
 
 use App\Enums\SiteSectionEnum;
 use App\Enums\UserRoleEnum;
+use App\Filament\Concerns\AdminOnly;
 use App\Filament\Resources\Users\Pages\ManageUsers;
 use App\Models\User;
 use BackedEnum;
@@ -32,6 +33,9 @@ use UnitEnum;
  */
 class UserResource extends Resource
 {
+    // Solo para administradores.
+    use AdminOnly;
+
     protected static ?string $model = User::class;
 
     // URL en castellano: /admin/personal.
@@ -52,28 +56,6 @@ class UserResource extends Resource
     protected static ?string $pluralModelLabel = 'personal';
 
     protected static ?string $recordTitleAttribute = 'name';
-
-    /**
-     * Decide si la cuenta con sesión puede ver y usar esta sección.
-     *
-     * Precondiciones:
-     * - Ninguna.
-     *
-     * Postcondiciones:
-     * - Devuelve true solo si hay una cuenta del personal con sesión y es administradora.
-     * - Con false, el enlace no aparece en el menú y abrir /admin/personal responde 403.
-     * - No modifica nada.
-     *
-     * @return bool true si puede manejar las cuentas del personal.
-     */
-    public static function canAccess(): bool
-    {
-        // Cuenta con sesión en el panel.
-        $user = Auth::guard('web')->user();
-
-        // Solo un administrador.
-        return $user instanceof User && $user->isSiteAdmin();
-    }
 
     /**
      * Indica si $record es la cuenta de quien está usando el panel.

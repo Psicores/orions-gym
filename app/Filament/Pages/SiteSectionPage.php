@@ -3,6 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Enums\SiteSectionEnum;
+use App\Filament\Concerns\AdminOnly;
 use App\Models\SiteContent;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -21,12 +22,16 @@ use UnitEnum;
  * opiniones, etc.). Cada sección define sus campos; la carga, el guardado y el lugar en el menú
  * son comunes a todas.
  *
- * El contenido se guarda en site_contents (ver App\Models\SiteContent).
+ * El contenido se guarda en site_contents (ver App\Models\SiteContent). Solo las editan los
+ * administradores: los profes no tocan la página pública.
  *
  * @property-read Schema $form
  */
 abstract class SiteSectionPage extends Page
 {
+    // Solo para administradores.
+    use AdminOnly;
+
     protected string $view = 'filament.pages.site-section';
 
     protected static string|UnitEnum|null $navigationGroup = SiteSectionEnum::NAVIGATION_GROUP;

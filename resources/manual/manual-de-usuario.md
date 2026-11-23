@@ -645,6 +645,18 @@ Las cuentas del personal se manejan desde **Admin del sitio → Personal**, que 
 - **Dar de baja:** desde ese momento no puede entrar, pero sigue figurando en los pagos que cobró. Con el filtro de bajas la podés ver y restaurar.
 - **Tu propia cuenta:** no podés cambiarte el rol ni darte de baja, así el panel nunca se queda sin administrador.
 
+**Qué ve cada rol:**
+
+| Parte del panel | Profe | Administrador |
+| --- | --- | --- |
+| Inicio, clientes, cobros, membresías y cortesías | Sí | Sí |
+| QR de ingreso | Sí | Sí |
+| Planes y anuncios | Sí | Sí |
+| Secciones de la página pública (Portada, Comunidad, Horarios, Opiniones) | No | Sí |
+| Personal y este manual | No | Sí |
+
+Lo que un profe no puede usar no le aparece en el menú, y si abre la dirección a mano ve "Prohibido".
+
 ### Tareas habituales
 
 | Necesito… | Qué hacer |
