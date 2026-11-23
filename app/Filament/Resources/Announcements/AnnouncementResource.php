@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Announcements;
 use App\Enums\SiteSectionEnum;
 use App\Filament\Resources\Announcements\Pages\ManageAnnouncements;
 use App\Models\Announcement;
+use App\Support\ImageOptimizer;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -114,13 +115,11 @@ class AnnouncementResource extends Resource
                             ->disk('public')
                             // Carpeta dentro del disco.
                             ->directory('announcements')
-                            // Antes de subirla, el navegador la achica a 1600 píxeles de ancho como máximo.
-                            ->automaticallyResizeImagesToWidth('1600')
-                            // Una imagen más chica no se agranda.
-                            ->automaticallyUpscaleImagesWhenResizing(false)
                             // Tamaño máximo del original, en KB (10 MB): se mide antes de achicarla,
-                            // así entra una foto sacada con el celular; lo que se sube pesa mucho menos.
+                            // así entra una foto sacada con el celular; lo que se guarda pesa mucho menos.
                             ->maxSize(10240)
+                            // 1600 px de ancho como máximo y liviana en el servidor (ver ImageOptimizer).
+                            ->when(true, fn (FileUpload $field) => ImageOptimizer::configure($field, 1600))
                             // Aclara que se puede dejar vacío.
                             ->helperText('Opcional. Dejala vacía si el anuncio es solo texto.')
                             // Ocupa las dos columnas.

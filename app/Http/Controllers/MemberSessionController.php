@@ -127,8 +127,8 @@ class MemberSessionController extends Controller
             // Anota con qué contraseña se abrió esta sesión, para cerrarla si después cambia.
             EnsureMemberSessionIsCurrent::stampSession($client);
 
-            // Termina el ingreso y lo lleva a donde iba o a su inicio.
-            return $this->finishLogin($request, $throttleKey, $this->redirectWithin($request, route('member.dashboard')));
+            // Termina el ingreso y lo lleva a donde iba (su portal o la confirmación de ingreso del QR) o a su inicio.
+            return $this->finishLogin($request, $throttleKey, $this->redirectWithin($request, route('member.dashboard'), [url('/ingreso')]));
         }
 
         // Después, como personal (entra con su email), si además puede entrar al panel (por
@@ -532,18 +532,23 @@ class MemberSessionController extends Controller
      * - Si antes de ingresar intentó abrir una pantalla que empieza con $home (por ejemplo, un
      *   enlace a la ficha de un cliente), redirige ahí; si no, a $home. Así un socio nunca termina
      *   en una pantalla del panel ni el personal en una del portal.
+     * - También acepta las pantallas que empiezan con alguna de $alsoAllowed (para el socio, la
+     *   confirmación de ingreso que abre el QR: /ingreso/...).
      * - Olvida la pantalla guardada.
      *
      * @param  Request  $request  Pedido actual.
      * @param  string  $home  Inicio de quien ingresa.
+     * @param  array<int, string>  $alsoAllowed  Otros inicios válidos (URL completas).
      * @return RedirectResponse La redirección.
      */
-    private function redirectWithin(Request $request, string $home): RedirectResponse
+    private function redirectWithin(Request $request, string $home, array $alsoAllowed = []): RedirectResponse
     {
         // Pantalla que quiso abrir sin sesión (la guarda Laravel al mandarlo a /ingresar).
         $intended = $request->session()->pull('url.intended');
-        // Sirve solo si es de su lado: mismo inicio, seguido de nada, "/" o "?".
-        $isOwn = is_string($intended) && preg_match('#^'.preg_quote(rtrim($home, '/'), '#').'(?:[/?]|$)#', $intended) === 1;
+        // Sirve solo si es de su lado: algún inicio válido, seguido de nada, "/" o "?".
+        $isOwn = is_string($intended) && collect([$home, ...$alsoAllowed])->contains(
+            fn (string $prefix): bool => preg_match('#^'.preg_quote(rtrim($prefix, '/'), '#').'(?:[/?]|$)#', $intended) === 1,
+        );
 
         // A esa pantalla o al inicio.
         return redirect()->to($isOwn ? $intended : $home);

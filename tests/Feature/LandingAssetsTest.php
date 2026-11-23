@@ -83,13 +83,9 @@ class LandingAssetsTest extends TestCase
         $this->assertDoesNotMatchRegularExpression('#<video[^>]*\bautoplay\b[^>]*>\s*<source src="[^"]*video-comunidad\.mp4#', $html);
     }
 
-    public function test_the_original_photos_and_videos_are_kept_outside_the_public_folder(): void
+    public function test_no_heavy_originals_are_left_in_the_public_folder(): void
     {
         $this->assertSame([], glob(public_path('images/*.{jpg,jpeg,JPG}'), GLOB_BRACE));
         $this->assertSame([], array_diff(array_map('basename', glob(public_path('images/*.mp4'))), ['video-windsurf.mp4']));
-
-        foreach (['image1.jpg', 'image2.jpg', 'image3.jpg', 'image4.jpg', 'logo1.jpg', 'Video1.mp4', 'video2.mp4', 'windsurf.mp4'] as $original) {
-            $this->assertFileExists(resource_path('images-originales/'.$original));
-        }
     }
 }

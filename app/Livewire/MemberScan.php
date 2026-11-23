@@ -2,7 +2,7 @@
 
 namespace App\Livewire;
 
-use App\Models\Attendance;
+use App\Models\AccessPoint;
 use App\Models\Client;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
@@ -38,16 +38,15 @@ class MemberScan extends Component
      * - $qrString es el texto leído del código QR.
      *
      * Postcondiciones:
-     * - Si el gimnasio no tiene configurado un código usable (ver Attendance::receptionToken()):
-     *   resultado "error" avisando que el ingreso por QR no está habilitado, no guarda nada.
-     * - Si $qrString no es el código del gimnasio: resultado "error", no guarda nada.
+     * - Si $qrString no es el QR de un punto de acceso activo (ver AccessPoint::findActiveFromQr(),
+     *   que acepta la dirección nueva o el código de los QR viejos): resultado "error", no guarda nada.
      * - Si el socio no tiene membresía vigente o está En pausa: resultado "error" con el motivo
      *   ("Cuota vencida. Pasá por recepción." si está en pausa), no guarda nada.
      * - Si está Entrenando o Activo flex: guarda la asistencia y le descuenta un crédito, aunque
      *   quede en negativo (ver Client::registerAttendance()); resultado "ok" y $creditos con el saldo.
      * - Si ya había registrado un ingreso hace minutos: resultado "repetido", sin descontar de nuevo.
      * - Avisa al navegador con el evento "ingreso-registrado" (suena y se ve verde) o
-     *   "ingreso-rechazado" (se ve rojo).
+     *   "ingreso-rechazado" (se ve en ámbar).
      *
      * @param  string  $qrString  Texto del QR escaneado.
      */
@@ -56,21 +55,13 @@ class MemberScan extends Component
         // Borra el resultado del escaneo anterior.
         $this->reset('resultado', 'mensaje', 'creditos');
 
-        // Código que lleva el QR de recepción (null si falta configurarlo).
-        $token = Attendance::receptionToken();
+        // Punto de acceso activo del QR (acepta la dirección nueva o el código de los QR viejos).
+        $accessPoint = AccessPoint::findActiveFromQr($qrString);
 
-        // Sin código configurado no hay contra qué comparar: el ingreso por QR está apagado.
-        if ($token === null) {
+        // No es un QR del gimnasio, o es de un punto apagado.
+        if ($accessPoint === null) {
             // Rechaza sin tocar la base.
-            $this->rechazar('El ingreso por QR todavía no está habilitado. Avisá en recepción.');
-
-            return;
-        }
-
-        // El QR tiene que ser el impreso en recepción (comparación en tiempo constante).
-        if (! hash_equals($token, trim($qrString))) {
-            // Rechaza sin tocar la base.
-            $this->rechazar('Ese código no es el del gimnasio. Escaneá el QR de recepción.');
+            $this->rechazar('Ese código no es un QR de ingreso del gimnasio. Escaneá el del mostrador.');
 
             return;
         }
@@ -81,7 +72,7 @@ class MemberScan extends Component
         // Intenta registrar el ingreso; el modelo valida la membresía.
         try {
             // Crea la asistencia y descuenta el crédito (o devuelve la reciente, si es repetido).
-            $attendance = $client->registerAttendance();
+            $attendance = $client->registerAttendance($accessPoint);
         } catch (InvalidArgumentException $exception) {
             // Sin membresía o con la cuota vencida: muestra el motivo.
             $this->rechazar($exception->getMessage());
@@ -122,7 +113,7 @@ class MemberScan extends Component
      */
     private function rechazar(string $mensaje): void
     {
-        // Rojo, con el motivo.
+        // Ámbar, con el motivo.
         $this->resultado = 'error';
         $this->mensaje = $mensaje;
 

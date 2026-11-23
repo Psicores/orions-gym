@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\SiteSectionEnum;
 use App\Filament\Pages\CheckInQr;
 use App\Filament\Pages\UserManual;
+use App\Filament\Resources\AccessPoints\AccessPointResource;
 use App\Filament\Resources\Announcements\AnnouncementResource;
 use App\Filament\Resources\Clients\ClientResource;
 use App\Filament\Resources\Plans\PlanResource;
@@ -33,7 +34,8 @@ class StaffPermissionsTest extends TestCase
             'inicio' => [fn (): string => Filament::getPanel('admin')->getUrl()],
             'clientes' => [fn (): string => ClientResource::getUrl()],
             'ficha de un cliente' => [fn (): string => ClientResource::getUrl('view', ['record' => Client::factory()->create()])],
-            'QR de recepción' => [fn (): string => CheckInQr::getUrl()],
+            'QR de ingreso' => [fn (): string => AccessPointResource::getUrl()],
+            'imprimir QR' => [fn (): string => CheckInQr::getUrl()],
             'planes' => [fn (): string => PlanResource::getUrl()],
             'anuncios' => [fn (): string => AnnouncementResource::getUrl()],
         ];
@@ -87,7 +89,7 @@ class StaffPermissionsTest extends TestCase
             ->assertOk()
             ->assertSee(PlanResource::getUrl(), escape: false)
             ->assertSee(AnnouncementResource::getUrl(), escape: false)
-            ->assertSee(CheckInQr::getUrl(), escape: false)
+            ->assertSee(AccessPointResource::getUrl(), escape: false)
             ->assertDontSee(UserResource::getUrl(), escape: false)
             ->assertDontSee(UserManual::getUrl(), escape: false)
             ->assertDontSee(SiteSectionEnum::Portada->editPage()::getUrl(), escape: false);

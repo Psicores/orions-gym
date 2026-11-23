@@ -30,11 +30,11 @@
                 @endif
             </section>
         @elseif ($resultado === 'error')
-            <section role="alert" class="mt-6 rounded-3xl border border-red-500 bg-red-500/15 px-6 py-8 text-center">
-                <span class="mx-auto flex size-20 items-center justify-center rounded-full bg-red-500 text-white">
-                    <x-heroicon-o-x-mark class="size-11" />
+            <section role="alert" class="mt-6 rounded-3xl border border-oxido bg-oxido/15 px-6 py-8 text-center">
+                <span class="mx-auto flex size-20 items-center justify-center rounded-full bg-oxido text-carbon">
+                    <x-heroicon-o-exclamation-triangle class="size-11" />
                 </span>
-                <p class="mt-5 font-display text-3xl text-red-300 uppercase">No pudiste ingresar</p>
+                <p class="mt-5 font-display text-3xl text-oxido uppercase">No pudiste ingresar</p>
                 <p class="mt-2 text-niebla">{{ $mensaje }}</p>
             </section>
         @else

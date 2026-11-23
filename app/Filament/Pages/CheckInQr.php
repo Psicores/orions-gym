@@ -2,38 +2,33 @@
 
 namespace App\Filament\Pages;
 
-use App\Models\Attendance;
-use BackedEnum;
+use App\Models\AccessPoint;
 use chillerlan\QRCode\Common\EccLevel;
 use chillerlan\QRCode\Output\QROutputInterface;
 use chillerlan\QRCode\QRCode;
 use chillerlan\QRCode\QROptions;
 use Filament\Pages\Page;
-use Filament\Support\Icons\Heroicon;
 use GdImage;
-use Illuminate\Support\Str;
+use Livewire\Attributes\Url;
 
 /**
- * Pantalla "QR de ingreso" del panel: muestra el código QR de recepción listo para imprimir.
+ * Cartel imprimible con el QR de un punto de acceso.
  *
- * El QR lleva el texto de config('gym.checkin_token') y la calavera del gimnasio en el centro. Es el que los socios escanean desde su
- * portal para registrar el ingreso (ver App\Livewire\MemberScan).
+ * El QR lleva la dirección /ingreso/{token} del punto (ver AccessPoint::checkInUrl()) y la calavera
+ * del gimnasio en el centro. El socio lo abre con la cámara del celular, o con "Escanear QR" del
+ * portal. Se llega desde la lista de puntos de acceso (QR de ingreso).
  */
 class CheckInQr extends Page
 {
     protected string $view = 'filament.pages.check-in-qr';
 
-    // URL en castellano: /admin/qr-de-ingreso.
-    protected static ?string $slug = 'qr-de-ingreso';
+    // URL en castellano: /admin/qr-de-ingreso/imprimir.
+    protected static ?string $slug = 'qr-de-ingreso/imprimir';
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedQrCode;
+    protected static ?string $title = 'Imprimir QR de ingreso';
 
-    protected static ?string $navigationLabel = 'QR de ingreso';
-
-    protected static ?string $title = 'QR de ingreso';
-
-    // En el menú va después de Clientes (que usa el orden 1).
-    protected static ?int $navigationSort = 2;
+    // No va en el menú: se abre desde la lista de puntos de acceso.
+    protected static bool $shouldRegisterNavigation = false;
 
     // Lado, en módulos del QR, del hueco central donde va la calavera (impar, para que quede centrado).
     private const int LOGO_MODULES = 9;
@@ -41,41 +36,45 @@ class CheckInQr extends Page
     // Píxeles por módulo: un QR grande para que se imprima nítido.
     private const int MODULE_PIXELS = 24;
 
+    // Punto de acceso a imprimir (viene en la dirección: ?punto=1).
+    #[Url]
+    public ?int $punto = null;
+
     /**
-     * Datos que recibe la vista: el QR dibujado y el texto que lleva adentro.
+     * Datos que recibe la vista: el punto de acceso y su QR dibujado.
      *
      * Precondiciones:
      * - Existe public/images/icons/logo-qr.png (la calavera, negra sobre blanco).
      *
      * Postcondiciones:
-     * - Con un código usable (ver Attendance::receptionToken()): "qr" es la imagen PNG del
-     *   código, con la calavera en el centro, como data URI lista para un <img>, y "token" el
-     *   texto que contiene; "sugerencia" es null.
-     * - Sin código usable: "qr" y "token" son null y "sugerencia" trae un código al azar de
-     *   32 caracteres para copiar al .env (cambia en cada visita y no se guarda).
-     * - No guarda nada: el QR se dibuja en cada visita a partir de la configuración.
+     * - Usa el punto activo pedido en ?punto=; si no existe o está apagado, el primer punto
+     *   activo. Sin ninguno activo, "accessPoint", "qr" y "url" son null.
+     * - "qr" es la imagen PNG del QR con la calavera, como data URI lista para un <img>, y "url"
+     *   la dirección que lleva adentro.
+     * - No guarda nada: el QR se dibuja en cada visita.
      *
-     * @return array{qr: ?string, token: ?string, sugerencia: ?string}
+     * @return array{accessPoint: ?AccessPoint, qr: ?string, url: ?string}
      */
     protected function getViewData(): array
     {
-        // Texto que va dentro del QR (null si falta configurarlo).
-        $token = Attendance::receptionToken();
+        // Punto pedido, si está activo; si no, el primero activo.
+        $accessPoint = AccessPoint::query()->where('activo', true)->find($this->punto)
+            ?? AccessPoint::query()->where('activo', true)->orderBy('id')->first();
 
-        // Sin código usable no hay QR para imprimir: la pantalla explica cómo configurarlo.
-        if ($token === null) {
-            // Propone un código al azar listo para copiar.
-            return ['qr' => null, 'token' => null, 'sugerencia' => Str::random(32)];
+        // Sin puntos activos no hay QR que imprimir.
+        if ($accessPoint === null) {
+            return ['accessPoint' => null, 'qr' => null, 'url' => null];
         }
 
-        // Devuelve la imagen y el texto.
+        // Dirección que lleva el QR.
+        $url = $accessPoint->checkInUrl();
+
+        // Punto, imagen y dirección.
         return [
-            // No hace falta sugerir nada.
-            'sugerencia' => null,
+            'accessPoint' => $accessPoint,
             // QR con la calavera, como imagen PNG (se ve igual en pantalla y al imprimir).
-            'qr' => 'data:image/png;base64,'.base64_encode($this->renderQrWithLogo($token)),
-            // Texto del código, para mostrarlo debajo.
-            'token' => $token,
+            'qr' => 'data:image/png;base64,'.base64_encode($this->renderQrWithLogo($url)),
+            'url' => $url,
         ];
     }
 
@@ -83,7 +82,7 @@ class CheckInQr extends Page
      * Dibuja el QR con la calavera del gimnasio en el centro.
      *
      * Precondiciones:
-     * - $token no está vacío.
+     * - $content no está vacío.
      * - Existe public/images/icons/logo-qr.png.
      *
      * Postcondiciones:
@@ -93,10 +92,10 @@ class CheckInQr extends Page
      *   centro esté tapado por el logo.
      * - No escribe ningún archivo.
      *
-     * @param  string  $token  Texto que lleva el QR.
+     * @param  string  $content  Texto que lleva el QR.
      * @return string Contenido binario del PNG.
      */
-    private function renderQrWithLogo(string $token): string
+    private function renderQrWithLogo(string $content): string
     {
         // Configuración del QR.
         $options = new QROptions([
@@ -115,7 +114,7 @@ class CheckInQr extends Page
         ]);
 
         /** @var GdImage $qr Imagen del QR con el hueco central en blanco. */
-        $qr = (new QRCode($options))->render($token);
+        $qr = (new QRCode($options))->render($content);
         // Calavera negra sobre blanco.
         $logo = imagecreatefrompng(public_path('images/icons/logo-qr.png'));
 
