@@ -20,8 +20,8 @@ use Illuminate\Support\Facades\DB;
  * quote() calcula precios y totales para mostrar el carrito; checkout() vuelve a calcular todo con
  * los productos bloqueados y guarda venta, renglones, movimientos de stock y cobros juntos.
  *
- * Reglas de precio (ver Product::priceFor()): un socio paga el precio de lista menos el descuento
- * de socios; el precio en efectivo se usa solo si toda la venta se paga en efectivo; los descuentos
+ * Reglas de precio (ver Product::priceFor()): un socio al día (Client::hasKioskDiscount()) paga el
+ * precio de lista menos el descuento de socios; el precio en efectivo se usa solo si toda la venta se paga en efectivo; los descuentos
  * no se suman, se cobra el más barato.
  */
 class SaleService
@@ -204,8 +204,8 @@ class SaleService
     {
         // Productos por id.
         $products = $products->keyBy('id');
-        // Es venta a socio si hay socio.
-        $esSocio = $client !== null;
+        // Descuento solo para socios al día (la venta queda vinculada al cliente igual).
+        $esSocio = $client?->hasKioskDiscount() === true;
         // Renglones.
         $lines = [];
 

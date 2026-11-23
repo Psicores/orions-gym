@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\ClientStatusEnum;
 use App\Enums\PaymentMethodEnum;
 use App\Enums\SalePaymentStatusEnum;
 use App\Enums\SaleStatusEnum;
@@ -90,9 +91,9 @@ class KioskSaleTest extends TestCase
         $this->assertSame($sale->items->firstWhere('product_id', $agua->id)->id, $movement->sale_item_id);
     }
 
-    public function test_a_member_gets_the_discount_and_it_is_recorded(): void
+    public function test_a_member_up_to_date_gets_the_discount_and_it_is_recorded(): void
     {
-        $client = Client::factory()->create();
+        $client = Client::factory()->entrenando()->create();
         $product = $this->productWithStock(5, ['precio' => 2000]);
 
         $sale = $this->service->checkout($this->seller, [$product->id => 2], $this->pay(PaymentMethodEnum::Transferencia, '3400'), $client);
@@ -260,9 +261,34 @@ class KioskSaleTest extends TestCase
         $this->service->checkout($this->seller, [$product->id => 1], $this->pay(PaymentMethodEnum::Efectivo, '850'), $client);
     }
 
+    /**
+     * @return array<string, array{ClientStatusEnum}>
+     */
+    public static function statusesWithoutDiscount(): array
+    {
+        return [
+            'en pausa' => [ClientStatusEnum::EnPausa],
+            'activo temporal' => [ClientStatusEnum::ActivoTemporal],
+            'inactivo' => [ClientStatusEnum::Inactivo],
+        ];
+    }
+
+    #[DataProvider('statusesWithoutDiscount')]
+    public function test_a_member_not_up_to_date_pays_list_price_but_the_sale_stays_linked(ClientStatusEnum $estado): void
+    {
+        $client = Client::factory()->create(['estado' => $estado]);
+        $product = $this->productWithStock(5, ['precio' => 2000]);
+
+        $sale = $this->service->checkout($this->seller, [$product->id => 1], $this->pay(PaymentMethodEnum::Transferencia, '2000'), $client);
+
+        $this->assertSame('2000.00', $sale->total);
+        $this->assertSame('0.00', $sale->descuento);
+        $this->assertTrue($sale->client->is($client));
+    }
+
     public function test_the_member_discount_rounds_per_unit_and_totals_stay_consistent(): void
     {
-        $client = Client::factory()->create();
+        $client = Client::factory()->entrenando()->create();
         $product = $this->productWithStock(10, ['precio' => 999.99]);
 
         $sale = $this->service->checkout($this->seller, [$product->id => 3], $this->pay(PaymentMethodEnum::Transferencia, '2549.97'), $client);

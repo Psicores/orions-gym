@@ -38,7 +38,7 @@ return [
     |--------------------------------------------------------------------------
     |
     | member_discount_percent: descuento (en %) sobre el precio de lista cuando la
-    | venta se vincula a un socio. No se suma al precio en efectivo: se cobra el
+    | venta se vincula a un socio al día (estado Entrenando). No se suma al precio en efectivo: se cobra el
     | más barato de los dos (ver Product::priceFor()). 0 = sin descuento.
     |
     | stock_mode: qué pasa al vender un producto sin stock suficiente.
