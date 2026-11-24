@@ -318,17 +318,17 @@ Definilo por escrito desde el primer presupuesto:
 | Día 105 | Se entrega la exportación de datos si la pide y se borra todo |
 | Reactivación | Pagar lo adeudado más un cargo de reconexión de US$ 20 |
 
-Hoy el sistema **no tiene modo suspendido ni exportación de datos automática**. Conviene sumarlos al
-backlog de la plantilla antes de tener varios clientes (ver "Para el backlog").
+Hoy el sistema **no tiene modo suspendido ni exportación de datos automática**. Están en el backlog
+de la plantilla (OPS-06 y OPS-07) para antes del segundo gimnasio de clientes.
 
 ### Para el backlog
 
-Ítems comerciales que surgen de esta estrategia y conviene sumar a `BACKLOG_PLANTILLA.md`:
+Ítems comerciales que surgen de esta estrategia, ya sumados a `BACKLOG_PLANTILLA.md`:
 
-- **Modo suspendido** por falta de pago: un interruptor en `.env` que deja el panel en solo lectura con un aviso, sin cortar el portal ni el QR.
-- **Exportación de datos** del gimnasio (socios, membresías, pagos, ventas) en CSV, desde un comando.
+- **Modo suspendido** por falta de pago (OPS-06): un interruptor en `.env` que deja el panel en solo lectura con un aviso, sin cortar el portal ni el QR.
+- **Exportación de datos** del gimnasio (OPS-07): socios, membresías, pagos, ventas y stock en CSV, desde un comando.
 - **Importadores** de socios y productos (PRD-03 y PRD-04): bajan el costo del setup.
-- **Monitoreo**: un endpoint de salud para UptimeRobot y la última corrida del cron (OPS-01).
+- **Monitoreo** (OPS-08): un endpoint de salud para UptimeRobot que incluye la última corrida del cron (OPS-01).
 
 ---
 
