@@ -10,6 +10,9 @@
 
     .orions-qr-*: cartel del QR de ingreso (/admin/qr-de-ingreso); al imprimir sale solo el cartel.
 
+    .orions-kiosk-btn, .orions-tachado y .orions-sale-*: botón "Kiosco" de la barra superior y
+    detalle de una venta en el historial (la pantalla de venta trae sus propios estilos).
+
     .orions-modal: ventana modal con cabecera en el color principal, sólido (el mismo tono de los
     botones). El cuerpo y el pie conservan el fondo normal del panel. Se activa en una acción con
     ->extraModalWindowAttributes(['class' => 'orions-modal']).
@@ -49,6 +52,108 @@
     .fi-logo {
         font-size: 1.5rem;
         letter-spacing: 0.06em;
+    }
+
+    /* Botón "Kiosco" de la barra superior: separado del buscador. */
+    .orions-kiosk-btn {
+        margin-inline-end: 0.75rem;
+    }
+
+    /* Importe de una venta anulada en el historial. */
+    .orions-tachado {
+        text-decoration: line-through;
+    }
+
+    /* Detalle de una venta del kiosco (ventana del historial). */
+    .orions-sale {
+        display: grid;
+        gap: 1rem;
+        font-size: 0.875rem;
+    }
+
+    .orions-sale-meta {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .orions-sale-void {
+        padding: 0.625rem 0.875rem;
+        border-radius: 0.625rem;
+        background: var(--warning-50);
+        color: var(--warning-800);
+        font-weight: 600;
+    }
+
+    .dark .orions-sale-void {
+        background: rgb(217 119 47 / 0.15);
+        color: var(--warning-300);
+    }
+
+    .orions-sale-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .orions-sale-table th {
+        padding-bottom: 0.375rem;
+        border-bottom: 1px solid var(--gray-200);
+        color: var(--gray-500);
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-align: start;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .orions-sale-table td {
+        padding-block: 0.375rem;
+        vertical-align: top;
+    }
+
+    .orions-sale-table :is(th, td):not(:first-child) {
+        text-align: end;
+        padding-inline-start: 0.75rem;
+        white-space: nowrap;
+    }
+
+    .orions-sale-table s {
+        display: block;
+        color: var(--gray-400);
+        font-size: 0.75rem;
+    }
+
+    .orions-sale-table tfoot td {
+        border-top: 1px solid var(--gray-200);
+    }
+
+    .orions-sale-total td {
+        font-weight: 700;
+        font-size: 1rem;
+    }
+
+    .dark .orions-sale-table :is(th, tfoot td) {
+        border-color: rgb(255 255 255 / 0.1);
+    }
+
+    .orions-sale-heading {
+        margin-bottom: 0.375rem;
+        color: var(--gray-500);
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .orions-sale-payments li {
+        display: grid;
+        grid-template-columns: 1fr auto auto;
+        align-items: center;
+        gap: 0.75rem;
+        padding-block: 0.25rem;
+        font-variant-numeric: tabular-nums;
     }
 
     /* Cartel del QR de ingreso. */

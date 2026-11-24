@@ -377,6 +377,19 @@ Para evitarlo, después de cobrar:
 
 Los pagos **no se pueden editar ni borrar** desde el panel: es intencional, para que el historial de cobros sea confiable. Si te equivocaste de monto o de cliente, anotalo y avisale al administrador del sistema para que lo corrija.
 
+## Ingresos
+
+**Ingresos**, en el menú, junta todo lo cobrado: cuotas y kiosco. Sirve para rendir la caja al final del turno o del día.
+
+- **Período:** arranca en hoy. Usá **Hoy**, **Ayer**, **Esta semana** o **Este mes**, o elegí las fechas a mano.
+- **Totales:** el total del período y cuánto entró en efectivo y cuánto por transferencia.
+- **Cuotas y kiosco:** los mismos totales separados por origen.
+- **Por persona:** lo que cobró cada uno, para saber cuánto efectivo tiene que entregar. Solo la ven los administradores.
+- **Por día:** aparece cuando elegís más de un día.
+- **Detalle:** cada cobro con su hora, a quién (socio o número de venta), el medio y quién cobró.
+
+Un administrador ve lo de todos y puede elegir una persona. Un profe ve solo lo que cobró él. Las ventas anuladas no suman.
+
 ## Cortesía
 
 ### Dar cortesía a un socio
@@ -458,6 +471,83 @@ El plan deja de ofrecerse y desaparece del sitio público. Los socios que ya lo 
 
 1. Abrí el **filtro** del listado y elegí ver los registros eliminados.
 2. Hacé clic en **Restaurar** en la fila del plan.
+
+## Kiosco
+
+Está en el grupo **Kiosco** del menú. Los profes ven los productos con sus precios y su stock. Solo los administradores pueden crearlos, cambiarlos, darlos de baja y manejar las categorías.
+
+### Vender
+
+Abrí la pantalla de venta con el botón **Kiosco** de la barra de arriba, desde cualquier pantalla, o desde **Kiosco → Vender**. Funciona en la PC y en una tablet.
+
+1. **Agregá los productos.** Tocá cada producto en la grilla: cada toque suma una unidad.
+   - Los destacados aparecen primero, y después los más vendidos del último mes.
+   - Los botones de arriba filtran por categoría.
+   - En el buscador podés escribir el nombre. Si queda un solo producto, Enter lo agrega.
+   - Con un lector de códigos USB, escaneá el envase y el producto se suma solo: el buscador siempre está listo para recibir el código.
+2. **Ajustá las cantidades** con **−** y **+** en la venta de la derecha. En la tablet, si la venta queda abajo, usá la barra **Ver venta**.
+3. **Socio (opcional).** Escribí el DNI o el apellido y elegilo de la lista. Si está al día, se le aplica el descuento y los precios se actualizan solos. Si no, la venta queda a su nombre pero a precio normal.
+4. **Cómo paga:**
+   - **Efectivo:** se usa el precio en efectivo si el producto lo tiene. Si cargás **Paga con**, el sistema te muestra el vuelto.
+   - **Transferencia:** precio normal.
+   - **Mixto:** cargás cuánto paga en efectivo y el resto va por transferencia. Se cobra el precio normal.
+5. Tocá **Cobrar**. La venta se guarda, se descuenta el stock y la pantalla queda lista para la siguiente.
+
+Si un producto no tiene stock suficiente, aparece un aviso en ámbar en la venta. Con la configuración de fábrica se vende igual. Con **Vaciar** se descarta la venta en curso sin guardar nada.
+
+### Consultar las ventas
+
+**Kiosco → Ventas** lista todas las ventas, de la más nueva a la más vieja: socio (o "Mostrador"), productos, total, medio de pago, quién vendió y estado. Podés filtrar por fechas, estado, medio de pago y quién vendió, y buscar por número de venta o por nombre o DNI del socio. Al pie, **Cobrado** suma lo que muestra la lista, sin contar las anuladas. **Detalle** abre la venta completa con sus precios y cobros.
+
+### Anular una venta
+
+Si una venta se cobró mal o el cliente devolvió el producto, un administrador hace clic en **Anular** en la fila de la venta y escribe el motivo. Al anularla:
+
+- Los productos vuelven al stock.
+- Los cobros quedan como **reintegrados**: devolvele la plata al cliente.
+- La venta queda en la lista como **Anulada**, tachada, con quién la anuló y por qué, y no suma en el total.
+
+No se puede deshacer. Si la anulaste por error, volvé a hacer la venta desde **Kiosco**.
+
+### Cargar un producto
+
+1. Entrá a **Kiosco → Productos** y hacé clic en **Crear producto**.
+2. Completá el **nombre** y el **precio**, que son obligatorios.
+3. Si querés, completá también:
+   - La **categoría**. Con el botón **+** creás una nueva sin salir.
+   - El **precio en efectivo** y el **costo**.
+   - El **código de barras**: escaneá el envase con el lector o escribí los números.
+   - El **stock mínimo**: el stock se muestra en ámbar cuando quedan esas unidades o menos.
+   - La **foto**: se guarda achicada y liviana.
+4. Prendé **Destacado** si querés que aparezca primero al vender. Con **Activo** apagado, el producto no se ofrece para vender.
+
+Con **Crear y crear otro** cargás varios seguidos. El stock no se carga en este formulario, sino con los botones de stock.
+
+### Cargar mercadería que llegó
+
+En la fila del producto, hacé clic en **Cargar mercadería**, escribí cuántas unidades llegaron y, si querés, una nota (el proveedor o el remito). Lo puede hacer cualquiera del personal, y queda registrado quién fue.
+
+También se puede hacer desde la lista **Para reponer** del escritorio. Esa lista aparece sola cuando hay productos sin stock o en su stock mínimo.
+
+### Ajustar el stock después de contar
+
+Si contaste y no coincide (algo se rompió, venció o se perdió), abrí el menú **⋮** de la fila y elegí **Ajustar stock**. Escribí cuántas unidades contaste y el motivo: el sistema registra la diferencia. Solo lo pueden hacer los administradores.
+
+### Ver los movimientos
+
+**Kiosco → Movimientos de stock** muestra cada entrada, venta, ajuste y anulación, con quién la hizo y cuánto quedó. Desde el menú **⋮** de un producto, **Movimientos** abre la lista filtrada por ese producto. Los movimientos no se pueden editar ni borrar.
+
+### Vender sin stock
+
+De fábrica, el kiosco vende igual aunque el sistema diga que no hay stock: avisa en ámbar y el stock queda en negativo hasta la próxima carga. Si preferís que no deje vender, hay que cambiar `KIOSK_STOCK_MODE=strict` en la configuración del servidor.
+
+### Precio para socios
+
+Cuando la venta se hace a un socio al día (en estado **Entrenando**), se le descuenta un 15 % del precio de lista. A un socio en pausa, activo temporal o inactivo se le puede vincular la venta igual, pero paga el precio normal. Si además paga en efectivo y el producto tiene precio en efectivo, se cobra el más barato de los dos: los descuentos no se suman.
+
+### Categorías
+
+En **Kiosco → Categorías** se crean los botones para filtrar productos en la pantalla de venta. El **orden** define cuáles aparecen primero. Si borrás una categoría, sus productos quedan sin categoría; no se borran.
 
 ## Anuncios
 
