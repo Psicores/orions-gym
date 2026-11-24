@@ -28,12 +28,16 @@ Las decisiones de fondo están en el análisis previo y se resumen al final ("De
 | Fase | Hito | Días P0 | Días con P1 y P2 |
 | --- | --- | --- | --- |
 | 1 | Orions en producción (repo actual) | 2 | 5 |
-| 2 | Plantilla lista y gimnasio demo en línea | 14 | 18 |
+| 2 | Plantilla lista y gimnasio demo en línea | 14 | 20,5 |
 | 3 | Orions sobre la plantilla y primer gimnasio nuevo | 2 | 2 |
 
 Camino crítico: PRD-05 → TPL-01 → BRD-01 → BRD-02 → MOD-01 → MOD-02 → OPS-02 → DEM-01 → ADP-01.
 
 En paralelo, lo que depende del dueño (PRD-01) no frena el desarrollo de la plantilla.
+
+Antes del segundo gimnasio de clientes (después de ADP-03) tienen que estar OPS-06 (modo suspendido)
+y OPS-07 (exportación de datos): son la base de la política de falta de pago y de baja que se firma
+con cada cliente.
 
 **Regla de convivencia.** Todo lo que se haga en este repo **antes** de TPL-01 viaja solo a la
 plantilla. **Después** de TPL-01, este repo solo recibe arreglos urgentes de Orions, y cada uno se
@@ -62,7 +66,9 @@ replica a mano en la plantilla en el mismo día.
 
 ### PRD-03 · Importar socios desde CSV · P1 · 1,5 d
 
-Solo hace falta si el dueño tiene más de unos 40 socios; con menos, se cargan a mano.
+Para Orions solo hace falta si el dueño tiene más de unos 40 socios; con menos, se cargan a mano.
+Para la plantilla conviene igual: baja el costo de la etapa "carga inicial de datos" de cada setup
+(ver `ESTRATEGIA_COMERCIAL_Y_PRECIOS.md`).
 
 - **Archivos:** comando nuevo `clients:import {archivo} {--dry-run}`; usa `Client::normalizeCel` y la misma lógica de membresía que el alta del panel.
 - **Columnas:** nombre, apellido, DNI, fecha de nacimiento, celular, email, plan y fecha de vencimiento.
@@ -311,6 +317,62 @@ Hay dos tipos de módulos:
 - Todos los gimnasios despliegan desde `stable`.
 - `CHANGELOG.md` corto con qué cambió en cada versión.
 - **Aceptación:** un push a `master` no llega a ningún gimnasio de clientes.
+
+### Bloque comercial
+
+Tareas que salen de `ESTRATEGIA_COMERCIAL_Y_PRECIOS.md`. No hacen falta para Orions, pero sí
+**antes del segundo gimnasio de clientes**: sostienen la política de falta de pago y la promesa de
+que los datos son del gimnasio. Los importadores de socios y productos ya están como PRD-03 y
+PRD-04; si se hacen antes de TPL-01, viajan solos a la plantilla y bajan el costo de cada setup.
+
+#### OPS-06 · Modo suspendido por falta de pago · P1 · 1 d
+
+- **Archivos:**
+  - `config/gym.php` (o `config/modules.php` tras CLN-02): `GYM_SUSPENDED=false`;
+  - un middleware del panel y un aviso fijo en ámbar (render hook) con el texto en `config`;
+  - un `Gate::before` que niega crear, editar y borrar mientras está suspendido (hoy solo hay
+    `ProductPolicy` y `SalePolicy`; el resto de los recursos no tiene política propia);
+  - las acciones que no pasan por políticas (cobrar, cortesía, venta del kiosco, carga y ajuste de
+    stock, páginas del sitio) chequean el modo suspendido en un solo helper.
+- **Subtareas:**
+  - El panel queda en **solo lectura**: se puede consultar, pero no cobrar, vender, cargar stock ni
+    editar.
+  - El portal del socio y el ingreso con QR **siguen andando** (no se castiga a los socios).
+  - Las tareas nocturnas siguen corriendo, para que los estados no queden desfasados al reactivar.
+  - `gym:doctor` muestra "Suspendido" como Atención.
+- **Aceptación:**
+  - Con `GYM_SUSPENDED=true`, ninguna acción que guarde datos aparece ni funciona en el panel, y un
+    socio entra con QR normalmente.
+  - Al volver a `false` (y `config:cache`), todo funciona igual que antes, sin perder datos.
+  - Tests para los dos estados.
+
+#### OPS-07 · Exportación de datos del gimnasio · P1 · 1 d
+
+- **Archivos:** comando `gym:export {--desde=} {--hasta=}` que arma un ZIP en
+  `storage/app/exports/` (privado, nunca en `public`).
+- **Contenido (CSV en UTF-8 con BOM, para que Excel muestre bien los acentos):** socios, membresías,
+  pagos de cuotas, asistencias, productos, ventas con sus ítems y cobros, y movimientos de stock.
+- **Subtareas:**
+  - Las observaciones de salud salen **descifradas** solo con `--incluir-salud`, y el comando avisa
+    que el archivo contiene datos sensibles.
+  - Sin fotos ni certificados por defecto; `--con-archivos` los suma al ZIP.
+  - Lectura por bloques (`chunk`) para no pasarse de memoria en Hostinger.
+- **Aceptación:**
+  - Los CSV abren bien en Excel y cada total coincide con lo que muestra el panel.
+  - Un test arma la exportación con datos de ejemplo y verifica columnas y cantidades.
+
+#### OPS-08 · Endpoint de salud para el monitoreo · P1 · 0,5 d
+
+- **Archivos:** la ruta `/up` que ya trae Laravel (`bootstrap/app.php`) se complementa con
+  `/up/full`: base de datos, escritura en `storage` y **última corrida del cron** (el mismo dato que
+  guarda OPS-01).
+- **Subtareas:**
+  - Responde 200 si todo está bien y 503 si algo falla, sin mostrar detalles internos ni versiones.
+  - Límite de pedidos por minuto.
+  - Agregar el alta en UptimeRobot (plan gratuito) a `ALTA_GIMNASIO.md` (OPS-04).
+- **Aceptación:**
+  - Con el cron parado más de 2 horas, `/up/full` devuelve 503 y UptimeRobot avisa.
+  - Tests para cada falla.
 
 ### Bloque demo
 
