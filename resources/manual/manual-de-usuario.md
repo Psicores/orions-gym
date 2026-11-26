@@ -545,7 +545,7 @@ No se puede deshacer. Si la anulaste por error, volvé a hacer la venta desde **
    - La **foto**: se guarda achicada y liviana.
 4. Prendé **Destacado** si querés que aparezca primero al vender. Con **Activo** apagado, el producto no se ofrece para vender.
 
-Con **Crear y crear otro** cargás varios seguidos. El stock no se carga en este formulario, sino con los botones de stock.
+El stock no se carga en este formulario, sino con los botones de stock.
 
 ### Cargar mercadería que llegó
 
