@@ -296,6 +296,33 @@
         }
     }
 
+    /*
+        Pestañas de estado del listado de clientes, en el celular: en vez de desplazarse de costado
+        (y dejar "Activo temporal" e "Inactivo" fuera de la pantalla), pasan a dos renglones:
+        Todos, Entrenando y En pausa arriba (de a tercios); Activo temporal e Inactivo abajo (de a
+        mitades). Está pensado para las 5 pestañas de hoy (Todos más los 4 estados de ClientStatusEnum).
+        Solo en el listado: las pestañas de la ficha del cliente no cambian.
+    */
+    @media (max-width: 639.98px) {
+        .fi-resource-list-records-page.fi-resource-clientes .fi-tabs:not(.fi-vertical) {
+            display: grid;
+            grid-template-columns: repeat(6, minmax(0, 1fr));
+            gap: 0.25rem;
+        }
+
+        /* Renglón de arriba: cada pestaña ocupa un tercio. Menos relleno para que entren en 360 px. */
+        .fi-resource-list-records-page.fi-resource-clientes .fi-tabs:not(.fi-vertical) .fi-tabs-item {
+            grid-column: span 2;
+            gap: 0.375rem;
+            padding-inline: 0.25rem;
+        }
+
+        /* Renglón de abajo: desde la cuarta pestaña, cada una ocupa la mitad. */
+        .fi-resource-list-records-page.fi-resource-clientes .fi-tabs:not(.fi-vertical) .fi-tabs-item:nth-child(n + 4) {
+            grid-column: span 3;
+        }
+    }
+
     /* Historial de ventas, en la PC: la columna de productos no baja de 12 rem, así las filas no se estiran. */
     @media (min-width: 640px) {
         .orions-sale-items-cell {
