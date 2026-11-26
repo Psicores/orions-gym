@@ -596,8 +596,22 @@ class ClientResource extends Resource
             ->recordTitleAttribute('apellido')
             // Al hacer clic en una fila se abre la ficha del cliente (no el formulario de edición).
             ->recordUrl(fn (Client $record): string => self::getUrl('view', ['record' => $record]))
+            // En el celular cada cliente es una tarjeta (ver .orions-stack-* en filament/admin/styles.blade.php).
+            ->stackedOnMobile()
             // Columnas visibles, en el orden en que se muestran.
             ->columns([
+                // Solo en el celular: "Apellido, Nombre" con el DNI debajo, como título de la tarjeta.
+                TextColumn::make('cliente')
+                    // Encabezado (no se ve: el título de la tarjeta va sin etiqueta).
+                    ->label('Cliente')
+                    // Apellido primero, como se ordena el listado.
+                    ->state(fn (Client $record): string => "{$record->apellido}, {$record->nombre}")
+                    // Debajo, el documento para distinguir homónimos.
+                    ->description(fn (Client $record): string => "DNI {$record->dni}")
+                    // Va arriba de la tarjeta, sin etiqueta y en negrita.
+                    ->extraCellAttributes(['class' => 'orions-stack-title'])
+                    // En la PC están las columnas Nombre, Apellido y DNI por separado.
+                    ->hiddenFrom('sm'),
                 // Foto del cliente leída de la columna foto_path.
                 ImageColumn::make('foto_path')
                     // Encabezado de la columna.
@@ -607,29 +621,37 @@ class ClientResource extends Resource
                     // Arma un enlace firmado temporal en lugar de una URL pública.
                     ->visibility('private')
                     // Muestra la imagen recortada en círculo.
-                    ->circular(),
+                    ->circular()
+                    // En el celular no entra: la tarjeta arranca por el nombre.
+                    ->visibleFrom('sm'),
                 // Nombre del cliente.
                 TextColumn::make('nombre')
                     // Encabezado de la columna.
                     ->label('Nombre')
-                    // Incluye esta columna en el buscador de la tabla.
+                    // Incluye esta columna en el buscador de la tabla (también en el celular, aunque no se vea).
                     ->searchable()
                     // Permite ordenar haciendo clic en el encabezado.
-                    ->sortable(),
+                    ->sortable()
+                    // En el celular va dentro del título de la tarjeta.
+                    ->visibleFrom('sm'),
                 // Apellido del cliente.
                 TextColumn::make('apellido')
                     // Encabezado de la columna.
                     ->label('Apellido')
-                    // Incluye esta columna en el buscador de la tabla.
+                    // Incluye esta columna en el buscador de la tabla (también en el celular, aunque no se vea).
                     ->searchable()
                     // Permite ordenar haciendo clic en el encabezado.
-                    ->sortable(),
+                    ->sortable()
+                    // En el celular va dentro del título de la tarjeta.
+                    ->visibleFrom('sm'),
                 // DNI del cliente.
                 TextColumn::make('dni')
                     // Encabezado de la columna.
                     ->label('DNI')
-                    // Incluye esta columna en el buscador de la tabla.
-                    ->searchable(),
+                    // Incluye esta columna en el buscador de la tabla (también en el celular, aunque no se vea).
+                    ->searchable()
+                    // En el celular va debajo del título de la tarjeta.
+                    ->visibleFrom('sm'),
                 // Estado del cliente (caso de ClientStatusEnum gracias al cast del modelo).
                 TextColumn::make('estado')
                     // Encabezado de la columna.
