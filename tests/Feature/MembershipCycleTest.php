@@ -12,6 +12,7 @@ use App\Models\Membership;
 use App\Models\Payment;
 use App\Models\Plan;
 use App\Models\User;
+use Illuminate\Console\Application;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -78,11 +79,14 @@ class MembershipCycleTest extends TestCase
 
     public function test_both_commands_are_scheduled_in_the_early_morning(): void
     {
+        // Texto de comando => cuándo corre. Se compara contra el mismo texto que arma
+        // Schedule::command() (Application::formatCommandString), así no depende de cómo se
+        // citan las rutas de PHP y de artisan en cada sistema o versión de Laravel.
         $expressions = collect(app(Schedule::class)->events())
-            ->mapWithKeys(fn ($event): array => [str($event->command)->afterLast('artisan" ')->afterLast('artisan ')->toString() => $event->expression]);
+            ->mapWithKeys(fn ($event): array => [$event->command => $event->expression]);
 
-        $this->assertSame('0 1 * * *', $expressions['memberships:update-completed-cycles']);
-        $this->assertSame('5 1 * * *', $expressions['memberships:renew-credits']);
+        $this->assertSame('0 1 * * *', $expressions[Application::formatCommandString('memberships:update-completed-cycles')] ?? null);
+        $this->assertSame('5 1 * * *', $expressions[Application::formatCommandString('memberships:renew-credits')] ?? null);
     }
 
     public function test_the_owner_can_give_a_courtesy_from_the_client_page(): void
