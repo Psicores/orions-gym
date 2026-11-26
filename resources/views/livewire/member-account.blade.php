@@ -108,7 +108,7 @@
     <form wire:submit="updatePassword" class="mt-4 space-y-5">
         <div>
             <label for="current_password" class="text-sm font-semibold">Contraseña actual</label>
-            <input id="current_password" type="password" wire:model="current_password" required autocomplete="current-password" class="{{ $campo }}">
+            @include('partials.password-input', ['id' => 'current_password', 'model' => 'current_password', 'autocomplete' => 'current-password'])
             @unless ($client->hasCustomPassword())
                 <p class="mt-2 text-sm text-ceniza">Todavía es tu DNI.</p>
             @endunless
@@ -119,7 +119,7 @@
 
         <div>
             <label for="password" class="text-sm font-semibold">Contraseña nueva</label>
-            <input id="password" type="password" wire:model="password" required minlength="8" autocomplete="new-password" class="{{ $campo }}">
+            @include('partials.password-input', ['id' => 'password', 'model' => 'password', 'autocomplete' => 'new-password', 'minlength' => 8])
             <p class="mt-2 text-sm text-ceniza">Al menos 8 caracteres, con letras y números.</p>
             @error('password')
                 <p class="mt-2 text-sm text-oxido-light">{{ $message }}</p>
@@ -128,7 +128,7 @@
 
         <div>
             <label for="password_confirmation" class="text-sm font-semibold">Repetí la contraseña nueva</label>
-            <input id="password_confirmation" type="password" wire:model="password_confirmation" required autocomplete="new-password" class="{{ $campo }}">
+            @include('partials.password-input', ['id' => 'password_confirmation', 'model' => 'password_confirmation', 'autocomplete' => 'new-password'])
         </div>
 
         <button
