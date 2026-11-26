@@ -2,8 +2,9 @@
     Pantalla de venta del kiosco (ver App\Filament\Pages\Kiosk). Recibe $quote (presupuesto del
     carrito, SaleQuote o null), $quoteError (texto o null) y $strict (modo de stock estricto).
 
-    Pensada para PC y tablet: desde 900 px de ancho, grilla a la izquierda y venta a la derecha; en
-    pantallas más angostas se apilan y una barra fija abajo lleva a la venta. Botones de 44 px o
+    Pensada para PC y tablet, y usable en el celular: desde 900 px de ancho, grilla a la izquierda y
+    venta a la derecha; en pantallas más angostas se apilan (en el celular, dos productos por fila) y
+    una barra fija abajo lleva a la venta. Botones de 44 px o
     más para usar con el dedo. El buscador tiene el foco siempre que se agrega un producto, así un
     lector de códigos USB (escribe el código y manda Enter) funciona sin tocar nada.
     Estilos .orions-pos-* al final; colores del panel (nunca rojo: los avisos van en ámbar).
@@ -28,7 +29,7 @@
                     x-data
                     x-init="$el.focus()"
                     x-on:kiosk-focus-search.window="$nextTick(() => $el.focus())"
-                    placeholder="Buscar producto o escanear código"
+                    placeholder="Buscar o escanear código"
                     aria-label="Buscar producto o escanear código"
                     autocomplete="off"
                     enterkeyhint="go"
@@ -230,8 +231,37 @@
     <style>
         .orions-pos {
             display: grid;
+            /* Una columna que nunca supera el ancho de la pantalla (sin esto, la fila de categorías la estiraba). */
+            grid-template-columns: minmax(0, 1fr);
             gap: 1.25rem;
             align-items: start;
+        }
+
+        /* Las dos partes pueden achicarse por debajo del ancho de su contenido. */
+        .orions-pos > * {
+            min-width: 0;
+        }
+
+        /* Celular: dos productos por fila, con la imagen más baja para ver más productos de una vez.
+           Con .orions-pos adelante, para ganarles a las reglas generales que vienen más abajo. */
+        @media (max-width: 639.98px) {
+            .orions-pos .orions-pos-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 0.5rem;
+            }
+
+            .orions-pos .orions-pos-tile-img {
+                aspect-ratio: 4 / 3;
+                font-size: 2rem;
+            }
+
+            .orions-pos .orions-pos-cart {
+                padding: 1rem;
+            }
+
+            .orions-pos .orions-pos-segmented button {
+                font-size: 0.875rem;
+            }
         }
 
         @media (min-width: 900px) {

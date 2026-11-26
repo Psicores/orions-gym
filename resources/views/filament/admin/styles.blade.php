@@ -60,7 +60,8 @@
     }
 
     /* Importe de una venta anulada en el historial. */
-    .orions-tachado {
+    /* Solo el importe va tachado; la aclaración de abajo ("Anulada") se lee normal. */
+    .orions-tachado .fi-ta-text-item {
         text-decoration: line-through;
     }
 
@@ -213,6 +214,93 @@
         color: var(--primary-500);
         text-decoration: underline;
         outline: none;
+    }
+
+    /*
+        Tablas apiladas en el celular (las que usan ->stackedOnMobile(), por debajo de 640 px):
+        cada fila es una tarjeta compacta. La columna marcada con .orions-stack-title va arriba,
+        sin etiqueta y en negrita; el resto muestra la etiqueta a la izquierda y el valor a la derecha.
+    */
+    @media (max-width: 639.98px) {
+        /* La fila se ordena como columna para poder subir el título. */
+        .fi-ta-table-stacked-on-mobile > tbody > tr:not(.fi-ta-group-header-row, .fi-ta-summary-row, .fi-ta-summary-header-row) {
+            display: flex;
+            flex-direction: column;
+            padding-block: 0.625rem;
+        }
+
+        /* Cada dato en un renglón: etiqueta a la izquierda, valor a la derecha. */
+        .fi-ta-table-stacked-on-mobile > tbody > tr > td.fi-ta-cell:has(> .fi-ta-cell-label) {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            min-height: 2rem;
+        }
+
+        /* Las columnas con ->visibleFrom(...) siguen ocultas en el celular (la regla de arriba no las pisa). */
+        .fi-ta-table-stacked-on-mobile > tbody > tr > td.fi-ta-cell[class*=':fi-visible'] {
+            display: none;
+        }
+
+        .fi-ta-table-stacked-on-mobile > tbody > tr > td > .fi-ta-cell-label {
+            flex: none;
+            padding-top: 0;
+            font-size: 0.8125rem;
+            font-weight: 500;
+        }
+
+        .fi-ta-table-stacked-on-mobile > tbody > tr > td > .fi-ta-cell-content {
+            min-width: 0;
+            text-align: end;
+        }
+
+        /* Sin el relleno de las celdas de escritorio: la tarjeta ya tiene el suyo. */
+        .fi-ta-table-stacked-on-mobile > tbody > tr > td > .fi-ta-cell-content :is(.fi-ta-text, .fi-ta-icon, .fi-ta-image) {
+            padding: 0.125rem 0;
+        }
+
+        /* Los textos largos (por ejemplo, los productos de una venta) se alinean a la derecha y cortan bien. */
+        .fi-ta-table-stacked-on-mobile > tbody > tr > td > .fi-ta-cell-content .fi-ta-text-item {
+            justify-content: flex-end;
+        }
+
+        /* Título de la tarjeta: primero, sin etiqueta, a todo el ancho y en negrita. */
+        .fi-ta-table-stacked-on-mobile > tbody > tr > td.orions-stack-title {
+            order: -1;
+            display: block;
+            padding-inline-end: 3rem;
+        }
+
+        .fi-ta-table-stacked-on-mobile > tbody > tr > td.orions-stack-title > .fi-ta-cell-label {
+            display: none;
+        }
+
+        .fi-ta-table-stacked-on-mobile > tbody > tr > td.orions-stack-title > .fi-ta-cell-content {
+            text-align: start;
+        }
+
+        .fi-ta-table-stacked-on-mobile > tbody > tr > td.orions-stack-title > .fi-ta-cell-content .fi-ta-text-item {
+            justify-content: flex-start;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        /* Botones de la fila: al final, alineados a la izquierda. */
+        .fi-ta-table-stacked-on-mobile > tbody > tr > td.fi-ta-cell:has(.fi-ta-actions) {
+            padding-top: 0.5rem;
+        }
+
+        .fi-ta-table-stacked-on-mobile > tbody > tr > td.fi-ta-cell .fi-ta-actions {
+            justify-content: flex-start;
+        }
+    }
+
+    /* Historial de ventas, en la PC: la columna de productos no baja de 12 rem, así las filas no se estiran. */
+    @media (min-width: 640px) {
+        .orions-sale-items-cell {
+            min-width: 12rem;
+        }
     }
 
     /* Manual de uso (/admin/manual): texto a un ancho cómodo de lectura. */

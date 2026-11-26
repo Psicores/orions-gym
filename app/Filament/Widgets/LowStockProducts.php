@@ -73,12 +73,16 @@ class LowStockProducts extends TableWidget
     {
         return $table
             ->heading('Para reponer')
+            // En el celular cada fila es una tarjeta (ver .orions-stack-* en filament/admin/styles.blade.php).
+            ->stackedOnMobile()
             ->description('Productos del kiosco sin stock o en el mínimo.')
             ->query(static::query()->with('category'))
             ->columns([
                 // Producto.
                 TextColumn::make('nombre')
-                    ->label('Producto'),
+                    ->label('Producto')
+                    // En el celular es el título de la tarjeta.
+                    ->extraCellAttributes(['class' => 'orions-stack-title']),
                 // Categoría.
                 TextColumn::make('category.nombre')
                     ->label('Categoría')

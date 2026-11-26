@@ -50,6 +50,8 @@ class ClientsToCollect extends TableWidget
         return $table
             // Título de la lista.
             ->heading('Para cobrar')
+            // En el celular cada cliente es una tarjeta (ver .orions-stack-* en filament/admin/styles.blade.php).
+            ->stackedOnMobile()
             // Qué incluye.
             ->description('Cuotas vencidas y las que vencen en los próximos 7 días.')
             // Clientes a mostrar.
@@ -70,6 +72,8 @@ class ClientsToCollect extends TableWidget
                 TextColumn::make('apellido')
                     // Encabezado de la columna.
                     ->label('Cliente')
+                    // En el celular es el título de la tarjeta.
+                    ->extraCellAttributes(['class' => 'orions-stack-title'])
                     // Muestra "Apellido, Nombre".
                     ->formatStateUsing(fn (Client $record): string => "{$record->apellido}, {$record->nombre}")
                     // Debajo, el DNI para distinguir homónimos.

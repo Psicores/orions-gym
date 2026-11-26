@@ -525,7 +525,7 @@ Con **Crear y crear otro** cargás varios seguidos. El stock no se carga en este
 
 ### Cargar mercadería que llegó
 
-En la fila del producto, hacé clic en **Cargar mercadería**, escribí cuántas unidades llegaron y, si querés, una nota (el proveedor o el remito). Lo puede hacer cualquiera del personal, y queda registrado quién fue.
+En la fila del producto, hacé clic en **Cargar**, escribí cuántas unidades llegaron y, si querés, una nota (el proveedor o el remito). Lo puede hacer cualquiera del personal, y queda registrado quién fue.
 
 También se puede hacer desde la lista **Para reponer** del escritorio. Esa lista aparece sola cuando hay productos sin stock o en su stock mínimo.
 

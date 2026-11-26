@@ -76,6 +76,8 @@ class SaleResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            // En el celular cada fila es una tarjeta (ver .orions-stack-* en filament/admin/styles.blade.php).
+            ->stackedOnMobile()
             // Trae todo lo que muestra en la misma consulta.
             ->modifyQueryUsing(fn (Builder $query): Builder => $query->with(['client', 'vendidoPor', 'items', 'payments']))
             ->columns([
@@ -83,11 +85,14 @@ class SaleResource extends Resource
                 TextColumn::make('id')
                     ->label('N.º')
                     ->formatStateUsing(fn (int $state): string => "#{$state}")
+                    // En el celular es el título de la tarjeta.
+                    ->extraCellAttributes(['class' => 'orions-stack-title'])
                     ->searchable(),
                 // Cuándo.
                 TextColumn::make('created_at')
                     ->label('Fecha')
-                    ->dateTime('d/m/Y H:i')
+                    // Año con dos cifras: deja lugar a los productos y a los botones.
+                    ->dateTime('d/m/y H:i')
                     ->sortable(),
                 // Socio o mostrador.
                 TextColumn::make('client.apellido')
@@ -103,7 +108,9 @@ class SaleResource extends Resource
                     ->label('Productos')
                     ->state(fn (Sale $record): string => $record->items->map(fn ($item): string => "{$item->cantidad}× {$item->nombre}")->implode(', '))
                     ->limit(60)
-                    ->wrap(),
+                    ->wrap()
+                    // Ancho mínimo: si no, en la PC queda angosta y las filas se estiran hacia abajo.
+                    ->extraCellAttributes(['class' => 'orions-sale-items-cell']),
                 // Total cobrado.
                 TextColumn::make('total')
                     ->label('Total')
@@ -111,6 +118,8 @@ class SaleResource extends Resource
                     // Anuladas tachadas en gris.
                     ->color(fn (Sale $record): ?string => $record->estado === SaleStatusEnum::Anulada ? 'gray' : null)
                     ->extraAttributes(fn (Sale $record): array => $record->estado === SaleStatusEnum::Anulada ? ['class' => 'orions-tachado'] : [])
+                    // Debajo, "Anulada" cuando corresponde: así se ve aunque la columna Estado esté oculta.
+                    ->description(fn (Sale $record): ?string => $record->estado === SaleStatusEnum::Anulada ? SaleStatusEnum::Anulada->getLabel() : null)
                     ->sortable()
                     // Total de lo filtrado, sin anuladas.
                     ->summarize(Sum::make()
@@ -124,11 +133,15 @@ class SaleResource extends Resource
                     ->badge(),
                 // Quién vendió.
                 TextColumn::make('vendidoPor.name')
-                    ->label('Vendió'),
+                    ->label('Vendió')
+                    // Solo en monitores grandes: en una notebook deja lugar a los productos y a los botones (el detalle dice quién vendió).
+                    ->visibleFrom('2xl'),
                 // Estado.
                 TextColumn::make('estado')
                     ->label('Estado')
-                    ->badge(),
+                    ->badge()
+                    // Solo en monitores grandes: en el resto, el total tachado y "Anulada" ya lo dicen.
+                    ->visibleFrom('2xl'),
             ])
             // Lo más nuevo primero.
             ->defaultSort('created_at', 'desc')
