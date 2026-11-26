@@ -20,8 +20,8 @@ class ManageProducts extends ManageRecords
             CreateAction::make()
                 // Ícono del botón "Crear producto".
                 ->icon(Heroicon::OutlinedPlus)
-                // Al cargar mercadería nueva se crean varios seguidos.
-                ->createAnother(true)
+                // Sin "Crear y crear otro": el modal solo guarda o cancela.
+                ->createAnother(false)
                 // Ícono del modal.
                 ->modalIcon(Heroicon::OutlinedShoppingBag)
                 // Ayuda debajo del título.
