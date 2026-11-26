@@ -126,11 +126,15 @@ class ProductCategoryResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            // En el celular cada fila es una tarjeta (ver .orions-stack-* en filament/admin/styles.blade.php).
+            ->stackedOnMobile()
             // Columnas.
             ->columns([
                 // Nombre.
                 TextColumn::make('nombre')
                     ->label('Nombre')
+                    // En el celular es el título de la tarjeta.
+                    ->extraCellAttributes(['class' => 'orions-stack-title'])
                     ->searchable(),
                 // Posición.
                 TextColumn::make('orden')

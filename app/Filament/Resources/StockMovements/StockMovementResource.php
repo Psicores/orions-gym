@@ -80,6 +80,8 @@ class StockMovementResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            // En el celular cada fila es una tarjeta (ver .orions-stack-* en filament/admin/styles.blade.php).
+            ->stackedOnMobile()
             // Trae producto y persona en la misma consulta.
             ->modifyQueryUsing(fn ($query) => $query->with(['product', 'registradoPor']))
             ->columns([
@@ -91,6 +93,8 @@ class StockMovementResource extends Resource
                 // Qué producto.
                 TextColumn::make('product.nombre')
                     ->label('Producto')
+                    // En el celular es el título de la tarjeta.
+                    ->extraCellAttributes(['class' => 'orions-stack-title'])
                     ->searchable(),
                 // Tipo como etiqueta de color.
                 TextColumn::make('tipo')
@@ -105,7 +109,9 @@ class StockMovementResource extends Resource
                     ->label('Stock después'),
                 // Quién.
                 TextColumn::make('registradoPor.name')
-                    ->label('Registró'),
+                    ->label('Registró')
+                    // Solo en pantallas grandes.
+                    ->visibleFrom('sm'),
                 // Detalle.
                 TextColumn::make('nota')
                     ->label('Nota')

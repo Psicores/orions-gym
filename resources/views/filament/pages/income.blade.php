@@ -73,9 +73,9 @@
                     <tr>
                         <th>{{ $this->originLabel($origin) }}</th>
                         @foreach ($methods as $method)
-                            <td>{{ $this->money($totals[$origin][$method->value]) }}</td>
+                            <td data-label="{{ $method->getLabel() }}">{{ $this->money($totals[$origin][$method->value]) }}</td>
                         @endforeach
-                        <td>{{ $this->money($totals[$origin]['total']) }}</td>
+                        <td data-label="Total">{{ $this->money($totals[$origin]['total']) }}</td>
                     </tr>
                 @endforeach
             </tbody>
@@ -83,9 +83,9 @@
                 <tr>
                     <th>Total</th>
                     @foreach ($methods as $method)
-                        <td>{{ $this->money($totals['total'][$method->value]) }}</td>
+                        <td data-label="{{ $method->getLabel() }}">{{ $this->money($totals['total'][$method->value]) }}</td>
                     @endforeach
-                    <td>{{ $this->money($totals['total']['total']) }}</td>
+                    <td data-label="Total">{{ $this->money($totals['total']['total']) }}</td>
                 </tr>
             </tfoot>
         </table>
@@ -110,12 +110,12 @@
                     @foreach ($byUser as $row)
                         <tr>
                             <th>{{ $row['name'] }}</th>
-                            <td>{{ $this->money($row['cuota']) }}</td>
-                            <td>{{ $this->money($row['kiosco']) }}</td>
+                            <td data-label="Cuotas">{{ $this->money($row['cuota']) }}</td>
+                            <td data-label="Kiosco">{{ $this->money($row['kiosco']) }}</td>
                             @foreach ($methods as $method)
-                                <td>{{ $this->money($row[$method->value]) }}</td>
+                                <td data-label="{{ $method->getLabel() }}">{{ $this->money($row[$method->value]) }}</td>
                             @endforeach
-                            <td>{{ $this->money($row['total']) }}</td>
+                            <td data-label="Total">{{ $this->money($row['total']) }}</td>
                         </tr>
                     @endforeach
                 </tbody>
@@ -142,12 +142,12 @@
                     @foreach ($byDay as $row)
                         <tr>
                             <th>{{ \Carbon\CarbonImmutable::parse($row['day'])->format('d/m') }}</th>
-                            <td>{{ $this->money($row['cuota']) }}</td>
-                            <td>{{ $this->money($row['kiosco']) }}</td>
+                            <td data-label="Cuotas">{{ $this->money($row['cuota']) }}</td>
+                            <td data-label="Kiosco">{{ $this->money($row['kiosco']) }}</td>
                             @foreach ($methods as $method)
-                                <td>{{ $this->money($row[$method->value]) }}</td>
+                                <td data-label="{{ $method->getLabel() }}">{{ $this->money($row[$method->value]) }}</td>
                             @endforeach
-                            <td>{{ $this->money($row['total']) }}</td>
+                            <td data-label="Total">{{ $this->money($row['total']) }}</td>
                         </tr>
                     @endforeach
                 </tbody>
@@ -174,12 +174,12 @@
                 <tbody>
                     @foreach ($entries as $entry)
                         <tr>
-                            <td>{{ $entry->fecha->format('d/m H:i') }}</td>
-                            <td>{{ $this->originLabel($entry->origen) }}</td>
-                            <td>{{ $entry->detalle }}</td>
-                            <td><x-filament::badge :color="$entry->metodo->getColor()" size="sm">{{ $entry->metodo->getLabel() }}</x-filament::badge></td>
-                            <td>{{ $entry->userName }}</td>
-                            <td>{{ $this->money($entry->cents) }}</td>
+                            <td data-label="Fecha">{{ $entry->fecha->format('d/m H:i') }}</td>
+                            <td data-label="Origen">{{ $this->originLabel($entry->origen) }}</td>
+                            <td data-label="Detalle">{{ $entry->detalle }}</td>
+                            <td data-label="Medio"><x-filament::badge :color="$entry->metodo->getColor()" size="sm">{{ $entry->metodo->getLabel() }}</x-filament::badge></td>
+                            <td data-label="Cobró">{{ $entry->userName }}</td>
+                            <td data-label="Monto">{{ $this->money($entry->cents) }}</td>
                         </tr>
                     @endforeach
                 </tbody>
@@ -240,8 +240,24 @@
 
         .orions-income-cards {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+            /* Hasta 9 rem por tarjeta: en el celular entran los medios de a dos. */
+            grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
             gap: 1rem;
+        }
+
+        /* En el celular el total ocupa toda la fila y los medios quedan debajo, de a dos. */
+        @media (max-width: 639.98px) {
+            .orions-income-cards {
+                gap: 0.75rem;
+            }
+
+            .orions-income-card.is-main {
+                grid-column: 1 / -1;
+            }
+
+            .orions-income-card:not(.is-main) .orions-income-amount {
+                font-size: 1.5rem;
+            }
         }
 
         .orions-income-card {
@@ -326,6 +342,78 @@
         .orions-income-detail td:nth-child(3) {
             white-space: normal;
             min-width: 10rem;
+        }
+
+        /*
+            Celular (menos de 640 px): cada fila de las tablas es una tarjeta. El encabezado de la
+            fila (Cuotas, Kiosco, la persona o el día) va arriba, y cada dato en un renglón con su
+            etiqueta (data-label) a la izquierda. En el detalle, la fecha hace de título.
+        */
+        @media (max-width: 639.98px) {
+            .orions-income-table,
+            .orions-income-table :is(tbody, tfoot, tr, th, td) {
+                display: block;
+                width: 100%;
+            }
+
+            .orions-income-table thead {
+                display: none;
+            }
+
+            .orions-income-table tr {
+                padding-block: 0.625rem;
+                border-bottom: 1px solid var(--gray-200);
+            }
+
+            .dark .orions-income-table tr {
+                border-bottom-color: rgb(255 255 255 / 0.08);
+            }
+
+            .orions-income-table :is(th, td) {
+                padding: 0.125rem 0;
+                border-bottom: 0;
+            }
+
+            .orions-income-table tbody th,
+            .orions-income-table tfoot th {
+                font-size: 1rem;
+                text-align: start;
+            }
+
+            .orions-income-table td[data-label] {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 1rem;
+                white-space: normal;
+                text-align: end;
+            }
+
+            .orions-income-table td[data-label]::before {
+                content: attr(data-label);
+                flex: none;
+                color: var(--gray-500);
+                font-size: 0.8125rem;
+                font-weight: 500;
+            }
+
+            /* Detalle: la fecha va como título de la tarjeta, sin etiqueta. */
+            .orions-income-detail :is(th, td):nth-child(-n + 5) {
+                text-align: end;
+            }
+
+            .orions-income-detail td:first-child {
+                font-weight: 600;
+                text-align: start;
+            }
+
+            .orions-income-detail td:first-child::before {
+                content: none;
+            }
+
+            .orions-income-detail td:nth-child(3) {
+                min-width: 0;
+            }
         }
 
         .orions-income-empty {

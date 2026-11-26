@@ -232,6 +232,8 @@ class ProductResource extends Resource
         return $table
             // Título de cada fila en mensajes y confirmaciones.
             ->recordTitleAttribute('nombre')
+            // En el celular cada producto es una tarjeta (ver .orions-stack-* en filament/admin/styles.blade.php).
+            ->stackedOnMobile()
             // Trae la categoría en la misma consulta.
             ->modifyQueryUsing(fn ($query) => $query->with('category'))
             ->columns([
@@ -240,10 +242,14 @@ class ProductResource extends Resource
                     ->label('')
                     ->disk('public')
                     ->square()
-                    ->imageSize(40),
+                    ->imageSize(40)
+                    // En el celular no entra: la tarjeta arranca por el nombre.
+                    ->visibleFrom('sm'),
                 // Nombre, buscable.
                 TextColumn::make('nombre')
                     ->label('Nombre')
+                    // En el celular es el título de la tarjeta.
+                    ->extraCellAttributes(['class' => 'orions-stack-title'])
                     ->searchable()
                     ->sortable(),
                 // Código de barras: oculto por defecto, pero se busca por él.
@@ -261,7 +267,9 @@ class ProductResource extends Resource
                 // Categoría.
                 TextColumn::make('category.nombre')
                     ->label('Categoría')
-                    ->placeholder('—'),
+                    ->placeholder('—')
+                    // En el celular se filtra por categoría; no hace falta en cada tarjeta.
+                    ->visibleFrom('sm'),
                 // Precio de lista.
                 TextColumn::make('precio')
                     ->label('Precio')
@@ -284,11 +292,17 @@ class ProductResource extends Resource
                 IconColumn::make('destacado')
                     ->label('Destacado')
                     ->boolean()
-                    ->toggleable(),
+                    // "No" en gris: no es un error.
+                    ->falseColor('gray')
+                    ->toggleable()
+                    // Solo en monitores grandes: en una notebook deja lugar a los botones.
+                    ->visibleFrom('2xl'),
                 // Activo.
                 IconColumn::make('activo')
                     ->label('Activo')
-                    ->boolean(),
+                    ->boolean()
+                    // "No" en gris: no es un error.
+                    ->falseColor('gray'),
             ])
             // Alfabético.
             ->defaultSort('nombre')
@@ -305,7 +319,10 @@ class ProductResource extends Resource
             ])
             ->recordActions([
                 // Sumar unidades que llegaron (todo el personal).
-                StockActions::receive(),
+                StockActions::receive()
+                    // Texto corto en la fila, para que entren los botones en una notebook (la ventana dice "Cargar mercadería").
+                    ->label('Cargar')
+                    ->tooltip('Cargar mercadería que llegó'),
                 // Editar en una ventana modal (solo administradores, ver ProductPolicy).
                 EditAction::make()
                     ->modalIcon(Heroicon::OutlinedPencilSquare)
