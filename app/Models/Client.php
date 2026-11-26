@@ -230,6 +230,100 @@ class Client extends Authenticatable
     }
 
     /**
+     * Indica si se le puede mandar un aviso por WhatsApp al socio.
+     *
+     * Precondiciones:
+     * - Ninguna.
+     *
+     * Postcondiciones:
+     * - Devuelve true solo si aceptó avisos por WhatsApp (acepta_avisos_whatsapp) y tiene un
+     *   celular válido (hasValidCel()).
+     * - No modifica nada.
+     *
+     * @return bool true si se le puede escribir.
+     */
+    public function canReceiveWhatsAppNotices(): bool
+    {
+        // Las dos condiciones: consentimiento y un número al que escribir.
+        return (bool) $this->acepta_avisos_whatsapp && $this->hasValidCel();
+    }
+
+    /**
+     * Arma el mensaje del aviso por WhatsApp según el vencimiento del socio.
+     *
+     * Precondiciones:
+     * - config('gym.whatsapp') tiene los textos expiring, expired y general, y config('gym.name')
+     *   el nombre del gimnasio.
+     *
+     * Postcondiciones:
+     * - Sin fecha de vencimiento: el texto "general".
+     * - Con vencimiento hoy o más adelante: el texto "expiring" (recordatorio).
+     * - Con vencimiento anterior a hoy: el texto "expired" (cuota vencida).
+     * - En el texto elegido, :nombre queda reemplazado por el nombre del socio, :gimnasio por el
+     *   nombre del gimnasio y :fecha por el vencimiento en formato dd/mm/aaaa.
+     * - No modifica nada.
+     *
+     * @return string Mensaje listo para enviar.
+     */
+    public function whatsAppNoticeMessage(): string
+    {
+        // Vencimiento del socio (null si no tiene).
+        $expiration = $this->fecha_vencimiento;
+
+        // Elige el texto según el vencimiento.
+        $key = match (true) {
+            // Sin vencimiento: saludo general.
+            $expiration === null => 'general',
+            // Ya venció (antes de hoy).
+            $expiration->copy()->startOfDay()->isBefore(today()) => 'expired',
+            // Vence hoy o más adelante.
+            default => 'expiring',
+        };
+
+        // Completa los datos del socio y del gimnasio.
+        return strtr((string) config("gym.whatsapp.{$key}"), [
+            // Nombre de pila del socio.
+            ':nombre' => $this->nombre,
+            // Cómo se presenta el gimnasio.
+            ':gimnasio' => (string) config('gym.name'),
+            // Vencimiento en formato argentino (vacío si no tiene).
+            ':fecha' => $expiration?->format('d/m/Y') ?? '',
+        ]);
+    }
+
+    /**
+     * Enlace que abre WhatsApp con el aviso ya escrito para este socio.
+     *
+     * No usa la API oficial: es un enlace wa.me que abre la app (o WhatsApp Web) de quien lo toca,
+     * con el número y el mensaje cargados; esa persona lo envía desde su propio WhatsApp.
+     *
+     * Precondiciones:
+     * - Ninguna.
+     *
+     * Postcondiciones:
+     * - Si el socio puede recibir avisos (canReceiveWhatsAppNotices()): devuelve
+     *   "https://wa.me/<número sin +>?text=<mensaje codificado>", con el mensaje de
+     *   whatsAppNoticeMessage().
+     * - Si no: devuelve null.
+     * - No modifica nada.
+     *
+     * @return string|null El enlace, o null si no se le puede escribir.
+     */
+    public function whatsAppNoticeUrl(): ?string
+    {
+        // Sin consentimiento o sin un celular válido no hay enlace.
+        if (! $this->canReceiveWhatsAppNotices()) {
+            return null;
+        }
+
+        // wa.me pide el número internacional solo con dígitos ("+5492804123456" => "5492804123456").
+        $number = ltrim((string) $this->cel, '+');
+
+        // Enlace con el mensaje codificado para la URL.
+        return 'https://wa.me/'.$number.'?text='.rawurlencode($this->whatsAppNoticeMessage());
+    }
+
+    /**
      * Indica si el cliente tiene el descuento de socios en el kiosco.
      *
      * Precondiciones:

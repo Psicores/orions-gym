@@ -4,6 +4,7 @@ namespace App\Filament\Widgets;
 
 use App\Enums\ClientStatusEnum;
 use App\Filament\Resources\Clients\Actions\RegisterPaymentAction;
+use App\Filament\Resources\Clients\Actions\WhatsAppNoticeAction;
 use App\Filament\Resources\Clients\ClientResource;
 use App\Models\Client;
 use Filament\Tables\Columns\TextColumn;
@@ -119,6 +120,12 @@ class ClientsToCollect extends TableWidget
                 RegisterPaymentAction::make()
                     // Texto corto para la fila.
                     ->label('Cobrar'),
+                // Aviso de la cuota por WhatsApp, solo para quien aceptó avisos y tiene celular válido.
+                WhatsAppNoticeAction::make()
+                    // Texto corto para la fila.
+                    ->label('WhatsApp')
+                    // En la lista no se muestra deshabilitado: directamente no aparece.
+                    ->onlyWhenAvailable(),
             ])
             // Opciones de filas por página.
             ->paginated([5, 10, 25])
