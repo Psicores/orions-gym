@@ -118,7 +118,7 @@ class Kiosk extends Page
      * - Ninguna.
      *
      * Postcondiciones:
-     * - Si el texto es exactamente el código de barras o el SKU de un producto activo, lo agrega.
+     * - Si el texto es exactamente el código de barras de un producto activo, lo agrega.
      * - Si no, y la búsqueda deja un solo producto en la grilla, agrega ese.
      * - Si no, avisa que no encontró el código y deja el texto para corregirlo.
      */
@@ -135,7 +135,7 @@ class Kiosk extends Page
         // Código exacto de un producto a la venta.
         $product = Product::query()
             ->where('activo', true)
-            ->where(fn (Builder $query): Builder => $query->where('barcode', $code)->orWhere('sku', $code))
+            ->where('barcode', $code)
             ->first();
 
         // Si no, el único resultado de la búsqueda.
@@ -339,7 +339,7 @@ class Kiosk extends Page
      *
      * Postcondiciones:
      * - Productos activos de la categoría elegida (o de todas) que coinciden con la búsqueda por
-     *   nombre, código de barras o SKU.
+     *   nombre o código de barras.
      * - Orden: destacados, después los más vendidos de los últimos BEST_SELLER_DAYS días, después
      *   alfabético. Hasta GRID_LIMIT productos. No modifica nada.
      *
@@ -358,8 +358,7 @@ class Kiosk extends Page
             // Búsqueda.
             ->when($search !== '', fn (Builder $query): Builder => $query->where(fn (Builder $query): Builder => $query
                 ->where('nombre', 'like', "%{$search}%")
-                ->orWhere('barcode', $search)
-                ->orWhere('sku', $search)))
+                ->orWhere('barcode', $search)))
             // Unidades vendidas en los últimos días (ventas no anuladas).
             ->withSum(['saleItems as vendidos' => fn (Builder $query): Builder => $query
                 ->where('created_at', '>=', now()->subDays(self::BEST_SELLER_DAYS))
