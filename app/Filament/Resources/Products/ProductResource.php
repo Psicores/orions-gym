@@ -76,8 +76,10 @@ class ProductResource extends Resource
      *
      * Postcondiciones:
      * - Obligatorios: nombre y precio. Opcionales: categoría, precio en efectivo, costo, código
-     *   de barras, SKU, stock mínimo y foto.
-     * - El código de barras y el SKU no se repiten entre productos (tampoco con los dados de baja).
+     *   de barras, stock mínimo y foto.
+     * - El código de barras no se repite entre productos (tampoco con los dados de baja).
+     * - No pide SKU: la columna sigue en la base solo para marcar los productos de ejemplo
+     *   (ver DemoKioskSeeder::SKU_PREFIX); editar un producto no lo toca.
      * - Los importes quedan entre 0 y 99.999.999,99.
      * - La foto se guarda achicada (600×600 como máximo) y liviana (ver ImageOptimizer).
      * - El stock no se carga acá.
@@ -125,15 +127,6 @@ class ProductResource extends Resource
                     ->maxLength(64)
                     // No se repite (ignora el propio al editar).
                     ->unique(Product::class, 'barcode', ignoreRecord: true)
-                    // Mensaje claro si ya existe.
-                    ->validationMessages(['unique' => 'Ese código ya lo tiene otro producto (puede estar dado de baja).']),
-                // Código interno.
-                TextInput::make('sku')
-                    ->label('Código interno (SKU)')
-                    ->helperText('Opcional.')
-                    ->maxLength(64)
-                    // No se repite (ignora el propio al editar).
-                    ->unique(Product::class, 'sku', ignoreRecord: true)
                     // Mensaje claro si ya existe.
                     ->validationMessages(['unique' => 'Ese código ya lo tiene otro producto (puede estar dado de baja).']),
                 // Costo para el gimnasio.
@@ -221,7 +214,7 @@ class ProductResource extends Resource
      * Postcondiciones:
      * - Muestra foto, nombre, categoría, precios y stock (en ámbar si está en el mínimo o por
      *   debajo; una raya si no se controla), destacado y activo.
-     * - Se busca por nombre, código de barras o SKU; se filtra por categoría, activo y bajas.
+     * - Se busca por nombre o código de barras; se filtra por categoría, activo y bajas.
      * - Los botones de editar, dar de baja y restaurar solo aparecen para administradores.
      *
      * @param  Table  $table  Tabla vacía que entrega Filament.
@@ -255,12 +248,6 @@ class ProductResource extends Resource
                 // Código de barras: oculto por defecto, pero se busca por él.
                 TextColumn::make('barcode')
                     ->label('Código de barras')
-                    ->searchable()
-                    ->placeholder('—')
-                    ->toggleable(isToggledHiddenByDefault: true),
-                // SKU: oculto por defecto, pero se busca por él.
-                TextColumn::make('sku')
-                    ->label('SKU')
                     ->searchable()
                     ->placeholder('—')
                     ->toggleable(isToggledHiddenByDefault: true),

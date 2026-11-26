@@ -115,7 +115,7 @@ Técnico: `Announcement`, tabla `announcement_client`, `AnnouncementResource`.
 **Qué resuelve.** Vender bebidas, suplementos y ropa en recepción con control de stock y de caja,
 sin un sistema aparte.
 
-- **Productos y categorías:** código de barras y SKU opcionales, precio de lista, precio en
+- **Productos y categorías:** código de barras opcional, precio de lista, precio en
   efectivo, costo, foto liviana, destacado, activo, baja lógica.
 - **Stock con historial:** cargar mercadería (todo el personal), ajustar tras contar (solo
   administradores, con motivo), movimientos de solo lectura, lista "Para reponer".
