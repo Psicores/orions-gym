@@ -140,6 +140,7 @@ Muestra a los clientes Entrenando, En pausa o Activo temporal cuyo vencimiento *
 - **Buscar:** por nombre, apellido o DNI.
 - **Clic en la fila:** abre la ficha del cliente.
 - **Cobrar:** abre el cobro sin salir del Escritorio.
+- **WhatsApp:** abre WhatsApp con el aviso de la cuota ya escrito. Solo aparece en los socios que aceptaron avisos y tienen un celular válido (ver [Avisar a un socio por WhatsApp](#avisar-a-un-socio-por-whatsapp)).
 
 Los clientes Inactivos y los que no tienen vencimiento no aparecen.
 
@@ -203,6 +204,7 @@ Arriba a la derecha están los botones de la ficha:
 | --- | --- | --- |
 | **Registrar pago** | Abre el cobro | Siempre. Queda deshabilitado si no hay una membresía a la que cobrarle |
 | **Dar cortesía** | Deja entrar al socio aunque su fecha haya terminado | Solo si la membresía vigente está Entrenando o En pausa |
+| **Avisar por WhatsApp** | Abre WhatsApp con el aviso de la cuota ya escrito | Siempre. Queda deshabilitado si el socio no aceptó avisos o no tiene un celular válido |
 | **Restablecer contraseña** | Devuelve la contraseña del portal al DNI | Solo si el socio ya eligió una contraseña propia |
 | **Editar** | Abre el formulario de datos | Siempre |
 
@@ -372,6 +374,28 @@ Para evitarlo, después de cobrar:
 1. Abrí la ficha del cliente.
 2. Pasá a la pestaña **Pagos**.
 3. Para ver solo efectivo o solo transferencias, usá el **filtro** de medio de pago. El **Total** al pie suma lo que estás viendo.
+
+### Avisar a un socio por WhatsApp
+
+Sirve para recordarle a un socio que su cuota vence o avisarle que ya venció. El sistema no manda el mensaje solo: abre WhatsApp con el número y el texto ya escritos, y lo enviás vos desde el WhatsApp del celular o la computadora que estés usando.
+
+1. Abrí la ficha del socio y tocá **Avisar por WhatsApp**, o tocá **WhatsApp** en su fila de la lista **Para cobrar** del Escritorio.
+2. Se abre WhatsApp (la app o WhatsApp Web) en otra pestaña, con el chat del socio y el mensaje cargado.
+3. Si querés, cambiá el texto antes de mandarlo.
+4. Tocá **Enviar**.
+
+El mensaje se elige solo según el vencimiento:
+
+| Situación | Mensaje |
+| --- | --- |
+| Vence hoy o más adelante | "¡Hola Ana! Te escribimos de Orions para recordarte que tu cuota vence el 30/11/2026…" |
+| Ya venció | "¡Hola Ana! Te escribimos de Orions: tu cuota venció el 06/11/2026. Cuando puedas, pasá por recepción…" |
+| No tiene vencimiento | "¡Hola Ana! Te escribimos de Orions." |
+
+**Solo para quien lo aceptó.** El botón funciona si el socio marcó **Acepta avisos de su cuenta por WhatsApp** y tiene un celular válido. En la ficha, si falta algo, el botón aparece gris y al pasar por encima dice qué falta. En la lista **Para cobrar** directamente no aparece.
+
+- **No aceptó avisos:** se marca en **Editar → Avisos**, solo si el socio está de acuerdo. También lo puede cambiar él desde **Mi cuenta** en su portal.
+- **Celular no válido:** corregilo en **Editar**.
 
 ### Si un pago se cargó mal
 
@@ -759,6 +783,7 @@ Lo que un profe no puede usar no le aparece en el menú, y si abre la dirección
 | Pasar al dominio definitivo | Cambiar `APP_URL` en el `.env`, correr `php artisan config:cache` y reimprimir todos los QR de ingreso |
 | Destrabar a alguien del personal que perdió su celular | `php artisan staff:disable-two-factor su@email.com` |
 | Obligar al personal a usar verificación en dos pasos | Hoy es opcional. Para obligarla: `STAFF_TWO_FACTOR_REQUIRED=true` en el `.env` y `php artisan config:cache` |
+| Cambiar cómo se presenta el gimnasio en los avisos por WhatsApp | `GYM_NAME=...` en el `.env` y `php artisan config:cache`. Los textos están en `config/gym.php` (`whatsapp`) |
 | Borrar los clientes y anuncios de ejemplo | `php artisan demo:remove` |
 | Correr a mano el cierre de meses | `php artisan memberships:update-completed-cycles` |
 | Correr a mano la red de seguridad de renovaciones | `php artisan memberships:renew-credits` |
@@ -779,6 +804,6 @@ Las tareas automáticas de la madrugada solo corren si el servidor tiene activad
 - Cobrar en línea con una pasarela de pago.
 - Reservar turnos o clases.
 - Registrar la salida del gimnasio.
-- Mandar los avisos por WhatsApp: ya se guardan el celular y los permisos de cada socio, pero el envío todavía no existe.
+- Mandar los avisos por WhatsApp de forma automática: hoy el botón abre WhatsApp con el mensaje escrito y lo envía una persona del gimnasio.
 
 El detalle técnico (instalación, despliegue y seguridad) está en el archivo `README.md` del proyecto.

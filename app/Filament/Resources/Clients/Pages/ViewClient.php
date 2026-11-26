@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Clients\Pages;
 use App\Filament\Resources\Clients\Actions\GrantCourtesyAction;
 use App\Filament\Resources\Clients\Actions\RegisterPaymentAction;
 use App\Filament\Resources\Clients\Actions\ResetMemberPasswordAction;
+use App\Filament\Resources\Clients\Actions\WhatsAppNoticeAction;
 use App\Filament\Resources\Clients\ClientResource;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
@@ -46,7 +47,8 @@ class ViewClient extends ViewRecord
      *
      * Postcondiciones:
      * - Ofrece, en este orden: registrar un pago, dar cortesía a la membresía vigente
-     *   (solo si tiene una Entrenando o En pausa), restablecer la contraseña del portal
+     *   (solo si tiene una Entrenando o En pausa), avisar por WhatsApp (deshabilitado si no
+     *   aceptó avisos o no tiene un celular válido), restablecer la contraseña del portal
      *   (solo si el socio ya eligió una propia) y editar los datos del cliente.
      *
      * @return array<Action>
@@ -59,6 +61,8 @@ class ViewClient extends ViewRecord
             RegisterPaymentAction::make(),
             // Cortesía sobre la membresía vigente; con borde para que no compita con el cobro.
             GrantCourtesyAction::make()->outlined(),
+            // Aviso de la cuota por WhatsApp (deshabilitado si no aceptó avisos o no tiene celular válido).
+            WhatsAppNoticeAction::make()->outlined(),
             // Para el socio que olvidó su contraseña: vuelve a entrar con el DNI.
             ResetMemberPasswordAction::make()->outlined(),
             // Pasa al formulario de datos del cliente.

@@ -52,4 +52,41 @@ return [
         'stock_mode' => env('KIOSK_STOCK_MODE', 'warn'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Nombre del gimnasio
+    |--------------------------------------------------------------------------
+    |
+    | Cómo se presenta el gimnasio en los mensajes a los socios (por ejemplo, los
+    | avisos por WhatsApp). Sin GYM_NAME en el .env dice "el gimnasio".
+    |
+    */
+
+    'name' => env('GYM_NAME', 'el gimnasio'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Avisos por WhatsApp
+    |--------------------------------------------------------------------------
+    |
+    | Textos del botón "Avisar por WhatsApp" (ficha del cliente y lista "Para
+    | cobrar"). El botón abre WhatsApp con el mensaje ya escrito y la persona lo
+    | envía desde su propio WhatsApp: no usa la API oficial. Solo aparece para
+    | los socios que aceptaron avisos y tienen un celular válido.
+    |
+    | Reemplazos: :nombre (nombre del socio), :gimnasio (gym.name) y :fecha
+    | (vencimiento, dd/mm/aaaa).
+    |
+    | expiring: el vencimiento es hoy o más adelante.
+    | expired: el vencimiento ya pasó.
+    | general: el socio no tiene vencimiento.
+    |
+    */
+
+    'whatsapp' => [
+        'expiring' => '¡Hola :nombre! Te escribimos de :gimnasio para recordarte que tu cuota vence el :fecha. Podés renovarla en recepción o por transferencia. ¡Gracias!',
+        'expired' => '¡Hola :nombre! Te escribimos de :gimnasio: tu cuota venció el :fecha. Cuando puedas, pasá por recepción para renovarla. ¡Te esperamos!',
+        'general' => '¡Hola :nombre! Te escribimos de :gimnasio.',
+    ],
+
 ];
